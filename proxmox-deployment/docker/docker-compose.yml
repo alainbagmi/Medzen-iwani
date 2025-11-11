@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  ehrbase-studio:
+    image: ehrbase/ehrbase-studio:latest
+    container_name: ehrbase-studio
+    hostname: ehrbase-studio
+    ports:
+      - "8081:8081"
+    environment:
+      # Update this URL to match your EHRbase API
+      EHRBASE_REST_URL: "https://ehr.medzenhealth.app/ehrbase/rest"
+
+      # Optional: Customize Studio
+      STUDIO_TITLE: "MedZen Iwani EHRbase Studio"
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    networks:
+      - ehrbase-network
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# If connecting to existing EHRbase network, use external network
+networks:
+  ehrbase-network:
+    driver: bridge
+    # If EHRbase already has a network, use:
+    # external: true
+    # name: ehrbase-network

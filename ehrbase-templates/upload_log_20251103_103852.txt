@@ -1,0 +1,292 @@
+OpenEHR Template Upload Log - Mon Nov  3 10:38:52 EST 2025
+========================================
+
+Found 67 OPT templates to upload
+
+Uploading: action test
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Allergies
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Anamnese
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: BMI
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: careplan.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: clinical_content_validation
+   Error: {"error":"Bad Request","message":"The supplied template is not supported (unsupported types: ITEM_TABLE)"}
+
+Uploading: COLNEC Health Risk Assessment
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: COLNEC Medication
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: COLNEC Patient Blood Pressure.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: COLNEC Personal Activity Action
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: COLNEC Personal Activity
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: COLNEC_history_of_past_illness
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: DiADeM Assessment.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: DiADeM Assessment.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: ECIS EVALUATION TEST
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: ehrbase_blood_pressure_simple.de.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Generic Laboratory Test Report.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR  - Generic MDT Output Report
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR  - Laboratory Order
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Adverse Reaction List.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - End of Life Patient Preferences.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Immunisation summary.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Laboratory Order.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Laboratory Test Report.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Medication List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Medication Statement List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Minimal MDT Output Report.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Problem List.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Procedures List.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Relevant contacts.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Service Request.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Transfer of Care Summary TEST.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR - Vital Signs Encounter.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR Allergies List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR Medication List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR Problem List.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR Procedures List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: IDCR-LaboratoryTestReport
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: iEHR - Healthlink - Discharge Sumary.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: LabResults1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: LCR Medication List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: LCR Problem List
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: LCR Relevant Contacts List.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: minimal_instruction
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: minimal_observation
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: NCHCD - Clinical notes.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: nested.en.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: non_unique_aql_paths
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: patient_blood_pressure.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Patientenaufenthalt
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: person anonymised parent
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: prescription
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: PSKY - Healthcheck.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: RIPPLE - Clinical Notes.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: RIPPLE - Minimal referral.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: RIPPLE - Personal Notes.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Ripple Dashboard Cache.v1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Ripple PROMS.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: RIPPLE-Conformance Test
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: RIPPLE-ConformanceTest
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: section  observation test
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Smart Growth Chart Data.v0
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Stationärer Versorgungsfall
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: UK AoMRC Outpatient Letter
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Virologischer_Befund
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Vital Signs Encounter (Composition)
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+Uploading: Weird Types 1
+   SKIPPED (HTTP 409 Conflict - Template already exists)
+
+========================================
+Upload Summary Report
+========================================
+Total Templates Processed: 67
+Successful Uploads: 0
+Skipped (Already Exist): 66
+Failed Uploads: 1
+
+Success Rate: 98.5%
+
+Failed Templates:
+  • clinical_content_validation (400 Bad Request)
+
+Skipped Templates (Already Exist):
+  • action test (already exists)
+  • Allergies (already exists)
+  • Anamnese (already exists)
+  • BMI (already exists)
+  • careplan.v1 (already exists)
+  • COLNEC Health Risk Assessment (already exists)
+  • COLNEC Medication (already exists)
+  • COLNEC Patient Blood Pressure.v1 (already exists)
+  • COLNEC Personal Activity Action (already exists)
+  • COLNEC Personal Activity (already exists)
+  • COLNEC_history_of_past_illness (already exists)
+  • DiADeM Assessment.v0 (already exists)
+  • DiADeM Assessment.v1 (already exists)
+  • ECIS EVALUATION TEST (already exists)
+  • ehrbase_blood_pressure_simple.de.v0 (already exists)
+  • Generic Laboratory Test Report.v0 (already exists)
+  • IDCR  - Generic MDT Output Report (already exists)
+  • IDCR  - Laboratory Order (already exists)
+  • IDCR - Adverse Reaction List.v1 (already exists)
+  • IDCR - End of Life Patient Preferences.v0 (already exists)
+  • IDCR - Immunisation summary.v0 (already exists)
+  • IDCR - Laboratory Order.v0 (already exists)
+  • IDCR - Laboratory Test Report.v0 (already exists)
+  • IDCR - Medication List.v0 (already exists)
+  • IDCR - Medication Statement List.v0 (already exists)
+  • IDCR - Minimal MDT Output Report.v0 (already exists)
+  • IDCR - Problem List.v1 (already exists)
+  • IDCR - Procedures List.v1 (already exists)
+  • IDCR - Relevant contacts.v0 (already exists)
+  • IDCR - Service Request.v0 (already exists)
+  • IDCR - Transfer of Care Summary TEST.v1 (already exists)
+  • IDCR - Vital Signs Encounter.v1 (already exists)
+  • IDCR Allergies List.v0 (already exists)
+  • IDCR Medication List.v0 (already exists)
+  • IDCR Problem List.v1 (already exists)
+  • IDCR Procedures List.v0 (already exists)
+  • IDCR-LaboratoryTestReport (already exists)
+  • iEHR - Healthlink - Discharge Sumary.v0 (already exists)
+  • LabResults1 (already exists)
+  • LCR Medication List.v0 (already exists)
+  • LCR Problem List (already exists)
+  • LCR Relevant Contacts List.v0 (already exists)
+  • minimal_instruction (already exists)
+  • minimal_observation (already exists)
+  • NCHCD - Clinical notes.v0 (already exists)
+  • nested.en.v1 (already exists)
+  • non_unique_aql_paths (already exists)
+  • patient_blood_pressure.v1 (already exists)
+  • Patientenaufenthalt (already exists)
+  • person anonymised parent (already exists)
+  • prescription (already exists)
+  • PSKY - Healthcheck.v0 (already exists)
+  • RIPPLE - Clinical Notes.v1 (already exists)
+  • RIPPLE - Minimal referral.v0 (already exists)
+  • RIPPLE - Personal Notes.v1 (already exists)
+  • Ripple Dashboard Cache.v1 (already exists)
+  • Ripple PROMS.v0 (already exists)
+  • RIPPLE-Conformance Test (already exists)
+  • RIPPLE-ConformanceTest (already exists)
+  • section  observation test (already exists)
+  • Smart Growth Chart Data.v0 (already exists)
+  • Stationärer Versorgungsfall (already exists)
+  • UK AoMRC Outpatient Letter (already exists)
+  • Virologischer_Befund (already exists)
+  • Vital Signs Encounter (Composition) (already exists)
+  • Weird Types 1 (already exists)
+
+UPLOAD COMPLETED WITH ERRORS
+
+Troubleshooting:
+  1. Check log file: ehrbase-templates/upload_log_20251103_103852.txt
+  2. For 400 errors: Verify XML namespace in OPT files

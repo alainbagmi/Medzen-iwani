@@ -1,0 +1,98 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase",
+        "--project-ref=noaeltglphdlkbflipit"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_23ec83ac5791eea3242897b837182e139c24c99d"
+      }
+    },
+    "firebase-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "firebase-tools@latest",
+        "experimental:mcp"
+      ],
+      "env": {
+        "SERVICE_ACCOUNT_KEY_PATH": "/Users/alainbagmi/Desktop/medzen-id68rn/medzen-bf20e-firebase-adminsdk-fbsvc-bcc983f132.json"
+      }
+    },
+    "openEHR": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "openehr-mcp-server",
+        "python",
+        "src/openehr_mcp_server.py"
+      ],
+      "env": {
+        "EHRBASE_URL": "https://ehr.medzenhealth.app/ehrbase/rest",
+        "EHRBASE_JSON_FORMAT": "wt_flat",
+        "EHRBASE_USERNAME": "ehrbase-admin",
+        "EHRBASE_PASSWORD": "EvenMoreSecretPassword"
+      }
+    },
+    "powersync": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "powersync-mcp-server",
+        "python",
+        "src/powersync_mcp_server.py"
+      ],
+      "env": {
+        "POWERSYNC_URL": "https://68f8702005eb05000765fba5.powersync.journeyapps.com"
+      }
+    },
+    "pfsense": {
+      "command": "pfsense-mcp",
+      "args": [],
+      "env": {
+        "PFSENSE_URL": "https://firegate.mylestechsolutions.com:10443",
+        "AUTH_METHOD": "api_key",
+        "PFSENSE_API_KEY": "6bfdfaf87e478f6eefe3ff2487670c8e",
+        "PFSENSE_VERSION": "CE_2_8_0",
+        "VERIFY_SSL": "false"
+      }
+    },
+    "flutterflow": {
+      "command": "node",
+      "args": [
+        "/Users/alainbagmi/MCP_DETAILS/flutterflow-mcp-server/build/index.js"
+      ],
+      "env": {
+        "FLUTTERFLOW_API_TOKEN": "e4f21534-99c4-4808-9539-65b62d8e47a8"
+      }
+    },
+    "aws-api": {
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-api-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_REGION": "us-east-1",
+        "AWS_PROFILE": "default",
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      }
+    },
+    "proxmox-main": {
+      "command": "/Users/alainbagmi/MCP_DETAILS/.venv/bin/python",
+      "args": [
+        "-m",
+        "proxmox_mcp.server"
+      ],
+      "cwd": "/Users/alainbagmi/MCP_DETAILS",
+      "env": {
+        "PYTHONPATH": "/Users/alainbagmi/MCP_DETAILS/src",
+        "PROXMOX_MCP_CONFIG": "/Users/alainbagmi/MCP_DETAILS/.mcp.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "query": "query GetProviderWithSpecialties($userId: String!) { medical_provider_profilesCollection(filter: {user_id: {eq: $userId}}) { edges { node { id user_id provider_number professional_role primary_specialization primary_specialty_id years_of_experience application_status facility_id created_at updated_at provider_specialtiesCollection { edges { node { specialty_id specialty_type board_certified certification_date years_experience notes is_active } } } } } } }",
+  "variables": {
+    "userId": "your-user-id-here"
+  }
+}

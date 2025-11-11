@@ -1,0 +1,853 @@
+archetype (adl_version=1.5.1)
+    openEHR-EHR-COMPOSITION.medzen_physiotherapy_session.v1
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Health">
+                ["organisation"] = <"MedZen">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-02-11">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"published">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive physiotherapy session including assessment, treatment interventions, rehabilitation progress, and functional outcomes.">
+            use = <"Use for documenting physiotherapy sessions including:
+- Musculoskeletal physiotherapy (orthopedic, sports injuries)
+- Neurological physiotherapy (stroke, spinal cord injury, TBI)
+- Cardiopulmonary physiotherapy (post-cardiac surgery, COPD)
+- Pediatric physiotherapy (developmental delays, cerebral palsy)
+- Geriatric physiotherapy (falls prevention, mobility)
+- Post-surgical rehabilitation
+- Chronic pain management
+- Range of motion and strength assessment
+- Gait and balance training
+- Functional mobility assessment
+- Home exercise program prescription">
+            keywords = <"physiotherapy", "physical therapy", "rehabilitation", "range of motion", "strength", "gait", "balance", "mobility", "exercise", "manual therapy", "electrotherapy", "functional assessment">
+            copyright = <"© MedZen Health 2025">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Pour enregistrer une séance de physiothérapie complète comprenant l'évaluation, les interventions de traitement, les progrès de la réadaptation et les résultats fonctionnels.">
+            use = <"Utiliser pour documenter les séances de physiothérapie incluant:
+- Physiothérapie musculo-squelettique (orthopédique, blessures sportives)
+- Physiothérapie neurologique (AVC, lésion médullaire, TCC)
+- Physiothérapie cardiopulmonaire (post-chirurgie cardiaque, MPOC)
+- Physiothérapie pédiatrique (retards de développement, paralysie cérébrale)
+- Physiothérapie gériatrique (prévention des chutes, mobilité)
+- Réadaptation post-chirurgicale
+- Gestion de la douleur chronique
+- Évaluation de l'amplitude de mouvement et de la force
+- Entraînement de la marche et de l'équilibre
+- Évaluation de la mobilité fonctionnelle
+- Prescription de programme d'exercices à domicile">
+            keywords = <"physiothérapie", "kinésithérapie", "réadaptation", "amplitude de mouvement", "force", "marche", "équilibre", "mobilité", "exercice", "thérapie manuelle", "électrothérapie", "évaluation fonctionnelle">
+            copyright = <"© MedZen Health 2025">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Physiotherapy Session
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0.1]}  -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Primary Condition / Diagnosis
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.19,    -- Musculoskeletal injury
+                                            at0.20,    -- Post-surgical rehabilitation
+                                            at0.21,    -- Stroke / CVA
+                                            at0.22,    -- Spinal cord injury
+                                            at0.23,    -- Traumatic brain injury
+                                            at0.24,    -- Chronic pain syndrome
+                                            at0.25,    -- Arthritis (osteoarthritis, rheumatoid)
+                                            at0.26,    -- Sports injury
+                                            at0.27,    -- Back pain (low back, neck)
+                                            at0.28,    -- Joint replacement (hip, knee)
+                                            at0.29,    -- Fracture rehabilitation
+                                            at0.30,    -- Balance disorder / Falls risk
+                                            at0.31,    -- Cardiopulmonary condition
+                                            at0.32,    -- Developmental delay (pediatric)
+                                            at0.33,    -- Cerebral palsy
+                                            at0.34,    -- Peripheral neuropathy
+                                            at0.35,    -- Parkinson's disease
+                                            at0.36,    -- Multiple sclerosis
+                                            at0.37]    -- Other condition
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Session Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.38,    -- Initial assessment
+                                            at0.39,    -- Follow-up treatment
+                                            at0.40,    -- Interim reassessment
+                                            at0.41,    -- Discharge assessment
+                                            at0.42]    -- Home visit
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Setting
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.43,    -- Outpatient clinic
+                                            at0.44,    -- Inpatient hospital
+                                            at0.45,    -- Home-based
+                                            at0.46,    -- Community center
+                                            at0.47]    -- Tele-rehabilitation
+                                        }
+                                    }
+                                }
+                            }
+                            allow_archetype CLUSTER[id0.11] occurrences matches {0..*} matches {    -- Session Identifiers
+                                include
+                                    archetype_id/value matches {/openEHR-EHR-CLUSTER\.identifier\.v0/}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            allow_archetype SECTION[id0.12] occurrences matches {1} matches {    -- Reason for Referral
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.13] occurrences matches {0..1} matches {    -- Medical History and Comorbidities
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1|openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.14] occurrences matches {0..1} matches {    -- Current Medications and Contraindications
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.medication_summary\.v0|openEHR-EHR-EVALUATION\.contraindication\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.15] occurrences matches {1} matches {    -- Subjective Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.16] occurrences matches {0..1} matches {    -- Pain Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.pain_scale\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.17] occurrences matches {0..1} matches {    -- Vital Signs
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.blood_pressure\.v2|openEHR-EHR-OBSERVATION\.pulse\.v2|openEHR-EHR-OBSERVATION\.respiration\.v2|openEHR-EHR-OBSERVATION\.pulse_oximetry\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.18] occurrences matches {1} matches {    -- Objective Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.19] occurrences matches {0..1} matches {    -- Posture and Alignment Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.20] occurrences matches {0..1} matches {    -- Range of Motion (ROM) Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.21] occurrences matches {0..1} matches {    -- Muscle Strength Testing (MMT)
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.22] occurrences matches {0..1} matches {    -- Flexibility and Muscle Length Testing
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.23] occurrences matches {0..1} matches {    -- Gait Analysis
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.24] occurrences matches {0..1} matches {    -- Balance and Coordination Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.25] occurrences matches {0..1} matches {    -- Functional Mobility Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.26] occurrences matches {0..1} matches {    -- Neurological Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.27] occurrences matches {0..1} matches {    -- Cardiopulmonary Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.28] occurrences matches {0..1} matches {    -- Special Tests
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.29] occurrences matches {0..1} matches {    -- Outcome Measures and Functional Scales
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.30] occurrences matches {1} matches {    -- Clinical Impression / Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1|openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.31] occurrences matches {1} matches {    -- Treatment Interventions Provided
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-ACTION\.procedure\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.32] occurrences matches {0..1} matches {    -- Home Exercise Program
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.therapeutic_good_use\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.33] occurrences matches {0..1} matches {    -- Patient Education
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.therapeutic_good_use\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.34] occurrences matches {0..1} matches {    -- Assistive Devices and Equipment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.device\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.35] occurrences matches {0..1} matches {    -- Progress Towards Goals
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.goal\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.36] occurrences matches {1} matches {    -- Plan and Recommendations
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1|openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.37] occurrences matches {0..1} matches {    -- Discharge Planning
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Physiotherapy Session">
+                    description = <"A comprehensive physiotherapy session documenting assessment, treatment, rehabilitation progress, and functional outcomes.">
+                >
+                ["at0.1"] = <
+                    text = <"event">
+                    description = <"Point-in-time physiotherapy session event.">
+                >
+                ["id0.5"] = <
+                    text = <"Primary Condition / Diagnosis">
+                    description = <"The primary condition being addressed in physiotherapy.">
+                >
+                ["at0.19"] = <
+                    text = <"Musculoskeletal injury">
+                    description = <"Injury to muscles, tendons, ligaments, bones, or joints.">
+                >
+                ["at0.20"] = <
+                    text = <"Post-surgical rehabilitation">
+                    description = <"Rehabilitation following surgery.">
+                >
+                ["at0.21"] = <
+                    text = <"Stroke / CVA">
+                    description = <"Cerebrovascular accident requiring neurological rehabilitation.">
+                >
+                ["at0.22"] = <
+                    text = <"Spinal cord injury">
+                    description = <"Injury to the spinal cord with motor/sensory impairment.">
+                >
+                ["at0.23"] = <
+                    text = <"Traumatic brain injury">
+                    description = <"Brain injury from trauma requiring rehabilitation.">
+                >
+                ["at0.24"] = <
+                    text = <"Chronic pain syndrome">
+                    description = <"Persistent pain requiring pain management and functional restoration.">
+                >
+                ["at0.25"] = <
+                    text = <"Arthritis (osteoarthritis, rheumatoid)">
+                    description = <"Joint disease causing pain and functional limitation.">
+                >
+                ["at0.26"] = <
+                    text = <"Sports injury">
+                    description = <"Injury sustained during athletic activity.">
+                >
+                ["at0.27"] = <
+                    text = <"Back pain (low back, neck)">
+                    description = <"Spinal pain requiring physiotherapy intervention.">
+                >
+                ["at0.28"] = <
+                    text = <"Joint replacement (hip, knee)">
+                    description = <"Post-arthroplasty rehabilitation.">
+                >
+                ["at0.29"] = <
+                    text = <"Fracture rehabilitation">
+                    description = <"Rehabilitation following bone fracture.">
+                >
+                ["at0.30"] = <
+                    text = <"Balance disorder / Falls risk">
+                    description = <"Impaired balance requiring vestibular or balance training.">
+                >
+                ["at0.31"] = <
+                    text = <"Cardiopulmonary condition">
+                    description = <"Heart or lung condition requiring cardiopulmonary rehabilitation.">
+                >
+                ["at0.32"] = <
+                    text = <"Developmental delay (pediatric)">
+                    description = <"Delayed motor development in children.">
+                >
+                ["at0.33"] = <
+                    text = <"Cerebral palsy">
+                    description = <"Movement disorder from brain injury before/during/after birth.">
+                >
+                ["at0.34"] = <
+                    text = <"Peripheral neuropathy">
+                    description = <"Nerve damage causing weakness, numbness, or pain.">
+                >
+                ["at0.35"] = <
+                    text = <"Parkinson's disease">
+                    description = <"Progressive neurological disorder affecting movement.">
+                >
+                ["at0.36"] = <
+                    text = <"Multiple sclerosis">
+                    description = <"Autoimmune disease affecting central nervous system.">
+                >
+                ["at0.37"] = <
+                    text = <"Other condition">
+                    description = <"Other condition not listed.">
+                >
+                ["id0.7"] = <
+                    text = <"Session Type">
+                    description = <"The type of physiotherapy session.">
+                >
+                ["at0.38"] = <
+                    text = <"Initial assessment">
+                    description = <"First comprehensive assessment session.">
+                >
+                ["at0.39"] = <
+                    text = <"Follow-up treatment">
+                    description = <"Subsequent treatment session.">
+                >
+                ["at0.40"] = <
+                    text = <"Interim reassessment">
+                    description = <"Reassessment of progress during treatment course.">
+                >
+                ["at0.41"] = <
+                    text = <"Discharge assessment">
+                    description = <"Final assessment at completion of treatment.">
+                >
+                ["at0.42"] = <
+                    text = <"Home visit">
+                    description = <"Session conducted in patient's home.">
+                >
+                ["id0.9"] = <
+                    text = <"Setting">
+                    description = <"The setting where physiotherapy session takes place.">
+                >
+                ["at0.43"] = <
+                    text = <"Outpatient clinic">
+                    description = <"Clinic-based outpatient session.">
+                >
+                ["at0.44"] = <
+                    text = <"Inpatient hospital">
+                    description = <"Hospital-based inpatient session.">
+                >
+                ["at0.45"] = <
+                    text = <"Home-based">
+                    description = <"Session conducted at patient's home.">
+                >
+                ["at0.46"] = <
+                    text = <"Community center">
+                    description = <"Session at community rehabilitation facility.">
+                >
+                ["at0.47"] = <
+                    text = <"Tele-rehabilitation">
+                    description = <"Virtual session via video conference.">
+                >
+                ["id0.11"] = <
+                    text = <"Session Identifiers">
+                    description = <"Identifiers associated with this physiotherapy session.">
+                >
+                ["id0.12"] = <
+                    text = <"Reason for Referral">
+                    description = <"Primary reason for physiotherapy referral, referring physician, diagnosis.">
+                >
+                ["id0.13"] = <
+                    text = <"Medical History and Comorbidities">
+                    description = <"Relevant medical history, surgeries, comorbid conditions, precautions.">
+                >
+                ["id0.14"] = <
+                    text = <"Current Medications and Contraindications">
+                    description = <"Current medications, anticoagulants, contraindications to specific interventions.">
+                >
+                ["id0.15"] = <
+                    text = <"Subjective Assessment">
+                    description = <"Patient's chief complaint, functional limitations, pain description, goals for therapy.">
+                >
+                ["id0.16"] = <
+                    text = <"Pain Assessment">
+                    description = <"Pain location, intensity (VAS, NRS), character, aggravating/relieving factors.">
+                >
+                ["id0.17"] = <
+                    text = <"Vital Signs">
+                    description = <"Blood pressure, heart rate, respiratory rate, oxygen saturation (particularly for cardiopulmonary patients).">
+                >
+                ["id0.18"] = <
+                    text = <"Objective Assessment">
+                    description = <"Physical examination findings, inspection, palpation, clinical observations.">
+                >
+                ["id0.19"] = <
+                    text = <"Posture and Alignment Assessment">
+                    description = <"Static and dynamic posture, spinal alignment, pelvic alignment, foot position.">
+                >
+                ["id0.20"] = <
+                    text = <"Range of Motion (ROM) Assessment">
+                    description = <"Active and passive ROM of affected joints, goniometric measurements, end-feel assessment.">
+                >
+                ["id0.21"] = <
+                    text = <"Muscle Strength Testing (MMT)">
+                    description = <"Manual muscle testing using 0-5 grading scale, specific muscle groups tested.">
+                >
+                ["id0.22"] = <
+                    text = <"Flexibility and Muscle Length Testing">
+                    description = <"Muscle tightness, joint flexibility, special tests (Thomas test, straight leg raise, etc.).">
+                >
+                ["id0.23"] = <
+                    text = <"Gait Analysis">
+                    description = <"Gait pattern, assistive device use, cadence, step length, deviations, stair climbing.">
+                >
+                ["id0.24"] = <
+                    text = <"Balance and Coordination Assessment">
+                    description = <"Static and dynamic balance, Berg Balance Scale, Timed Up and Go (TUG), single leg stance, coordination tests.">
+                >
+                ["id0.25"] = <
+                    text = <"Functional Mobility Assessment">
+                    description = <"Bed mobility, transfers (sit-to-stand, bed-to-chair), functional reach, activities of daily living (ADLs).">
+                >
+                ["id0.26"] = <
+                    text = <"Neurological Assessment">
+                    description = <"Sensation (light touch, proprioception), reflexes (DTRs), tone (spasticity, rigidity), coordination.">
+                >
+                ["id0.27"] = <
+                    text = <"Cardiopulmonary Assessment">
+                    description = <"Exercise tolerance, dyspnea scale, 6-minute walk test, heart rate response to activity.">
+                >
+                ["id0.28"] = <
+                    text = <"Special Tests">
+                    description = <"Condition-specific tests (Lachman, McMurray, Neer, Hawkins, Phalen, Tinel, etc.).">
+                >
+                ["id0.29"] = <
+                    text = <"Outcome Measures and Functional Scales">
+                    description = <"Standardized scales such as FIM, Barthel Index, LEFS, DASH, Oswestry, NDI, SF-36.">
+                >
+                ["id0.30"] = <
+                    text = <"Clinical Impression / Assessment">
+                    description = <"Physiotherapy diagnosis, impairments identified, functional limitations, prognosis.">
+                >
+                ["id0.31"] = <
+                    text = <"Treatment Interventions Provided">
+                    description = <"Manual therapy (joint mobilization, soft tissue techniques), therapeutic exercises, modalities (heat, ice, ultrasound, electrical stimulation), gait training, balance training.">
+                >
+                ["id0.32"] = <
+                    text = <"Home Exercise Program">
+                    description = <"Prescribed exercises for home, frequency, duration, repetitions, progressions.">
+                >
+                ["id0.33"] = <
+                    text = <"Patient Education">
+                    description = <"Education on condition, self-management strategies, activity modification, ergonomics, body mechanics.">
+                >
+                ["id0.34"] = <
+                    text = <"Assistive Devices and Equipment">
+                    description = <"Assistive devices provided or recommended (cane, walker, crutches, brace, orthosis).">
+                >
+                ["id0.35"] = <
+                    text = <"Progress Towards Goals">
+                    description = <"Assessment of progress towards established rehabilitation goals, functional improvements noted.">
+                >
+                ["id0.36"] = <
+                    text = <"Plan and Recommendations">
+                    description = <"Plan for ongoing treatment, frequency of sessions, anticipated discharge date, referrals to other services.">
+                >
+                ["id0.37"] = <
+                    text = <"Discharge Planning">
+                    description = <"Discharge readiness, discharge recommendations, return to work/sport status, ongoing home exercise program.">
+                >
+            >
+        >
+        ["fr"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Séance de physiothérapie">
+                    description = <"Une séance de physiothérapie complète documentant l'évaluation, le traitement, les progrès de la réadaptation et les résultats fonctionnels.">
+                >
+                ["at0.1"] = <
+                    text = <"événement">
+                    description = <"Événement de séance de physiothérapie ponctuelle.">
+                >
+                ["id0.5"] = <
+                    text = <"Condition / Diagnostic principal">
+                    description = <"La condition principale traitée en physiothérapie.">
+                >
+                ["at0.19"] = <
+                    text = <"Blessure musculo-squelettique">
+                    description = <"Blessure aux muscles, tendons, ligaments, os ou articulations.">
+                >
+                ["at0.20"] = <
+                    text = <"Réadaptation post-chirurgicale">
+                    description = <"Réadaptation après une chirurgie.">
+                >
+                ["at0.21"] = <
+                    text = <"AVC">
+                    description = <"Accident vasculaire cérébral nécessitant une réadaptation neurologique.">
+                >
+                ["at0.22"] = <
+                    text = <"Lésion médullaire">
+                    description = <"Blessure à la moelle épinière avec déficience motrice/sensorielle.">
+                >
+                ["at0.23"] = <
+                    text = <"Traumatisme crânien">
+                    description = <"Blessure au cerveau suite à un traumatisme nécessitant une réadaptation.">
+                >
+                ["at0.24"] = <
+                    text = <"Syndrome de douleur chronique">
+                    description = <"Douleur persistante nécessitant une gestion de la douleur et une restauration fonctionnelle.">
+                >
+                ["at0.25"] = <
+                    text = <"Arthrite (arthrose, polyarthrite rhumatoïde)">
+                    description = <"Maladie articulaire causant douleur et limitation fonctionnelle.">
+                >
+                ["at0.26"] = <
+                    text = <"Blessure sportive">
+                    description = <"Blessure survenue lors d'une activité athlétique.">
+                >
+                ["at0.27"] = <
+                    text = <"Douleur dorsale (lombalgie, cervicalgie)">
+                    description = <"Douleur vertébrale nécessitant une intervention physiothérapeutique.">
+                >
+                ["at0.28"] = <
+                    text = <"Remplacement articulaire (hanche, genou)">
+                    description = <"Réadaptation post-arthroplastie.">
+                >
+                ["at0.29"] = <
+                    text = <"Réadaptation de fracture">
+                    description = <"Réadaptation suite à une fracture osseuse.">
+                >
+                ["at0.30"] = <
+                    text = <"Trouble de l'équilibre / Risque de chute">
+                    description = <"Équilibre altéré nécessitant un entraînement vestibulaire ou de l'équilibre.">
+                >
+                ["at0.31"] = <
+                    text = <"Condition cardiopulmonaire">
+                    description = <"Condition cardiaque ou pulmonaire nécessitant une réadaptation cardiopulmonaire.">
+                >
+                ["at0.32"] = <
+                    text = <"Retard de développement (pédiatrique)">
+                    description = <"Retard du développement moteur chez les enfants.">
+                >
+                ["at0.33"] = <
+                    text = <"Paralysie cérébrale">
+                    description = <"Trouble du mouvement suite à une lésion cérébrale avant/pendant/après la naissance.">
+                >
+                ["at0.34"] = <
+                    text = <"Neuropathie périphérique">
+                    description = <"Lésion nerveuse causant faiblesse, engourdissement ou douleur.">
+                >
+                ["at0.35"] = <
+                    text = <"Maladie de Parkinson">
+                    description = <"Trouble neurologique progressif affectant le mouvement.">
+                >
+                ["at0.36"] = <
+                    text = <"Sclérose en plaques">
+                    description = <"Maladie auto-immune affectant le système nerveux central.">
+                >
+                ["at0.37"] = <
+                    text = <"Autre condition">
+                    description = <"Autre condition non répertoriée.">
+                >
+                ["id0.7"] = <
+                    text = <"Type de séance">
+                    description = <"Le type de séance de physiothérapie.">
+                >
+                ["at0.38"] = <
+                    text = <"Évaluation initiale">
+                    description = <"Première séance d'évaluation complète.">
+                >
+                ["at0.39"] = <
+                    text = <"Traitement de suivi">
+                    description = <"Séance de traitement subséquente.">
+                >
+                ["at0.40"] = <
+                    text = <"Réévaluation intermédiaire">
+                    description = <"Réévaluation des progrès pendant le cours du traitement.">
+                >
+                ["at0.41"] = <
+                    text = <"Évaluation de sortie">
+                    description = <"Évaluation finale à la fin du traitement.">
+                >
+                ["at0.42"] = <
+                    text = <"Visite à domicile">
+                    description = <"Séance effectuée au domicile du patient.">
+                >
+                ["id0.9"] = <
+                    text = <"Cadre">
+                    description = <"Le cadre où se déroule la séance de physiothérapie.">
+                >
+                ["at0.43"] = <
+                    text = <"Clinique externe">
+                    description = <"Séance en clinique externe.">
+                >
+                ["at0.44"] = <
+                    text = <"Hôpital (hospitalisation)">
+                    description = <"Séance hospitalière en hospitalisation.">
+                >
+                ["at0.45"] = <
+                    text = <"À domicile">
+                    description = <"Séance effectuée au domicile du patient.">
+                >
+                ["at0.46"] = <
+                    text = <"Centre communautaire">
+                    description = <"Séance dans un centre de réadaptation communautaire.">
+                >
+                ["at0.47"] = <
+                    text = <"Télé-réadaptation">
+                    description = <"Séance virtuelle par vidéoconférence.">
+                >
+                ["id0.11"] = <
+                    text = <"Identifiants de la séance">
+                    description = <"Identifiants associés à cette séance de physiothérapie.">
+                >
+                ["id0.12"] = <
+                    text = <"Motif de référence">
+                    description = <"Raison principale de la référence en physiothérapie, médecin référent, diagnostic.">
+                >
+                ["id0.13"] = <
+                    text = <"Antécédents médicaux et comorbidités">
+                    description = <"Antécédents médicaux pertinents, chirurgies, conditions comorbides, précautions.">
+                >
+                ["id0.14"] = <
+                    text = <"Médicaments actuels et contre-indications">
+                    description = <"Médicaments actuels, anticoagulants, contre-indications à des interventions spécifiques.">
+                >
+                ["id0.15"] = <
+                    text = <"Évaluation subjective">
+                    description = <"Plainte principale du patient, limitations fonctionnelles, description de la douleur, objectifs de thérapie.">
+                >
+                ["id0.16"] = <
+                    text = <"Évaluation de la douleur">
+                    description = <"Localisation de la douleur, intensité (EVA, NRS), caractère, facteurs aggravants/soulageants.">
+                >
+                ["id0.17"] = <
+                    text = <"Signes vitaux">
+                    description = <"Pression artérielle, fréquence cardiaque, fréquence respiratoire, saturation en oxygène (particulièrement pour les patients cardiopulmonaires).">
+                >
+                ["id0.18"] = <
+                    text = <"Évaluation objective">
+                    description = <"Résultats de l'examen physique, inspection, palpation, observations cliniques.">
+                >
+                ["id0.19"] = <
+                    text = <"Évaluation de la posture et de l'alignement">
+                    description = <"Posture statique et dynamique, alignement vertébral, alignement pelvien, position des pieds.">
+                >
+                ["id0.20"] = <
+                    text = <"Évaluation de l'amplitude de mouvement (ADM)">
+                    description = <"ADM active et passive des articulations affectées, mesures goniométriques, évaluation de la fin de mouvement.">
+                >
+                ["id0.21"] = <
+                    text = <"Test de la force musculaire (TMM)">
+                    description = <"Test musculaire manuel utilisant l'échelle de notation 0-5, groupes musculaires spécifiques testés.">
+                >
+                ["id0.22"] = <
+                    text = <"Test de flexibilité et de longueur musculaire">
+                    description = <"Raideur musculaire, flexibilité articulaire, tests spéciaux (test de Thomas, élévation de la jambe droite, etc.).">
+                >
+                ["id0.23"] = <
+                    text = <"Analyse de la marche">
+                    description = <"Patron de marche, utilisation d'aide technique, cadence, longueur du pas, déviations, montée d'escaliers.">
+                >
+                ["id0.24"] = <
+                    text = <"Évaluation de l'équilibre et de la coordination">
+                    description = <"Équilibre statique et dynamique, échelle d'équilibre de Berg, test chronométré de lever et marcher (TUG), appui unipodal, tests de coordination.">
+                >
+                ["id0.25"] = <
+                    text = <"Évaluation de la mobilité fonctionnelle">
+                    description = <"Mobilité au lit, transferts (assis-debout, lit-chaise), portée fonctionnelle, activités de la vie quotidienne (AVQ).">
+                >
+                ["id0.26"] = <
+                    text = <"Évaluation neurologique">
+                    description = <"Sensation (toucher léger, proprioception), réflexes (ROT), tonus (spasticité, rigidité), coordination.">
+                >
+                ["id0.27"] = <
+                    text = <"Évaluation cardiopulmonaire">
+                    description = <"Tolérance à l'exercice, échelle de dyspnée, test de marche de 6 minutes, réponse de la fréquence cardiaque à l'activité.">
+                >
+                ["id0.28"] = <
+                    text = <"Tests spéciaux">
+                    description = <"Tests spécifiques à la condition (Lachman, McMurray, Neer, Hawkins, Phalen, Tinel, etc.).">
+                >
+                ["id0.29"] = <
+                    text = <"Mesures de résultats et échelles fonctionnelles">
+                    description = <"Échelles standardisées telles que FIM, indice de Barthel, LEFS, DASH, Oswestry, NDI, SF-36.">
+                >
+                ["id0.30"] = <
+                    text = <"Impression / Évaluation clinique">
+                    description = <"Diagnostic physiothérapeutique, déficiences identifiées, limitations fonctionnelles, pronostic.">
+                >
+                ["id0.31"] = <
+                    text = <"Interventions de traitement fournies">
+                    description = <"Thérapie manuelle (mobilisation articulaire, techniques des tissus mous), exercices thérapeutiques, modalités (chaleur, glace, ultrasons, stimulation électrique), entraînement à la marche, entraînement de l'équilibre.">
+                >
+                ["id0.32"] = <
+                    text = <"Programme d'exercices à domicile">
+                    description = <"Exercices prescrits pour la maison, fréquence, durée, répétitions, progressions.">
+                >
+                ["id0.33"] = <
+                    text = <"Éducation du patient">
+                    description = <"Éducation sur la condition, stratégies d'autogestion, modification d'activité, ergonomie, mécanique corporelle.">
+                >
+                ["id0.34"] = <
+                    text = <"Dispositifs d'assistance et équipement">
+                    description = <"Dispositifs d'assistance fournis ou recommandés (canne, marchette, béquilles, attelle, orthèse).">
+                >
+                ["id0.35"] = <
+                    text = <"Progrès vers les objectifs">
+                    description = <"Évaluation des progrès vers les objectifs de réadaptation établis, améliorations fonctionnelles notées.">
+                >
+                ["id0.36"] = <
+                    text = <"Plan et recommandations">
+                    description = <"Plan pour le traitement continu, fréquence des séances, date de sortie prévue, références à d'autres services.">
+                >
+                ["id0.37"] = <
+                    text = <"Planification de la sortie">
+                    description = <"Préparation à la sortie, recommandations de sortie, statut de retour au travail/sport, programme d'exercices à domicile continu.">
+                >
+            >
+        >
+    >

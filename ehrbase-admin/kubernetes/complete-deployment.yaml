@@ -1,0 +1,358 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ehrbase-admin-html
+  namespace: ehrbase
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>EHRbase Admin Dashboard</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; }
+            .navbar-brand { font-weight: 600; font-size: 1.25rem; }
+            .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); transition: transform 0.2s, box-shadow 0.2s; }
+            .card:hover { transform: translateY(-2px); box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); }
+            .card-header { background-color: #fff; border-bottom: 2px solid #f8f9fa; font-weight: 600; }
+            pre code { display: block; padding: 1rem; overflow-x: auto; font-size: 0.875rem; line-height: 1.5; }
+            .font-monospace { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace; }
+            .table th { font-weight: 600; text-transform: uppercase; font-size: 0.875rem; color: #6c757d; }
+            #aql-query { min-height: 200px; font-family: 'Monaco', 'Menlo', monospace; font-size: 0.875rem; }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#"><i class="bi bi-heart-pulse-fill"></i> EHRbase Admin</a>
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-3" id="connection-status"><i class="bi bi-wifi"></i> Connected</span>
+                    <small class="text-white" id="server-url">Loading...</small>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action active" onclick="loadPage('dashboard'); return false;">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="loadPage('templates'); return false;">
+                            <i class="bi bi-file-earmark-text"></i> Templates
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="loadPage('aql'); return false;">
+                            <i class="bi bi-code-square"></i> AQL Console
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" onclick="loadPage('settings'); return false;">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-9">
+                    <div id="page-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            // Configuration
+            const config = {
+                baseUrl: localStorage.getItem('ehrbase_url') || 'https://ehr.medzenhealth.app',
+                username: localStorage.getItem('ehrbase_username') || 'ehrbase-user',
+                password: localStorage.getItem('ehrbase_password') || 'ehrbase-password',
+                save: function(url, username, password) {
+                    this.baseUrl = url; this.username = username; this.password = password;
+                    localStorage.setItem('ehrbase_url', url);
+                    localStorage.setItem('ehrbase_username', username);
+                    localStorage.setItem('ehrbase_password', password);
+                },
+                getAuthHeader: function() { return 'Basic ' + btoa(this.username + ':' + this.password); }
+            };
+
+            // API Client
+            const api = {
+                async call(endpoint, method = 'GET', body = null) {
+                    const url = `${config.baseUrl}/ehrbase/rest/openehr/v1${endpoint}`;
+                    const options = {
+                        method, headers: {
+                            'Authorization': config.getAuthHeader(),
+                            'Content-Type': 'application/json', 'Accept': 'application/json'
+                        }
+                    };
+                    if (body && method !== 'GET') options.body = JSON.stringify(body);
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    const contentType = response.headers.get('content-type');
+                    return contentType && contentType.includes('application/json') ? await response.json() : await response.text();
+                },
+                async getTemplates() { return await this.call('/definition/template/adl1.4'); },
+                async getTemplate(templateId) { return await this.call(`/definition/template/adl1.4/${templateId}`); },
+                async executeAQL(query) { return await this.call('/query/aql', 'POST', { q: query }); },
+                async getEHRCount() {
+                    try {
+                        const result = await this.executeAQL('SELECT COUNT(e) as total FROM EHR e');
+                        return result.rows && result.rows.length > 0 ? result.rows[0][0] : 0;
+                    } catch { return 0; }
+                }
+            };
+
+            // Page Management
+            let currentPage = 'dashboard';
+
+            async function loadPage(page) {
+                currentPage = page;
+                document.querySelectorAll('.list-group-item').forEach(l => l.classList.remove('active'));
+                event.target.classList.add('active');
+
+                const content = document.getElementById('page-content');
+                switch(page) {
+                    case 'dashboard': await loadDashboard(); break;
+                    case 'templates': await loadTemplates(); break;
+                    case 'aql': loadAQLPage(); break;
+                    case 'settings': loadSettings(); break;
+                }
+            }
+
+            async function loadDashboard() {
+                const content = document.getElementById('page-content');
+                content.innerHTML = `
+                    <h2><i class="bi bi-speedometer2"></i> System Dashboard</h2><hr>
+                    <div class="row g-4">
+                        <div class="col-md-4"><div class="card text-white bg-primary"><div class="card-body">
+                            <h6>Templates</h6><h2 id="template-count">-</h2>
+                        </div></div></div>
+                        <div class="col-md-4"><div class="card text-white bg-success"><div class="card-body">
+                            <h6>EHRs</h6><h2 id="ehr-count">-</h2>
+                        </div></div></div>
+                        <div class="col-md-4"><div class="card text-white bg-info"><div class="card-body">
+                            <h6>Status</h6><h6 id="system-status">Checking...</h6>
+                        </div></div></div>
+                    </div>
+                    <div class="row mt-4"><div class="col-12"><div class="card"><div class="card-header">
+                        <h5><i class="bi bi-info-circle"></i> Server Information</h5>
+                    </div><div class="card-body" id="server-info">Loading...</div></div></div></div>
+                `;
+                try {
+                    const templates = await api.getTemplates();
+                    document.getElementById('template-count').textContent = templates.length;
+                    const ehrCount = await api.getEHRCount();
+                    document.getElementById('ehr-count').textContent = ehrCount;
+                    document.getElementById('system-status').textContent = 'Online';
+                    document.getElementById('server-info').innerHTML = `
+                        <table class="table table-sm">
+                            <tr><th>Server URL</th><td>${config.baseUrl}</td></tr>
+                            <tr><th>Username</th><td>${config.username}</td></tr>
+                            <tr><th>Templates</th><td>${templates.length}</td></tr>
+                            <tr><th>EHRs</th><td>${ehrCount}</td></tr>
+                            <tr><th>Status</th><td><span class="badge bg-success">Connected</span></td></tr>
+                        </table>
+                    `;
+                } catch (error) {
+                    document.getElementById('system-status').textContent = 'Error';
+                    document.getElementById('server-info').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            async function loadTemplates() {
+                const content = document.getElementById('page-content');
+                content.innerHTML = `
+                    <h2><i class="bi bi-file-earmark-text"></i> OpenEHR Templates</h2><hr>
+                    <div class="row mb-3">
+                        <div class="col-md-6"><input type="text" class="form-control" id="template-search" placeholder="Search templates..."></div>
+                        <div class="col-md-6 text-end"><button class="btn btn-primary" onclick="loadTemplates()"><i class="bi bi-arrow-clockwise"></i> Refresh</button></div>
+                    </div>
+                    <div id="templates-list"><div class="text-center"><div class="spinner-border"></div></div></div>
+                `;
+                try {
+                    const templates = await api.getTemplates();
+                    let html = '<div class="row g-3">';
+                    templates.forEach(template => {
+                        const id = template.template_id || template;
+                        html += `<div class="col-md-4"><div class="card"><div class="card-header"><h6>${id}</h6></div>
+                            <div class="card-body"><button class="btn btn-sm btn-outline-primary" onclick="viewTemplate('${id}')">
+                            <i class="bi bi-eye"></i> View</button></div></div></div>`;
+                    });
+                    html += '</div>';
+                    document.getElementById('templates-list').innerHTML = html;
+                } catch (error) {
+                    document.getElementById('templates-list').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            async function viewTemplate(templateId) {
+                try {
+                    const template = await api.getTemplate(templateId);
+                    showModal('Template: ' + templateId, `<pre class="bg-light p-3"><code>${JSON.stringify(template, null, 2)}</code></pre>`);
+                } catch (error) {
+                    alert('Failed to load template: ' + error.message);
+                }
+            }
+
+            function loadAQLPage() {
+                const content = document.getElementById('page-content');
+                content.innerHTML = `
+                    <h2><i class="bi bi-code-square"></i> AQL Query Console</h2><hr>
+                    <div class="card mb-3"><div class="card-header d-flex justify-content-between">
+                        <h5>Query Editor</h5>
+                        <button class="btn btn-sm btn-primary" onclick="executeAQL()"><i class="bi bi-play-fill"></i> Execute</button>
+                    </div><div class="card-body">
+                        <textarea class="form-control font-monospace" id="aql-query" rows="6" placeholder="Enter AQL query..."></textarea>
+                    </div></div>
+                    <div class="card"><div class="card-header"><h5>Results</h5></div>
+                    <div class="card-body" id="aql-results"><p class="text-muted">Execute a query to see results.</p></div></div>
+                `;
+                document.getElementById('aql-query').value = 'SELECT e/ehr_id/value FROM EHR e LIMIT 10';
+            }
+
+            async function executeAQL() {
+                const query = document.getElementById('aql-query').value;
+                const resultsElement = document.getElementById('aql-results');
+                if (!query.trim()) { alert('Please enter a query'); return; }
+                resultsElement.innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
+                try {
+                    const result = await api.executeAQL(query);
+                    let html = `<strong>Results:</strong> ${result.rows ? result.rows.length : 0} rows<hr>`;
+                    if (result.rows && result.rows.length > 0) {
+                        html += '<div class="table-responsive"><table class="table table-sm table-striped"><tbody>';
+                        result.rows.forEach(row => {
+                            html += '<tr>';
+                            row.forEach(cell => html += `<td>${cell || '-'}</td>`);
+                            html += '</tr>';
+                        });
+                        html += '</tbody></table></div>';
+                    }
+                    html += `<pre class="bg-light p-2 mt-2"><code>${JSON.stringify(result, null, 2)}</code></pre>`;
+                    resultsElement.innerHTML = html;
+                } catch (error) {
+                    resultsElement.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                }
+            }
+
+            function loadSettings() {
+                const content = document.getElementById('page-content');
+                content.innerHTML = `
+                    <h2><i class="bi bi-gear"></i> Settings</h2><hr>
+                    <div class="card"><div class="card-header"><h5>EHRbase Connection</h5></div><div class="card-body">
+                        <form id="settings-form">
+                            <div class="mb-3"><label class="form-label">Server URL</label>
+                                <input type="url" class="form-control" id="server-url-input" required></div>
+                            <div class="mb-3"><label class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username-input" required></div>
+                            <div class="mb-3"><label class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password-input" required></div>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Save Settings</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="testConnection()"><i class="bi bi-wifi"></i> Test</button>
+                        </form>
+                    </div></div>
+                `;
+                document.getElementById('server-url-input').value = config.baseUrl;
+                document.getElementById('username-input').value = config.username;
+                document.getElementById('password-input').value = config.password;
+                document.getElementById('settings-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    config.save(
+                        document.getElementById('server-url-input').value,
+                        document.getElementById('username-input').value,
+                        document.getElementById('password-input').value
+                    );
+                    document.getElementById('server-url').textContent = config.baseUrl;
+                    alert('Settings saved!');
+                });
+            }
+
+            async function testConnection() {
+                try {
+                    await api.getTemplates();
+                    alert('Connection successful!');
+                    document.getElementById('connection-status').innerHTML = '<i class="bi bi-wifi"></i> Connected';
+                } catch (error) {
+                    alert('Connection failed: ' + error.message);
+                    document.getElementById('connection-status').innerHTML = '<i class="bi bi-wifi-off"></i> Disconnected';
+                }
+            }
+
+            function showModal(title, content) {
+                const modalHtml = `
+                    <div class="modal fade" id="contentModal" tabindex="-1">
+                        <div class="modal-dialog modal-xl"><div class="modal-content">
+                            <div class="modal-header"><h5>${title}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">${content}</div>
+                            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+                        </div></div>
+                    </div>
+                `;
+                const existing = document.getElementById('contentModal');
+                if (existing) existing.remove();
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                new bootstrap.Modal(document.getElementById('contentModal')).show();
+            }
+
+            // Initialize
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('server-url').textContent = config.baseUrl;
+                loadPage('dashboard');
+            });
+        </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ehrbase-admin-ui
+  namespace: ehrbase
+  labels:
+    app: ehrbase-admin-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ehrbase-admin-ui
+  template:
+    metadata:
+      labels:
+        app: ehrbase-admin-ui
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+      volumes:
+      - name: html
+        configMap:
+          name: ehrbase-admin-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ehrbase-admin-ui
+  namespace: ehrbase
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30090
+  selector:
+    app: ehrbase-admin-ui

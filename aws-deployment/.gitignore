@@ -1,0 +1,24 @@
+# AWS Deployment - Secrets and Temporary Files
+
+# Secrets (NEVER commit these)
+secrets.txt
+*.pem
+*.key
+credentials.json
+
+# AWS CLI output
+*.log
+cloudformation-output.json
+
+# Temporary migration files
+migration-backup/
+migration-logs/
+
+# Environment-specific configs
+.env
+.env.local
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db

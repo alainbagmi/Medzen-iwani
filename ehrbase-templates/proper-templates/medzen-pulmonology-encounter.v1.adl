@@ -1,0 +1,1127 @@
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_pulmonology_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+                ["organisation"] = <"MedZen Health">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Development Team">
+        ["organisation"] = <"MedZen Health">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"unmanaged">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive pulmonology consultation encounter including asthma management, COPD assessment, pulmonary function tests, sleep apnea evaluation, lung infections, oxygen therapy, and smoking cessation counseling for the MedZen health records system.">
+            use = <"Use to document pulmonology consultations covering respiratory conditions including asthma, COPD, sleep disorders, pulmonary infections, and respiratory rehabilitation. Supports pulmonary function testing, imaging interpretation, and long-term respiratory disease management.">
+            keywords = <"pulmonology", "respiratory", "asthma", "COPD", "spirometry", "lung function", "sleep apnea", "pneumonia", "oxygen therapy", "smoking cessation", "inhaler", "breathlessness", "dyspnea">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une consultation complète de pneumologie comprenant la gestion de l'asthme, l'évaluation de la BPCO, les tests de fonction pulmonaire, l'évaluation de l'apnée du sommeil, les infections pulmonaires, l'oxygénothérapie et le conseil en sevrage tabagique pour le système de dossiers de santé MedZen.">
+            use = <"Utiliser pour documenter les consultations de pneumologie couvrant les affections respiratoires dont l'asthme, la BPCO, les troubles du sommeil, les infections pulmonaires et la réhabilitation respiratoire. Prend en charge les tests de fonction pulmonaire, l'interprétation d'imagerie et la gestion des maladies respiratoires à long terme.">
+            keywords = <"pneumologie", "respiratoire", "asthme", "BPCO", "spirométrie", "fonction pulmonaire", "apnée du sommeil", "pneumonie", "oxygénothérapie", "sevrage tabagique", "inhalateur", "essoufflement", "dyspnée">
+        >
+    >
+    other_details = <
+        ["licence"] = <"This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License.">
+        ["custodian_organisation"] = <"MedZen Health">
+        ["references"] = <"Global Initiative for Asthma (GINA) 2024 Guidelines, Global Initiative for Chronic Obstructive Lung Disease (GOLD) 2024 Report, American Thoracic Society/European Respiratory Society Standards">
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Pulmonology Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.2] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,     -- Initial consultation
+                                            at0.2,     -- Follow-up visit
+                                            at0.3,     -- Pulmonary function testing
+                                            at0.4,     -- Sleep study review
+                                            at0.5,     -- Pre-operative assessment
+                                            at0.6,     -- Post-hospitalization follow-up
+                                            at0.7]     -- Urgent consultation
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Primary Respiratory Condition
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.8,     -- Asthma
+                                            at0.9,     -- COPD
+                                            at0.10,    -- Interstitial lung disease
+                                            at0.11,    -- Sleep apnea
+                                            at0.12,    -- Pneumonia
+                                            at0.13,    -- Tuberculosis
+                                            at0.14,    -- Lung cancer
+                                            at0.15,    -- Pulmonary hypertension
+                                            at0.16,    -- Bronchiectasis
+                                            at0.17,    -- Pleural disease
+                                            at0.18]    -- Other respiratory condition
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- COPD GOLD Stage
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.19,    -- GOLD 1 (Mild)
+                                            at0.20,    -- GOLD 2 (Moderate)
+                                            at0.21,    -- GOLD 3 (Severe)
+                                            at0.22,    -- GOLD 4 (Very Severe)
+                                            at0.23]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Asthma Severity
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.24,    -- Intermittent
+                                            at0.25,    -- Mild persistent
+                                            at0.26,    -- Moderate persistent
+                                            at0.27,    -- Severe persistent
+                                            at0.28]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Smoking Status
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.29,    -- Current smoker
+                                            at0.30,    -- Former smoker
+                                            at0.31,    -- Never smoked
+                                            at0.32]    -- Passive smoking exposure
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.11] occurrences matches {0..1} matches {    -- Pack Years
+                                value matches {
+                                    DV_QUANTITY[id0.12] matches {
+                                        units matches {"pack-years"}
+                                        magnitude matches {|>=0.0|}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Presenting Symptoms Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.220, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.230, openEHR-EHR-OBSERVATION.respiration.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.240, openEHR-EHR-OBSERVATION.pulse_oximetry.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.250, openEHR-EHR-OBSERVATION.body_temperature.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Respiratory Examination Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype CLUSTER[id0.320, openEHR-EHR-CLUSTER.inspection.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype CLUSTER[id0.330, openEHR-EHR-CLUSTER.auscultation.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Pulmonary Function Tests Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.pulmonary_function.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.420, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Asthma Assessment Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- COPD Assessment Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.620, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Sleep Apnea Evaluation Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.720, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Imaging Studies Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.810, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Laboratory Tests Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Oxygen Therapy Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype ACTION[id1.010, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.020, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Inhaler Technique Assessment Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.110, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.120, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Smoking Cessation Counseling Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype ACTION[id1.210, openEHR-EHR-ACTION.health_education.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.220, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Problem/Diagnosis List Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.310, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Medication Management Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id1.410, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.420, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Pulmonary Rehabilitation Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id1.510, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.520, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Follow-up and Recommendations Section
+            use_archetype SECTION[id1.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.610, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id1.620, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Pulmonology Encounter">
+                description = <"A clinical encounter for pulmonology consultation and respiratory disease management.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter Type">
+                description = <"The type of pulmonology encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Initial consultation">
+                description = <"First visit with pulmonologist.">
+            >
+            ["at0.2"] = <
+                text = <"Follow-up visit">
+                description = <"Routine follow-up appointment.">
+            >
+            ["at0.3"] = <
+                text = <"Pulmonary function testing">
+                description = <"Visit specifically for PFT.">
+            >
+            ["at0.4"] = <
+                text = <"Sleep study review">
+                description = <"Review of polysomnography results.">
+            >
+            ["at0.5"] = <
+                text = <"Pre-operative assessment">
+                description = <"Pre-surgical pulmonary evaluation.">
+            >
+            ["at0.6"] = <
+                text = <"Post-hospitalization follow-up">
+                description = <"Follow-up after hospital discharge.">
+            >
+            ["at0.7"] = <
+                text = <"Urgent consultation">
+                description = <"Acute respiratory problem assessment.">
+            >
+            ["id0.3"] = <
+                text = <"Primary Respiratory Condition">
+                description = <"Main respiratory diagnosis being addressed.">
+            >
+            ["at0.8"] = <
+                text = <"Asthma">
+                description = <"Reversible airway obstruction.">
+            >
+            ["at0.9"] = <
+                text = <"COPD">
+                description = <"Chronic obstructive pulmonary disease.">
+            >
+            ["at0.10"] = <
+                text = <"Interstitial lung disease">
+                description = <"Parenchymal lung disease.">
+            >
+            ["at0.11"] = <
+                text = <"Sleep apnea">
+                description = <"Sleep-related breathing disorder.">
+            >
+            ["at0.12"] = <
+                text = <"Pneumonia">
+                description = <"Lung infection.">
+            >
+            ["at0.13"] = <
+                text = <"Tuberculosis">
+                description = <"Mycobacterial lung infection.">
+            >
+            ["at0.14"] = <
+                text = <"Lung cancer">
+                description = <"Pulmonary malignancy.">
+            >
+            ["at0.15"] = <
+                text = <"Pulmonary hypertension">
+                description = <"Elevated pulmonary artery pressure.">
+            >
+            ["at0.16"] = <
+                text = <"Bronchiectasis">
+                description = <"Chronic bronchial dilation.">
+            >
+            ["at0.17"] = <
+                text = <"Pleural disease">
+                description = <"Pleural space pathology.">
+            >
+            ["at0.18"] = <
+                text = <"Other respiratory condition">
+                description = <"Other pulmonary diagnosis.">
+            >
+            ["id0.5"] = <
+                text = <"COPD GOLD Stage">
+                description = <"Global Initiative for Chronic Obstructive Lung Disease classification stage.">
+            >
+            ["at0.19"] = <
+                text = <"GOLD 1 (Mild)">
+                description = <"FEV1 ≥80% predicted.">
+            >
+            ["at0.20"] = <
+                text = <"GOLD 2 (Moderate)">
+                description = <"FEV1 50-79% predicted.">
+            >
+            ["at0.21"] = <
+                text = <"GOLD 3 (Severe)">
+                description = <"FEV1 30-49% predicted.">
+            >
+            ["at0.22"] = <
+                text = <"GOLD 4 (Very Severe)">
+                description = <"FEV1 <30% predicted.">
+            >
+            ["at0.23"] = <
+                text = <"Not applicable">
+                description = <"Patient does not have COPD.">
+            >
+            ["id0.7"] = <
+                text = <"Asthma Severity">
+                description = <"Classification of asthma severity based on symptoms and lung function.">
+            >
+            ["at0.24"] = <
+                text = <"Intermittent">
+                description = <"Symptoms ≤2 days/week.">
+            >
+            ["at0.25"] = <
+                text = <"Mild persistent">
+                description = <"Symptoms >2 days/week but not daily.">
+            >
+            ["at0.26"] = <
+                text = <"Moderate persistent">
+                description = <"Daily symptoms.">
+            >
+            ["at0.27"] = <
+                text = <"Severe persistent">
+                description = <"Symptoms throughout the day.">
+            >
+            ["at0.28"] = <
+                text = <"Not applicable">
+                description = <"Patient does not have asthma.">
+            >
+            ["id0.9"] = <
+                text = <"Smoking Status">
+                description = <"Current tobacco smoking status.">
+            >
+            ["at0.29"] = <
+                text = <"Current smoker">
+                description = <"Currently smoking tobacco.">
+            >
+            ["at0.30"] = <
+                text = <"Former smoker">
+                description = <"Previously smoked but quit.">
+            >
+            ["at0.31"] = <
+                text = <"Never smoked">
+                description = <"Never smoked tobacco.">
+            >
+            ["at0.32"] = <
+                text = <"Passive smoking exposure">
+                description = <"Exposed to secondhand smoke.">
+            >
+            ["id0.11"] = <
+                text = <"Pack Years">
+                description = <"Cumulative smoking exposure (packs per day × years).">
+            >
+            ["id0.100"] = <
+                text = <"Presenting Symptoms Section">
+                description = <"Patient's current respiratory complaints.">
+            >
+            ["id0.110"] = <
+                text = <"Symptom History">
+                description = <"Detailed history of respiratory symptoms including dyspnea, cough, wheezing, chest pain, hemoptysis, sputum production.">
+            >
+            ["id0.200"] = <
+                text = <"Vital Signs Section">
+                description = <"Vital sign measurements.">
+            >
+            ["id0.210"] = <
+                text = <"Blood Pressure">
+                description = <"Systemic blood pressure measurement.">
+            >
+            ["id0.220"] = <
+                text = <"Heart Rate">
+                description = <"Pulse rate measurement.">
+            >
+            ["id0.230"] = <
+                text = <"Respiratory Rate">
+                description = <"Breaths per minute.">
+            >
+            ["id0.240"] = <
+                text = <"Oxygen Saturation">
+                description = <"SpO2 measurement (room air and/or supplemental oxygen).">
+            >
+            ["id0.250"] = <
+                text = <"Temperature">
+                description = <"Body temperature.">
+            >
+            ["id0.300"] = <
+                text = <"Respiratory Examination Section">
+                description = <"Physical examination findings.">
+            >
+            ["id0.310"] = <
+                text = <"General Examination">
+                description = <"Overall appearance, work of breathing, cyanosis, clubbing.">
+            >
+            ["id0.320"] = <
+                text = <"Chest Inspection">
+                description = <"Chest wall shape, movement, scars, deformities.">
+            >
+            ["id0.330"] = <
+                text = <"Lung Auscultation">
+                description = <"Breath sounds: wheeze, crackles, rhonchi, stridor, diminished sounds.">
+            >
+            ["id0.400"] = <
+                text = <"Pulmonary Function Tests Section">
+                description = <"Spirometry and lung function testing results.">
+            >
+            ["id0.410"] = <
+                text = <"Spirometry Results">
+                description = <"FEV1, FVC, FEV1/FVC ratio, PEFR, reversibility testing, bronchodilator response.">
+            >
+            ["id0.420"] = <
+                text = <"PFT Interpretation">
+                description = <"Interpretation of pulmonary function tests: obstructive vs restrictive pattern, severity assessment.">
+            >
+            ["id0.500"] = <
+                text = <"Asthma Assessment Section">
+                description = <"Asthma-specific evaluation.">
+            >
+            ["id0.510"] = <
+                text = <"Asthma Control Test">
+                description = <"ACT score (0-25), symptom frequency, nighttime awakening, rescue inhaler use, activity limitation.">
+            >
+            ["id0.520"] = <
+                text = <"Asthma Exacerbation History">
+                description = <"Recent exacerbations, ED visits, hospitalizations, ICU admissions, intubations.">
+            >
+            ["id0.600"] = <
+                text = <"COPD Assessment Section">
+                description = <"COPD-specific evaluation.">
+            >
+            ["id0.610"] = <
+                text = <"COPD Assessment Test (CAT)">
+                description = <"CAT score (0-40) evaluating cough, phlegm, chest tightness, breathlessness, activity limitation, confidence, sleep, energy.">
+            >
+            ["id0.620"] = <
+                text = <"mMRC Dyspnea Scale">
+                description = <"Modified Medical Research Council dyspnea scale (0-4).">
+            >
+            ["id0.700"] = <
+                text = <"Sleep Apnea Evaluation Section">
+                description = <"Sleep-disordered breathing assessment.">
+            >
+            ["id0.710"] = <
+                text = <"Sleep History">
+                description = <"Snoring, witnessed apneas, gasping, morning headaches, daytime sleepiness, Epworth Sleepiness Scale (0-24).">
+            >
+            ["id0.720"] = <
+                text = <"Sleep Study Results">
+                description = <"Polysomnography findings: AHI (apnea-hypopnea index), oxygen desaturations, sleep architecture, CPAP/BiPAP titration results.">
+            >
+            ["id0.800"] = <
+                text = <"Imaging Studies Section">
+                description = <"Radiological investigations.">
+            >
+            ["id0.810"] = <
+                text = <"Imaging Results">
+                description = <"Chest X-ray, CT chest (HRCT), V/Q scan, pulmonary angiography findings.">
+            >
+            ["id0.900"] = <
+                text = <"Laboratory Tests Section">
+                description = <"Laboratory investigations.">
+            >
+            ["id0.910"] = <
+                text = <"Lab Results">
+                description = <"ABG, CBC, eosinophil count, alpha-1 antitrypsin level, sputum culture, TB tests.">
+            >
+            ["id1.000"] = <
+                text = <"Oxygen Therapy Section">
+                description = <"Supplemental oxygen prescription and management.">
+            >
+            ["id1.010"] = <
+                text = <"Oxygen Prescription">
+                description = <"Flow rate (L/min), delivery method (nasal cannula, mask, concentrator), continuous vs PRN use, ambulation needs.">
+            >
+            ["id1.020"] = <
+                text = <"Oxygen Therapy Notes">
+                description = <"Indications, target saturation, compliance assessment.">
+            >
+            ["id1.100"] = <
+                text = <"Inhaler Technique Assessment Section">
+                description = <"Evaluation of patient's inhaler use.">
+            >
+            ["id1.110"] = <
+                text = <"Technique Observation">
+                description = <"MDI, DPI, nebulizer technique assessment including preparation, coordination, breath-hold, cleaning.">
+            >
+            ["id1.120"] = <
+                text = <"Technique Education">
+                description = <"Corrections provided, spacer/VHC use, teach-back verification.">
+            >
+            ["id1.200"] = <
+                text = <"Smoking Cessation Counseling Section">
+                description = <"Tobacco cessation intervention.">
+            >
+            ["id1.210"] = <
+                text = <"Cessation Counseling">
+                description = <"5 A's (Ask, Advise, Assess, Assist, Arrange), readiness to quit, pharmacotherapy options (NRT, varenicline, bupropion), behavioral support.">
+            >
+            ["id1.220"] = <
+                text = <"Cessation Plan">
+                description = <"Quit date, strategies, follow-up plan.">
+            >
+            ["id1.300"] = <
+                text = <"Problem/Diagnosis List Section">
+                description = <"Active respiratory diagnoses.">
+            >
+            ["id1.310"] = <
+                text = <"Respiratory Diagnosis">
+                description = <"Primary and secondary pulmonary diagnoses with severity and status.">
+            >
+            ["id1.400"] = <
+                text = <"Medication Management Section">
+                description = <"Pulmonary medication prescriptions.">
+            >
+            ["id1.410"] = <
+                text = <"Medication Orders">
+                description = <"Bronchodilators (SABA, LABA), ICS, ICS/LABA combinations, LAMA, LAMA/LABA, oral corticosteroids, antibiotics, mucolytics, antitussives.">
+            >
+            ["id1.420"] = <
+                text = <"Current Medications">
+                description = <"Review of existing respiratory medications and adherence.">
+            >
+            ["id1.500"] = <
+                text = <"Pulmonary Rehabilitation Section">
+                description = <"Referral and plan for pulmonary rehab program.">
+            >
+            ["id1.510"] = <
+                text = <"Rehabilitation Referral">
+                description = <"Referral to structured pulmonary rehabilitation program including exercise training, education, nutritional counseling.">
+            >
+            ["id1.520"] = <
+                text = <"Rehabilitation Goals">
+                description = <"Functional improvement targets, exercise capacity goals.">
+            >
+            ["id1.600"] = <
+                text = <"Follow-up and Recommendations Section">
+                description = <"Management plan and follow-up instructions.">
+            >
+            ["id1.610"] = <
+                text = <"Clinical Recommendations">
+                description = <"Treatment plan recommendations, lifestyle modifications, self-management strategies, action plan.">
+            >
+            ["id1.620"] = <
+                text = <"Referrals and Orders">
+                description = <"Referrals to specialists, additional testing orders, follow-up appointments.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Consultation de pneumologie">
+                description = <"Consultation clinique de pneumologie et gestion des maladies respiratoires.">
+            >
+            ["id0.1"] = <
+                text = <"Type de consultation">
+                description = <"Type de consultation pneumologique.">
+            >
+            ["at0.1"] = <
+                text = <"Consultation initiale">
+                description = <"Première visite chez le pneumologue.">
+            >
+            ["at0.2"] = <
+                text = <"Visite de suivi">
+                description = <"Rendez-vous de suivi de routine.">
+            >
+            ["at0.3"] = <
+                text = <"Test de fonction pulmonaire">
+                description = <"Visite spécifiquement pour EFR.">
+            >
+            ["at0.4"] = <
+                text = <"Revue d'étude du sommeil">
+                description = <"Revue des résultats de polysomnographie.">
+            >
+            ["at0.5"] = <
+                text = <"Évaluation préopératoire">
+                description = <"Évaluation pulmonaire pré-chirurgicale.">
+            >
+            ["at0.6"] = <
+                text = <"Suivi post-hospitalisation">
+                description = <"Suivi après sortie d'hôpital.">
+            >
+            ["at0.7"] = <
+                text = <"Consultation urgente">
+                description = <"Évaluation de problème respiratoire aigu.">
+            >
+            ["id0.3"] = <
+                text = <"Affection respiratoire principale">
+                description = <"Diagnostic respiratoire principal traité.">
+            >
+            ["at0.8"] = <
+                text = <"Asthme">
+                description = <"Obstruction réversible des voies aériennes.">
+            >
+            ["at0.9"] = <
+                text = <"BPCO">
+                description = <"Bronchopneumopathie chronique obstructive.">
+            >
+            ["at0.10"] = <
+                text = <"Maladie pulmonaire interstitielle">
+                description = <"Maladie parenchymateuse pulmonaire.">
+            >
+            ["at0.11"] = <
+                text = <"Apnée du sommeil">
+                description = <"Trouble respiratoire lié au sommeil.">
+            >
+            ["at0.12"] = <
+                text = <"Pneumonie">
+                description = <"Infection pulmonaire.">
+            >
+            ["at0.13"] = <
+                text = <"Tuberculose">
+                description = <"Infection pulmonaire mycobactérienne.">
+            >
+            ["at0.14"] = <
+                text = <"Cancer du poumon">
+                description = <"Malignité pulmonaire.">
+            >
+            ["at0.15"] = <
+                text = <"Hypertension pulmonaire">
+                description = <"Pression artérielle pulmonaire élevée.">
+            >
+            ["at0.16"] = <
+                text = <"Bronchectasie">
+                description = <"Dilatation bronchique chronique.">
+            >
+            ["at0.17"] = <
+                text = <"Maladie pleurale">
+                description = <"Pathologie de l'espace pleural.">
+            >
+            ["at0.18"] = <
+                text = <"Autre affection respiratoire">
+                description = <"Autre diagnostic pulmonaire.">
+            >
+            ["id0.5"] = <
+                text = <"Stade GOLD BPCO">
+                description = <"Classification GOLD (Initiative mondiale contre la BPCO).">
+            >
+            ["at0.19"] = <
+                text = <"GOLD 1 (Léger)">
+                description = <"VEMS ≥80% prédit.">
+            >
+            ["at0.20"] = <
+                text = <"GOLD 2 (Modéré)">
+                description = <"VEMS 50-79% prédit.">
+            >
+            ["at0.21"] = <
+                text = <"GOLD 3 (Sévère)">
+                description = <"VEMS 30-49% prédit.">
+            >
+            ["at0.22"] = <
+                text = <"GOLD 4 (Très sévère)">
+                description = <"VEMS <30% prédit.">
+            >
+            ["at0.23"] = <
+                text = <"Non applicable">
+                description = <"Le patient n'a pas de BPCO.">
+            >
+            ["id0.7"] = <
+                text = <"Sévérité de l'asthme">
+                description = <"Classification de la sévérité de l'asthme basée sur les symptômes et la fonction pulmonaire.">
+            >
+            ["at0.24"] = <
+                text = <"Intermittent">
+                description = <"Symptômes ≤2 jours/semaine.">
+            >
+            ["at0.25"] = <
+                text = <"Persistant léger">
+                description = <"Symptômes >2 jours/semaine mais pas quotidiens.">
+            >
+            ["at0.26"] = <
+                text = <"Persistant modéré">
+                description = <"Symptômes quotidiens.">
+            >
+            ["at0.27"] = <
+                text = <"Persistant sévère">
+                description = <"Symptômes tout au long de la journée.">
+            >
+            ["at0.28"] = <
+                text = <"Non applicable">
+                description = <"Le patient n'a pas d'asthme.">
+            >
+            ["id0.9"] = <
+                text = <"Statut tabagique">
+                description = <"Statut actuel de tabagisme.">
+            >
+            ["at0.29"] = <
+                text = <"Fumeur actuel">
+                description = <"Fume actuellement du tabac.">
+            >
+            ["at0.30"] = <
+                text = <"Ancien fumeur">
+                description = <"Fumait auparavant mais a arrêté.">
+            >
+            ["at0.31"] = <
+                text = <"N'a jamais fumé">
+                description = <"N'a jamais fumé de tabac.">
+            >
+            ["at0.32"] = <
+                text = <"Exposition au tabagisme passif">
+                description = <"Exposé à la fumée secondaire.">
+            >
+            ["id0.11"] = <
+                text = <"Paquets-années">
+                description = <"Exposition cumulative au tabac (paquets par jour × années).">
+            >
+            ["id0.100"] = <
+                text = <"Section Symptômes présentés">
+                description = <"Plaintes respiratoires actuelles du patient.">
+            >
+            ["id0.110"] = <
+                text = <"Historique des symptômes">
+                description = <"Historique détaillé des symptômes respiratoires incluant dyspnée, toux, sibilances, douleur thoracique, hémoptysie, production d'expectorations.">
+            >
+            ["id0.200"] = <
+                text = <"Section Signes vitaux">
+                description = <"Mesures des signes vitaux.">
+            >
+            ["id0.210"] = <
+                text = <"Tension artérielle">
+                description = <"Mesure de la pression artérielle systémique.">
+            >
+            ["id0.220"] = <
+                text = <"Fréquence cardiaque">
+                description = <"Mesure du pouls.">
+            >
+            ["id0.230"] = <
+                text = <"Fréquence respiratoire">
+                description = <"Respirations par minute.">
+            >
+            ["id0.240"] = <
+                text = <"Saturation en oxygène">
+                description = <"Mesure SpO2 (air ambiant et/ou oxygène supplémentaire).">
+            >
+            ["id0.250"] = <
+                text = <"Température">
+                description = <"Température corporelle.">
+            >
+            ["id0.300"] = <
+                text = <"Section Examen respiratoire">
+                description = <"Résultats de l'examen physique.">
+            >
+            ["id0.310"] = <
+                text = <"Examen général">
+                description = <"Apparence générale, travail respiratoire, cyanose, hippocratisme digital.">
+            >
+            ["id0.320"] = <
+                text = <"Inspection thoracique">
+                description = <"Forme de la paroi thoracique, mouvement, cicatrices, déformations.">
+            >
+            ["id0.330"] = <
+                text = <"Auscultation pulmonaire">
+                description = <"Bruits respiratoires: sibilances, crépitants, ronchi, stridor, sons diminués.">
+            >
+            ["id0.400"] = <
+                text = <"Section Tests de fonction pulmonaire">
+                description = <"Résultats de spirométrie et tests de fonction pulmonaire.">
+            >
+            ["id0.410"] = <
+                text = <"Résultats de spirométrie">
+                description = <"VEMS, CVF, rapport VEMS/CVF, DEP, test de réversibilité, réponse au bronchodilatateur.">
+            >
+            ["id0.420"] = <
+                text = <"Interprétation EFR">
+                description = <"Interprétation des tests de fonction pulmonaire: pattern obstructif vs restrictif, évaluation de la sévérité.">
+            >
+            ["id0.500"] = <
+                text = <"Section Évaluation de l'asthme">
+                description = <"Évaluation spécifique à l'asthme.">
+            >
+            ["id0.510"] = <
+                text = <"Test de contrôle de l'asthme">
+                description = <"Score ACT (0-25), fréquence des symptômes, réveils nocturnes, utilisation de l'inhalateur de secours, limitation des activités.">
+            >
+            ["id0.520"] = <
+                text = <"Historique d'exacerbation de l'asthme">
+                description = <"Exacerbations récentes, visites aux urgences, hospitalisations, admissions en soins intensifs, intubations.">
+            >
+            ["id0.600"] = <
+                text = <"Section Évaluation BPCO">
+                description = <"Évaluation spécifique à la BPCO.">
+            >
+            ["id0.610"] = <
+                text = <"Test d'évaluation BPCO (CAT)">
+                description = <"Score CAT (0-40) évaluant toux, mucosités, oppression thoracique, essoufflement, limitation des activités, confiance, sommeil, énergie.">
+            >
+            ["id0.620"] = <
+                text = <"Échelle de dyspnée mMRC">
+                description = <"Échelle de dyspnée du Medical Research Council modifiée (0-4).">
+            >
+            ["id0.700"] = <
+                text = <"Section Évaluation de l'apnée du sommeil">
+                description = <"Évaluation des troubles respiratoires du sommeil.">
+            >
+            ["id0.710"] = <
+                text = <"Historique du sommeil">
+                description = <"Ronflement, apnées constatées, halètements, céphalées matinales, somnolence diurne, échelle de somnolence d'Epworth (0-24).">
+            >
+            ["id0.720"] = <
+                text = <"Résultats d'étude du sommeil">
+                description = <"Résultats de polysomnographie: IAH (indice apnée-hypopnée), désaturations en oxygène, architecture du sommeil, résultats de titration CPAP/BiPAP.">
+            >
+            ["id0.800"] = <
+                text = <"Section Études d'imagerie">
+                description = <"Investigations radiologiques.">
+            >
+            ["id0.810"] = <
+                text = <"Résultats d'imagerie">
+                description = <"Radiographie thoracique, TDM thoracique (HRCT), scintigraphie V/Q, résultats d'angiographie pulmonaire.">
+            >
+            ["id0.900"] = <
+                text = <"Section Tests de laboratoire">
+                description = <"Investigations de laboratoire.">
+            >
+            ["id0.910"] = <
+                text = <"Résultats de laboratoire">
+                description = <"GDS, NFS, compte d'éosinophiles, taux d'alpha-1 antitrypsine, culture d'expectorations, tests TB.">
+            >
+            ["id1.000"] = <
+                text = <"Section Oxygénothérapie">
+                description = <"Prescription et gestion de l'oxygène supplémentaire.">
+            >
+            ["id1.010"] = <
+                text = <"Prescription d'oxygène">
+                description = <"Débit (L/min), méthode d'administration (lunettes nasales, masque, concentrateur), utilisation continue vs au besoin, besoins en déambulation.">
+            >
+            ["id1.020"] = <
+                text = <"Notes sur l'oxygénothérapie">
+                description = <"Indications, saturation cible, évaluation de l'observance.">
+            >
+            ["id1.100"] = <
+                text = <"Section Évaluation de la technique d'inhalation">
+                description = <"Évaluation de l'utilisation de l'inhalateur par le patient.">
+            >
+            ["id1.110"] = <
+                text = <"Observation de la technique">
+                description = <"Évaluation de la technique d'inhalateur-doseur, inhalateur de poudre sèche, nébuliseur incluant préparation, coordination, rétention du souffle, nettoyage.">
+            >
+            ["id1.120"] = <
+                text = <"Éducation sur la technique">
+                description = <"Corrections fournies, utilisation de chambre d'espacement, vérification par répétition.">
+            >
+            ["id1.200"] = <
+                text = <"Section Conseil en sevrage tabagique">
+                description = <"Intervention de cessation du tabac.">
+            >
+            ["id1.210"] = <
+                text = <"Conseil en cessation">
+                description = <"5 A (Ask, Advise, Assess, Assist, Arrange), volonté d'arrêter, options pharmacothérapeutiques (TNS, varénicline, bupropion), soutien comportemental.">
+            >
+            ["id1.220"] = <
+                text = <"Plan de cessation">
+                description = <"Date d'arrêt, stratégies, plan de suivi.">
+            >
+            ["id1.300"] = <
+                text = <"Section Liste des problèmes/diagnostics">
+                description = <"Diagnostics respiratoires actifs.">
+            >
+            ["id1.310"] = <
+                text = <"Diagnostic respiratoire">
+                description = <"Diagnostics pulmonaires primaires et secondaires avec sévérité et statut.">
+            >
+            ["id1.400"] = <
+                text = <"Section Gestion des médicaments">
+                description = <"Prescriptions de médicaments pulmonaires.">
+            >
+            ["id1.410"] = <
+                text = <"Ordonnances de médicaments">
+                description = <"Bronchodilatateurs (BACA, BALA), CSI, combinaisons CSI/BALA, LAMA, LAMA/BALA, corticostéroïdes oraux, antibiotiques, mucolytiques, antitussifs.">
+            >
+            ["id1.420"] = <
+                text = <"Médicaments actuels">
+                description = <"Revue des médicaments respiratoires existants et observance.">
+            >
+            ["id1.500"] = <
+                text = <"Section Réhabilitation pulmonaire">
+                description = <"Référence et plan pour programme de réhabilitation pulmonaire.">
+            >
+            ["id1.510"] = <
+                text = <"Référence en réhabilitation">
+                description = <"Référence vers programme structuré de réhabilitation pulmonaire incluant entraînement physique, éducation, conseil nutritionnel.">
+            >
+            ["id1.520"] = <
+                text = <"Objectifs de réhabilitation">
+                description = <"Cibles d'amélioration fonctionnelle, objectifs de capacité d'exercice.">
+            >
+            ["id1.600"] = <
+                text = <"Section Suivi et recommandations">
+                description = <"Plan de gestion et instructions de suivi.">
+            >
+            ["id1.610"] = <
+                text = <"Recommandations cliniques">
+                description = <"Recommandations de plan de traitement, modifications du mode de vie, stratégies d'autogestion, plan d'action.">
+            >
+            ["id1.620"] = <
+                text = <"Références et ordres">
+                description = <"Références vers spécialistes, ordres de tests supplémentaires, rendez-vous de suivi.">
+            >
+        >
+    >

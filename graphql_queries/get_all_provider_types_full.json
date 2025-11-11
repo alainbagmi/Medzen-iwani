@@ -1,0 +1,3 @@
+{
+  "query": "query { medical_provider_typesCollection(first: 200, orderBy: {provider_type_name: AscNullsLast}) { edges { node { id provider_type_code provider_type_name description required_qualifications scope_of_practice license_requirements is_active } } } }"
+}

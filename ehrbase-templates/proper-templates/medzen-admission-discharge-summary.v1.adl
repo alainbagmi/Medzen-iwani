@@ -1,0 +1,469 @@
+-- MedZen Admission and Discharge Summary Template
+-- Patient admission and discharge documentation
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_admission_discharge_summary.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.report.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive summary of a patient's hospital admission and discharge including admission reason, hospital course, treatments provided, and discharge planning.">
+            use = <"Used for documenting hospital admissions, inpatient stays, and discharge summaries. Provides comprehensive record of hospital episode for continuity of care, medicolegal documentation, and communication with referring/receiving healthcare providers.">
+            keywords = <"admission", "discharge", "hospital", "inpatient", "summary", "continuity of care">
+            misuse = <"Not for recording individual clinical encounters during admission (use encounter templates). Not for emergency department visits (use emergency encounter template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer un résumé complet de l'admission et de la sortie d'un patient à l'hôpital incluant la raison d'admission, le cours hospitalier, les traitements fournis et la planification de la sortie.">
+            use = <"Utilisé pour documenter les admissions hospitalières, les séjours en hospitalisation et les résumés de sortie.">
+            keywords = <"admission", "sortie", "hôpital", "hospitalisation", "résumé", "continuité des soins">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Admission and Discharge Summary
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Admission ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Hospital Admission"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Admission Date/Time
+                                value matches {
+                                    DV_DATE_TIME[id0.4]
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Discharge Date/Time
+                                value matches {
+                                    DV_DATE_TIME[id0.6]
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Length of Stay
+                                value matches {
+                                    DV_DURATION[id0.8]
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Admission Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Emergency
+                                            at0.2,    -- Elective
+                                            at0.3,    -- Transfer from other facility
+                                            at0.4]    -- Maternity admission
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.11] occurrences matches {0..1} matches {    -- Discharge Disposition
+                                value matches {
+                                    DV_CODED_TEXT[id0.12] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.5,    -- Home with self-care
+                                            at0.6,    -- Home with home care
+                                            at0.7,    -- Transfer to another facility
+                                            at0.8,    -- Left against medical advice
+                                            at0.9,    -- Deceased
+                                            at0.10]   -- Other
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Admission Details Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Admission Information
+
+            -- Reason for admission
+            use_archetype EVALUATION[id0.110, openEHR-EHR-EVALUATION.reason_for_encounter.v1] occurrences matches {1}
+
+            -- Chief complaint and presenting history
+            use_archetype OBSERVATION[id0.120, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Medical History Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Medical History
+
+            -- Past medical history
+            use_archetype EVALUATION[id0.210, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Medications on Admission Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.medication_medical_devices_rcp.v1] occurrences matches {0..1}
+
+            -- Medications patient was taking prior to admission
+            use_archetype EVALUATION[id0.310, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..*}
+
+            -- Allergies and Adverse Reactions Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Allergies
+
+            -- Allergy/adverse reaction information
+            use_archetype EVALUATION[id0.410, openEHR-EHR-EVALUATION.adverse_reaction_risk.v1] occurrences matches {0..*}
+
+            -- Admission Assessment Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Admission Assessment
+
+            -- Vital signs at admission
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.530, openEHR-EHR-OBSERVATION.body_temperature.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.540, openEHR-EHR-OBSERVATION.respiration.v2] occurrences matches {0..*}
+
+            -- Physical examination findings
+            use_archetype OBSERVATION[id0.550, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Hospital Course Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Hospital Course
+
+            -- Clinical synopsis of hospital stay
+            use_archetype EVALUATION[id0.610, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {1}
+
+            -- Diagnoses Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1}
+
+            -- Primary diagnosis
+            use_archetype EVALUATION[id0.710, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1}
+
+            -- Secondary diagnoses
+            use_archetype EVALUATION[id0.720, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Complications during admission
+            use_archetype EVALUATION[id0.730, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Procedures and Interventions Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Procedures
+
+            -- Surgical and medical procedures performed
+            use_archetype ACTION[id0.810, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Investigations and Results Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Investigations
+
+            -- Laboratory test results
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Imaging results
+            use_archetype OBSERVATION[id0.920, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Treatment and Management Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Treatment
+
+            -- Medications administered during admission
+            use_archetype INSTRUCTION[id1.010, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Discharge Status Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Discharge Status
+
+            -- Patient condition at discharge
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Functional status at discharge
+            use_archetype OBSERVATION[id1.120, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1}
+
+            -- Discharge Medications Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.medication_medical_devices_rcp.v1] occurrences matches {0..1}
+
+            -- Medications prescribed at discharge
+            use_archetype INSTRUCTION[id1.210, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Discharge Planning Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Discharge Plan
+
+            -- Follow-up arrangements
+            use_archetype INSTRUCTION[id1.310, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Care plan and follow-up instructions
+            use_archetype INSTRUCTION[id1.320, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Patient and Family Education Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Education
+
+            -- Discharge instructions and recommendations
+            use_archetype EVALUATION[id1.410, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Admission and Discharge Summary">
+                description = <"A comprehensive summary of a patient's hospital admission and discharge.">
+            >
+            ["id0.1"] = <
+                text = <"Admission ID">
+                description = <"Unique identifier for this hospital admission.">
+            >
+            ["id0.3"] = <
+                text = <"Admission Date/Time">
+                description = <"Date and time patient was admitted to hospital.">
+            >
+            ["id0.5"] = <
+                text = <"Discharge Date/Time">
+                description = <"Date and time patient was discharged from hospital.">
+            >
+            ["id0.7"] = <
+                text = <"Length of Stay">
+                description = <"Total duration of hospital admission.">
+            >
+            ["id0.9"] = <
+                text = <"Admission Type">
+                description = <"Type of hospital admission.">
+            >
+            ["id0.11"] = <
+                text = <"Discharge Disposition">
+                description = <"Discharge destination and arrangements.">
+            >
+            ["id0.100"] = <
+                text = <"Admission Information">
+                description = <"Details about the hospital admission.">
+            >
+            ["id0.110"] = <
+                text = <"Reason for Admission">
+                description = <"Clinical reason for hospital admission using reason_for_encounter.v1 archetype.">
+            >
+            ["id0.120"] = <
+                text = <"Presenting History">
+                description = <"Chief complaint and presenting history using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Medical History">
+                description = <"Relevant past medical history.">
+            >
+            ["id0.210"] = <
+                text = <"Past Medical History">
+                description = <"Previous medical conditions using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Medications on Admission">
+                description = <"Medications patient was taking prior to admission.">
+            >
+            ["id0.310"] = <
+                text = <"Pre-Admission Medications">
+                description = <"Medications using medication_summary.v0 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Allergies">
+                description = <"Known allergies and adverse reactions.">
+            >
+            ["id0.410"] = <
+                text = <"Allergy/Adverse Reaction">
+                description = <"Allergy information using adverse_reaction_risk.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Admission Assessment">
+                description = <"Clinical assessment at time of admission.">
+            >
+            ["id0.510"] = <
+                text = <"Blood Pressure">
+                description = <"Admission blood pressure using blood_pressure.v2 archetype.">
+            >
+            ["id0.520"] = <
+                text = <"Pulse">
+                description = <"Admission heart rate using pulse.v2 archetype.">
+            >
+            ["id0.530"] = <
+                text = <"Temperature">
+                description = <"Admission temperature using body_temperature.v2 archetype.">
+            >
+            ["id0.540"] = <
+                text = <"Respiratory Rate">
+                description = <"Admission respiratory rate using respiration.v2 archetype.">
+            >
+            ["id0.550"] = <
+                text = <"Physical Examination">
+                description = <"Admission examination findings using exam.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Hospital Course">
+                description = <"Summary of clinical events during hospital stay.">
+            >
+            ["id0.610"] = <
+                text = <"Clinical Course Summary">
+                description = <"Narrative summary of hospital stay using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Diagnoses">
+                description = <"Primary and secondary diagnoses.">
+            >
+            ["id0.710"] = <
+                text = <"Primary Diagnosis">
+                description = <"Principal diagnosis using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.720"] = <
+                text = <"Secondary Diagnosis">
+                description = <"Additional diagnoses using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.730"] = <
+                text = <"Complication">
+                description = <"Complications during admission using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Procedures">
+                description = <"Procedures and interventions performed during admission.">
+            >
+            ["id0.810"] = <
+                text = <"Procedure Performed">
+                description = <"Surgical or medical procedure using procedure.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Investigations">
+                description = <"Laboratory and imaging investigations during admission.">
+            >
+            ["id0.910"] = <
+                text = <"Laboratory Results">
+                description = <"Laboratory test results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.920"] = <
+                text = <"Imaging Results">
+                description = <"Imaging examination results using imaging_exam_result.v0 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Treatment">
+                description = <"Treatments administered during hospital stay.">
+            >
+            ["id1.010"] = <
+                text = <"Medication Administered">
+                description = <"Medications during admission using medication_order.v3 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Discharge Status">
+                description = <"Patient status at time of discharge.">
+            >
+            ["id1.110"] = <
+                text = <"Condition at Discharge">
+                description = <"Clinical condition at discharge using clinical_synopsis.v1 archetype.">
+            >
+            ["id1.120"] = <
+                text = <"Functional Status">
+                description = <"Functional assessment at discharge using exam.v1 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Discharge Medications">
+                description = <"Medications prescribed at discharge.">
+            >
+            ["id1.210"] = <
+                text = <"Discharge Medication">
+                description = <"Medication prescription at discharge using medication_order.v3 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Discharge Plan">
+                description = <"Follow-up and continuing care arrangements.">
+            >
+            ["id1.310"] = <
+                text = <"Follow-up Appointment">
+                description = <"Follow-up arrangements using service_request.v1 archetype.">
+            >
+            ["id1.320"] = <
+                text = <"Care Plan">
+                description = <"Continuing care plan using care_plan.v0 archetype.">
+            >
+            ["id1.400"] = <
+                text = <"Patient Education">
+                description = <"Discharge instructions and education.">
+            >
+            ["id1.410"] = <
+                text = <"Discharge Instructions">
+                description = <"Patient instructions and recommendations using recommendation.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for report.">
+            >
+            ["at0.1"] = <
+                text = <"Emergency">
+                description = <"Unplanned emergency admission.">
+            >
+            ["at0.2"] = <
+                text = <"Elective">
+                description = <"Planned elective admission.">
+            >
+            ["at0.3"] = <
+                text = <"Transfer">
+                description = <"Transfer from another healthcare facility.">
+            >
+            ["at0.4"] = <
+                text = <"Maternity">
+                description = <"Admission for delivery or obstetric care.">
+            >
+            ["at0.5"] = <
+                text = <"Home with self-care">
+                description = <"Discharged home with no additional support needed.">
+            >
+            ["at0.6"] = <
+                text = <"Home with home care">
+                description = <"Discharged home with home healthcare services.">
+            >
+            ["at0.7"] = <
+                text = <"Transfer">
+                description = <"Transferred to another healthcare facility.">
+            >
+            ["at0.8"] = <
+                text = <"Left against medical advice">
+                description = <"Patient left hospital against medical advice.">
+            >
+            ["at0.9"] = <
+                text = <"Deceased">
+                description = <"Patient died during admission.">
+            >
+            ["at0.10"] = <
+                text = <"Other">
+                description = <"Other discharge disposition.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Résumé d'Admission et de Sortie">
+                description = <"Un résumé complet de l'admission et de la sortie hospitalière d'un patient.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant d'Admission">
+                description = <"Identifiant unique pour cette admission hospitalière.">
+            >
+            ["id0.710"] = <
+                text = <"Diagnostic Principal">
+                description = <"Diagnostic principal utilisant l'archétype problem_diagnosis.v1.">
+            >
+        >
+    >

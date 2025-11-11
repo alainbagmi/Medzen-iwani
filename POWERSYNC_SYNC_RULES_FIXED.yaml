@@ -1,0 +1,125 @@
+# PowerSync Sync Rules for MedZen-Iwani (FIXED VERSION)
+# Multi-Role Healthcare Application
+# Supports: Patient, Medical Provider, Facility Admin, System Admin
+#
+# IMPORTANT: PowerSync has strict limitations on sync rule syntax:
+# ✅ Simple WHERE conditions with bucket parameters
+# ❌ Subqueries (SELECT in WHERE)
+# ❌ Complex expressions with bucket parameters
+#
+# For complex multi-role access, you need to create database VIEWS
+# that pre-compute relationships. See POWERSYNC_DATABASE_VIEWS.sql
+
+bucket_definitions:
+  # =====================================================
+  # USER BUCKET - Basic user data (all roles)
+  # =====================================================
+  user_data:
+    # Get user's internal ID from Firebase UID
+    parameters: SELECT id::text as user_id FROM users WHERE firebase_uid = token_parameters.user_id()
+
+    data:
+      # 1. User's own profile
+      - SELECT * FROM users WHERE id::text = bucket.user_id
+
+      # 2. Patient profile (if user is a patient)
+      - SELECT * FROM patient_profiles WHERE user_id = bucket.user_id
+
+      # 3. Medical provider profile (if user is a medical provider)
+      - SELECT * FROM medical_provider_profiles WHERE user_id = bucket.user_id
+
+      # 4. Facility admin profile (if user is a facility admin)
+      - SELECT * FROM facility_admin_profiles WHERE user_id = bucket.user_id
+
+      # 5. System admin profile (if user is a system admin)
+      - SELECT * FROM system_admin_profiles WHERE user_id = bucket.user_id
+
+      # 6. User's electronic health records (if patient)
+      - SELECT * FROM electronic_health_records WHERE patient_id = bucket.user_id
+
+  # =====================================================
+  # PATIENT DATA BUCKET - Patient-specific medical records
+  # =====================================================
+  patient_medical_data:
+    # Get user ID for patients only
+    parameters: SELECT user_id FROM patient_profiles WHERE user_id IN (SELECT id::text FROM users WHERE firebase_uid = token_parameters.user_id())
+
+    data:
+      # Patient's medical records
+      - SELECT * FROM vital_signs WHERE patient_id = bucket.user_id
+      - SELECT * FROM lab_results WHERE patient_id = bucket.user_id
+      - SELECT * FROM prescriptions WHERE patient_id = bucket.user_id
+      - SELECT * FROM immunizations WHERE patient_id = bucket.user_id
+      - SELECT * FROM medical_records WHERE patient_id = bucket.user_id
+      - SELECT * FROM allergies WHERE patient_id = bucket.user_id
+
+      # Patient's appointments (simple direct access only)
+      - SELECT * FROM appointments WHERE patient_id = bucket.user_id
+
+  # =====================================================
+  # GLOBAL REFERENCE DATA - Non-sensitive lookup tables
+  # =====================================================
+  global:
+    # No parameters needed for global data
+    data:
+      # Facilities (public information)
+      - SELECT * FROM facilities
+
+      # Facility types (reference data)
+      - SELECT * FROM facility_types
+
+      # Blood types (reference data)
+      - SELECT * FROM blood_types
+
+      # Specialties (reference data)
+      - SELECT * FROM specialties
+
+      # Countries (reference data)
+      - SELECT * FROM countries
+
+# =====================================================
+# IMPORTANT NOTES FOR MULTI-ROLE SUPPORT
+# =====================================================
+#
+# The above rules provide BASIC access only. For full multi-role support
+# with complex relationships (e.g., providers seeing their patients' data),
+# you need to create MATERIALIZED VIEWS in Supabase:
+#
+# 1. v_provider_accessible_patients
+#    - Pre-joins appointments to show which patients a provider can access
+#
+# 2. v_provider_accessible_medical_records
+#    - Pre-joins all medical record types with provider relationships
+#
+# 3. v_facility_admin_accessible_data
+#    - Pre-joins all facility-related data for facility admins
+#
+# 4. v_system_admin_all_data
+#    - System admins get everything (or use RLS bypass)
+#
+# Then create additional buckets:
+#
+# provider_patients:
+#   parameters: SELECT provider_id FROM medical_provider_profiles WHERE ...
+#   data:
+#     - SELECT * FROM v_provider_accessible_patients WHERE provider_id = bucket.provider_id
+#     - SELECT * FROM v_provider_accessible_medical_records WHERE provider_id = bucket.provider_id
+#
+# See POWERSYNC_DATABASE_VIEWS.sql for view creation scripts.
+#
+# =====================================================
+# WHY THIS APPROACH?
+# =====================================================
+#
+# PowerSync sync rules are intentionally simple for performance and security.
+# Complex authorization logic belongs in the database via:
+# 1. Views/Materialized Views (recommended for PowerSync)
+# 2. Row-Level Security policies (for direct Supabase access)
+# 3. Application-level filtering (least secure, not recommended)
+#
+# The database views approach:
+# ✅ Maintains security (enforced at DB level)
+# ✅ Works within PowerSync limitations
+# ✅ Performs well (pre-computed joins)
+# ✅ HIPAA compliant (proper access control)
+# ✅ Easy to audit and maintain

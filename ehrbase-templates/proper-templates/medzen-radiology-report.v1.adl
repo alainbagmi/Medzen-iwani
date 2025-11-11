@@ -1,0 +1,636 @@
+-- MedZen Radiology Report Template
+-- Diagnostic imaging reports for CT, MRI, X-ray, Ultrasound
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_radiology_report.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.report.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record formal radiology reports for diagnostic imaging examinations including X-ray, computed tomography (CT), magnetic resonance imaging (MRI), ultrasound, nuclear medicine, and fluoroscopy studies. Supports structured reporting with findings, impressions, and recommendations.">
+            use = <"Used by radiologists and imaging specialists to document imaging examination findings, provide diagnostic impressions, and make clinical recommendations. Supports tele-radiology workflows, comparison with prior studies, contrast administration documentation, radiation dose tracking, and standardized structured reporting templates (e.g., BI-RADS, Fleischner, LI-RADS).">
+            keywords = <"radiology", "imaging", "CT scan", "MRI", "X-ray", "ultrasound", "radiography", "diagnostic imaging", "nuclear medicine", "fluoroscopy", "PET scan", "tele-radiology">
+            misuse = <"Not for recording the act of performing imaging (use procedure template). Not for real-time image interpretation during procedures (use procedure template). Not for pathology reports (use pathology template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer les rapports de radiologie pour les examens d'imagerie diagnostique incluant les rayons X, la tomodensitométrie, l'IRM et l'échographie.">
+            use = <"Utilisé par les radiologues pour documenter les résultats d'imagerie, fournir des impressions diagnostiques et des recommandations cliniques.">
+            keywords = <"radiologie", "imagerie", "scanner", "IRM", "rayons X", "échographie", "tomodensitométrie">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Radiology Report
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Report ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {{"MedZen Radiology"}}
+                                        type matches {{"Radiology Report"}}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Accession Number
+                                value matches {
+                                    DV_IDENTIFIER[id0.4] matches {
+                                        issuer matches {{"PACS System"}}
+                                        type matches {{"Accession Number"}}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Imaging Modality
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,     -- X-ray (Plain Radiography)
+                                            at0.2,     -- CT scan (Computed Tomography)
+                                            at0.3,     -- MRI (Magnetic Resonance Imaging)
+                                            at0.4,     -- Ultrasound (Sonography)
+                                            at0.5,     -- PET scan (Positron Emission Tomography)
+                                            at0.6,     -- Nuclear Medicine
+                                            at0.7,     -- Fluoroscopy
+                                            at0.8,     -- Mammography
+                                            at0.9,     -- DEXA (Bone Densitometry)
+                                            at0.10,    -- Angiography
+                                            at0.11]    -- PET-CT (Combined)
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Anatomical Region
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.12,    -- Head/Brain
+                                            at0.13,    -- Neck
+                                            at0.14,    -- Spine (Cervical/Thoracic/Lumbar/Sacral)
+                                            at0.15,    -- Chest/Thorax
+                                            at0.16,    -- Abdomen
+                                            at0.17,    -- Pelvis
+                                            at0.18,    -- Upper extremity
+                                            at0.19,    -- Lower extremity
+                                            at0.20,    -- Cardiovascular
+                                            at0.21,    -- Breast
+                                            at0.22,    -- Musculoskeletal
+                                            at0.23,    -- Whole body
+                                            at0.24]    -- Multiple regions
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Study Priority
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.25,    -- Stat (Emergency)
+                                            at0.26,    -- Urgent
+                                            at0.27,    -- Routine
+                                            at0.28]    -- Elective
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.11] occurrences matches {0..1} matches {    -- Imaging Protocol
+                                value matches {
+                                    DV_TEXT[id0.12]
+                                }
+                            }
+                            ELEMENT[id0.13] occurrences matches {0..1} matches {    -- Contrast Administration
+                                value matches {
+                                    DV_CODED_TEXT[id0.14] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.29,    -- No contrast
+                                            at0.30,    -- IV contrast (iodinated)
+                                            at0.31,    -- IV contrast (gadolinium)
+                                            at0.32,    -- Oral contrast
+                                            at0.33,    -- Rectal contrast
+                                            at0.34]    -- Multiple contrast agents
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.15] occurrences matches {0..1} matches {    -- Contrast Volume (mL)
+                                value matches {
+                                    DV_QUANTITY[id0.16] matches {
+                                        units matches {"ml"}
+                                        magnitude matches {|0.0..500.0|}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.17] occurrences matches {0..1} matches {    -- Radiation Dose (mGy)
+                                value matches {
+                                    DV_QUANTITY[id0.18] matches {
+                                        units matches {"mGy"}
+                                        magnitude matches {|>=0.0|}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.19] occurrences matches {0..1} matches {    -- DLP (Dose Length Product)
+                                value matches {
+                                    DV_QUANTITY[id0.20] matches {
+                                        units matches {"mGy.cm"}
+                                        magnitude matches {|>=0.0|}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.21] occurrences matches {0..1} matches {    -- Image Quality
+                                value matches {
+                                    DV_CODED_TEXT[id0.22] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.35,    -- Excellent
+                                            at0.36,    -- Good
+                                            at0.37,    -- Adequate
+                                            at0.38,    -- Limited (technical factors)
+                                            at0.39]    -- Non-diagnostic
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.23] occurrences matches {0..1} matches {    -- Comparison Available
+                                value matches {
+                                    DV_BOOLEAN[id0.24]
+                                }
+                            }
+                            ELEMENT[id0.25] occurrences matches {0..1} matches {    -- Prior Study Date
+                                value matches {
+                                    DV_DATE_TIME[id0.26]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Clinical Indication Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Clinical Indication
+
+            -- Reason for imaging examination
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1}
+
+            -- Relevant clinical history
+            use_archetype EVALUATION[id0.120, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Imaging Protocol Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Imaging Technique
+
+            -- Technical parameters and protocol details
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..1}
+
+            -- Findings Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Imaging Findings
+
+            -- Detailed imaging observations
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {1..*}
+
+            -- Structured findings by anatomical system
+            use_archetype OBSERVATION[id0.320, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Comparison with Prior Studies Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Comparison
+
+            -- Comparative analysis with prior imaging
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Measurements Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Measurements
+
+            -- Quantitative measurements (lesion size, organ dimensions, volumes)
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Impression/Conclusion Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Impression
+
+            -- Radiological diagnoses and impressions
+            use_archetype EVALUATION[id0.610, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Overall diagnostic impression
+            use_archetype EVALUATION[id0.620, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {1}
+
+            -- Recommendations Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Recommendations
+
+            -- Follow-up imaging recommendations
+            use_archetype INSTRUCTION[id0.710, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Clinical recommendations
+            use_archetype EVALUATION[id0.720, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Structured Reporting Section (e.g., BI-RADS, Fleischner, LI-RADS)
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Structured Reporting
+
+            -- Standardized reporting classification
+            use_archetype OBSERVATION[id0.810, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Communication Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Critical Findings Communication
+
+            -- Critical or urgent findings communicated to clinician
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Radiologist Details Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Radiologist Information
+
+            -- Reporting radiologist
+            use_archetype EVALUATION[id1.010, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Report addendum or amendments
+            use_archetype EVALUATION[id1.020, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..*}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Radiology Report">
+                description = <"A formal diagnostic report for medical imaging examinations.">
+            >
+            ["id0.1"] = <
+                text = <"Report ID">
+                description = <"Unique identifier for this radiology report.">
+            >
+            ["id0.3"] = <
+                text = <"Accession Number">
+                description = <"PACS accession number for the imaging study.">
+            >
+            ["id0.5"] = <
+                text = <"Imaging Modality">
+                description = <"Type of imaging technology used for the examination.">
+            >
+            ["id0.7"] = <
+                text = <"Anatomical Region">
+                description = <"Primary body region or organ system examined.">
+            >
+            ["id0.9"] = <
+                text = <"Study Priority">
+                description = <"Clinical priority level for imaging study interpretation.">
+            >
+            ["id0.11"] = <
+                text = <"Imaging Protocol">
+                description = <"Specific imaging protocol or technique used (e.g., CT chest with IV contrast, MRI brain with and without gadolinium).">
+            >
+            ["id0.13"] = <
+                text = <"Contrast Administration">
+                description = <"Type of contrast agent administered, if any.">
+            >
+            ["id0.15"] = <
+                text = <"Contrast Volume">
+                description = <"Volume of contrast agent administered in milliliters.">
+            >
+            ["id0.17"] = <
+                text = <"Radiation Dose">
+                description = <"Estimated radiation dose in milligray (mGy) for CT or X-ray examinations.">
+            >
+            ["id0.19"] = <
+                text = <"DLP">
+                description = <"Dose Length Product for CT scans (mGy·cm).">
+            >
+            ["id0.21"] = <
+                text = <"Image Quality">
+                description = <"Assessment of overall image quality and diagnostic adequacy.">
+            >
+            ["id0.23"] = <
+                text = <"Comparison Available">
+                description = <"Indicates whether prior imaging studies are available for comparison.">
+            >
+            ["id0.25"] = <
+                text = <"Prior Study Date">
+                description = <"Date of the most recent comparable prior imaging study.">
+            >
+            ["id0.100"] = <
+                text = <"Clinical Indication">
+                description = <"Reason for imaging examination and relevant clinical history.">
+            >
+            ["id0.110"] = <
+                text = <"Indication Details">
+                description = <"Clinical indication for imaging using story.v1 archetype.">
+            >
+            ["id0.120"] = <
+                text = <"Relevant History">
+                description = <"Pertinent medical history, symptoms, or prior diagnoses using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Imaging Technique">
+                description = <"Technical details of imaging protocol and parameters used.">
+            >
+            ["id0.210"] = <
+                text = <"Protocol Details">
+                description = <"Specific imaging parameters, sequences, planes, or views using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Imaging Findings">
+                description = <"Detailed observations and findings from the imaging examination.">
+            >
+            ["id0.310"] = <
+                text = <"Finding Details">
+                description = <"Specific imaging observations organized by anatomical structure using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.320"] = <
+                text = <"Structured Findings">
+                description = <"Systematic findings by anatomical system using exam.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Comparison">
+                description = <"Comparison with prior imaging studies, if available.">
+            >
+            ["id0.410"] = <
+                text = <"Comparative Analysis">
+                description = <"Analysis of changes or stability compared to prior imaging using story.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Measurements">
+                description = <"Quantitative measurements from imaging study.">
+            >
+            ["id0.510"] = <
+                text = <"Measurement Details">
+                description = <"Specific measurements (lesion size, organ dimensions, volumes, angles) using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Impression">
+                description = <"Radiological interpretation, diagnosis, and clinical conclusion.">
+            >
+            ["id0.610"] = <
+                text = <"Radiological Diagnosis">
+                description = <"Specific imaging diagnoses using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.620"] = <
+                text = <"Overall Impression">
+                description = <"Summary interpretation and clinical significance using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Recommendations">
+                description = <"Follow-up imaging or clinical recommendations based on findings.">
+            >
+            ["id0.710"] = <
+                text = <"Follow-up Imaging">
+                description = <"Recommended additional imaging studies using service_request.v1 archetype.">
+            >
+            ["id0.720"] = <
+                text = <"Clinical Recommendations">
+                description = <"Suggested clinical follow-up or further evaluation using recommendation.v2 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Structured Reporting">
+                description = <"Standardized reporting using established classification systems (e.g., BI-RADS, Fleischner, LI-RADS, TI-RADS).">
+            >
+            ["id0.810"] = <
+                text = <"Classification">
+                description = <"Structured reporting classification using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Critical Findings Communication">
+                description = <"Documentation of communication of urgent or critical findings to referring clinician.">
+            >
+            ["id0.910"] = <
+                text = <"Communication Details">
+                description = <"Details of critical finding communication (who, when, how) using story.v1 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Radiologist Information">
+                description = <"Details of radiologist(s) involved in study interpretation.">
+            >
+            ["id1.010"] = <
+                text = <"Reporting Radiologist">
+                description = <"Identity and credentials of reporting radiologist using clinical_synopsis.v1 archetype.">
+            >
+            ["id1.020"] = <
+                text = <"Report Addendum">
+                description = <"Amendments or addenda to the original report using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for radiology report.">
+            >
+            ["at0.1"] = <
+                text = <"X-ray">
+                description = <"Plain radiography using X-rays.">
+            >
+            ["at0.2"] = <
+                text = <"CT scan">
+                description = <"Computed tomography.">
+            >
+            ["at0.3"] = <
+                text = <"MRI">
+                description = <"Magnetic resonance imaging.">
+            >
+            ["at0.4"] = <
+                text = <"Ultrasound">
+                description = <"Ultrasound sonography.">
+            >
+            ["at0.5"] = <
+                text = <"PET scan">
+                description = <"Positron emission tomography.">
+            >
+            ["at0.6"] = <
+                text = <"Nuclear Medicine">
+                description = <"Nuclear medicine imaging (e.g., bone scan, thyroid scan).">
+            >
+            ["at0.7"] = <
+                text = <"Fluoroscopy">
+                description = <"Real-time X-ray imaging.">
+            >
+            ["at0.8"] = <
+                text = <"Mammography">
+                description = <"Breast imaging using low-dose X-rays.">
+            >
+            ["at0.9"] = <
+                text = <"DEXA">
+                description = <"Dual-energy X-ray absorptiometry for bone density.">
+            >
+            ["at0.10"] = <
+                text = <"Angiography">
+                description = <"Vascular imaging (arterial or venous).">
+            >
+            ["at0.11"] = <
+                text = <"PET-CT">
+                description = <"Combined PET and CT imaging.">
+            >
+            ["at0.12"] = <
+                text = <"Head/Brain">
+                description = <"Cranial and intracranial structures.">
+            >
+            ["at0.13"] = <
+                text = <"Neck">
+                description = <"Cervical region structures.">
+            >
+            ["at0.14"] = <
+                text = <"Spine">
+                description = <"Vertebral column (cervical, thoracic, lumbar, sacral).">
+            >
+            ["at0.15"] = <
+                text = <"Chest">
+                description = <"Thoracic cavity including lungs, heart, mediastinum.">
+            >
+            ["at0.16"] = <
+                text = <"Abdomen">
+                description = <"Abdominal cavity and organs.">
+            >
+            ["at0.17"] = <
+                text = <"Pelvis">
+                description = <"Pelvic cavity and organs.">
+            >
+            ["at0.18"] = <
+                text = <"Upper extremity">
+                description = <"Arm, forearm, hand, shoulder.">
+            >
+            ["at0.19"] = <
+                text = <"Lower extremity">
+                description = <"Thigh, leg, foot, hip.">
+            >
+            ["at0.20"] = <
+                text = <"Cardiovascular">
+                description = <"Heart and vascular structures.">
+            >
+            ["at0.21"] = <
+                text = <"Breast">
+                description = <"Breast tissue.">
+            >
+            ["at0.22"] = <
+                text = <"Musculoskeletal">
+                description = <"Bones, joints, muscles, soft tissues.">
+            >
+            ["at0.23"] = <
+                text = <"Whole body">
+                description = <"Whole body imaging (e.g., PET-CT, bone scan).">
+            >
+            ["at0.24"] = <
+                text = <"Multiple regions">
+                description = <"Imaging of multiple body regions in single study.">
+            >
+            ["at0.25"] = <
+                text = <"Stat">
+                description = <"Emergency priority requiring immediate interpretation.">
+            >
+            ["at0.26"] = <
+                text = <"Urgent">
+                description = <"Urgent priority requiring same-day interpretation.">
+            >
+            ["at0.27"] = <
+                text = <"Routine">
+                description = <"Standard priority, normal turnaround time.">
+            >
+            ["at0.28"] = <
+                text = <"Elective">
+                description = <"Non-urgent elective study.">
+            >
+            ["at0.29"] = <
+                text = <"No contrast">
+                description = <"Study performed without contrast administration.">
+            >
+            ["at0.30"] = <
+                text = <"IV contrast (iodinated)">
+                description = <"Intravenous iodinated contrast agent (for CT or X-ray).">
+            >
+            ["at0.31"] = <
+                text = <"IV contrast (gadolinium)">
+                description = <"Intravenous gadolinium contrast agent (for MRI).">
+            >
+            ["at0.32"] = <
+                text = <"Oral contrast">
+                description = <"Oral contrast agent for gastrointestinal opacification.">
+            >
+            ["at0.33"] = <
+                text = <"Rectal contrast">
+                description = <"Rectal contrast for lower GI tract opacification.">
+            >
+            ["at0.34"] = <
+                text = <"Multiple agents">
+                description = <"Multiple types of contrast agents used in same study.">
+            >
+            ["at0.35"] = <
+                text = <"Excellent">
+                description = <"Excellent image quality, fully diagnostic.">
+            >
+            ["at0.36"] = <
+                text = <"Good">
+                description = <"Good image quality with clear diagnostic information.">
+            >
+            ["at0.37"] = <
+                text = <"Adequate">
+                description = <"Adequate image quality for diagnostic interpretation.">
+            >
+            ["at0.38"] = <
+                text = <"Limited">
+                description = <"Limited image quality due to technical factors (motion, artifact, body habitus).">
+            >
+            ["at0.39"] = <
+                text = <"Non-diagnostic">
+                description = <"Non-diagnostic image quality, repeat study may be needed.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rapport de Radiologie">
+                description = <"Un rapport diagnostique formel pour les examens d'imagerie médicale.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant du Rapport">
+                description = <"Identifiant unique pour ce rapport de radiologie.">
+            >
+            ["id0.3"] = <
+                text = <"Numéro d'Accession">
+                description = <"Numéro d'accession PACS pour l'étude d'imagerie.">
+            >
+            ["id0.5"] = <
+                text = <"Modalité d'Imagerie">
+                description = <"Type de technologie d'imagerie utilisée pour l'examen.">
+            >
+            ["id0.100"] = <
+                text = <"Indication Clinique">
+                description = <"Raison de l'examen d'imagerie et historique clinique pertinent.">
+            >
+            ["id0.300"] = <
+                text = <"Résultats d'Imagerie">
+                description = <"Observations et résultats détaillés de l'examen d'imagerie.">
+            >
+            ["id0.600"] = <
+                text = <"Impression">
+                description = <"Interprétation radiologique, diagnostic et conclusion clinique.">
+            >
+            ["id0.700"] = <
+                text = <"Recommandations">
+                description = <"Recommandations d'imagerie de suivi ou cliniques basées sur les résultats.">
+            >
+        >
+    >

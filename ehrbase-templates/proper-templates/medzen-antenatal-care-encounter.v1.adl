@@ -1,0 +1,367 @@
+-- MedZen Antenatal Care Encounter Template
+-- Prenatal care visit for pregnant patients
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_antenatal_care_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive antenatal care visit for pregnant patients including pregnancy history, examination findings, fetal assessment, and care planning.">
+            use = <"Used for routine antenatal care visits, prenatal screening, fetal monitoring, and pregnancy complications assessment. Supports both initial booking visits and follow-up antenatal appointments throughout pregnancy.">
+            keywords = <"antenatal", "prenatal", "pregnancy", "obstetrics", "maternity", "fetal", "ultrasound", "screening">
+            misuse = <"Not for recording labor and delivery events (use delivery record template). Not for postnatal care (use postnatal care template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une visite complète de soins prénatals pour les patientes enceintes incluant l'histoire de grossesse, les résultats d'examen, l'évaluation fœtale et la planification des soins.">
+            use = <"Utilisé pour les visites de soins prénatals de routine, le dépistage prénatal, la surveillance fœtale et l'évaluation des complications de grossesse.">
+            keywords = <"prénatal", "grossesse", "obstétrique", "maternité", "fœtal", "échographie", "dépistage">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Antenatal Care Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Visit ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Antenatal Visit"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Visit Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Booking visit (first antenatal)
+                                            at0.2,    -- Routine follow-up
+                                            at0.3,    -- High-risk follow-up
+                                            at0.4,    -- Ultrasound scan
+                                            at0.5,    -- Screening tests
+                                            at0.6]    -- Problem-focused visit
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Gestational Age
+                                value matches {
+                                    DV_DURATION[id0.6]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Pregnancy Summary Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pregnancy Summary
+
+            -- Pregnancy status and summary using official archetype
+            use_archetype EVALUATION[id0.110, openEHR-EHR-EVALUATION.pregnancy_summary.v0] occurrences matches {0..1}
+
+            -- Obstetric History Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Obstetric History
+
+            -- Previous pregnancies and outcomes
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Current Pregnancy History Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Current Pregnancy
+
+            -- Presenting symptoms/concerns
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+
+            -- Maternal vital signs
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.420, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.430, openEHR-EHR-OBSERVATION.body_weight.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.440, openEHR-EHR-OBSERVATION.height.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.450, openEHR-EHR-OBSERVATION.body_mass_index.v2] occurrences matches {0..1}
+
+            -- Physical Examination Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Physical Examination
+
+            -- General and systemic examination
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Abdominal examination (fundal height, fetal lie, presentation)
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1}
+
+            -- Fetal Assessment Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Fetal Assessment
+
+            -- Fetal heart rate
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+
+            -- Fetal movements
+            use_archetype OBSERVATION[id0.620, openEHR-EHR-OBSERVATION.fetal_movement.v0] occurrences matches {0..1}
+
+            -- Ultrasound findings (if performed)
+            use_archetype OBSERVATION[id0.630, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Laboratory Tests Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Laboratory Tests
+
+            -- Laboratory test results (blood type, hemoglobin, glucose screening, etc.)
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Problems and Diagnoses Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}
+
+            -- Pregnancy complications and high-risk factors
+            use_archetype EVALUATION[id0.810, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Risk Assessment Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Risk Assessment
+
+            -- Risk factors and pregnancy risk stratification
+            use_archetype EVALUATION[id0.910, openEHR-EHR-EVALUATION.health_risk.v1] occurrences matches {0..*}
+
+            -- Care Plan Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Care Plan
+
+            -- Medications and supplements (prenatal vitamins, iron, etc.)
+            use_archetype INSTRUCTION[id1.010, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Service requests (additional tests, ultrasound, specialist referral)
+            use_archetype INSTRUCTION[id1.020, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up plan and next visit
+            use_archetype INSTRUCTION[id1.030, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Patient Education and Advice Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Education
+
+            -- Counseling and recommendations
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Antenatal Care Encounter">
+                description = <"A prenatal care visit for a pregnant patient.">
+            >
+            ["id0.1"] = <
+                text = <"Visit ID">
+                description = <"Unique identifier for this antenatal care visit.">
+            >
+            ["id0.3"] = <
+                text = <"Visit Type">
+                description = <"Type of antenatal care visit.">
+            >
+            ["id0.5"] = <
+                text = <"Gestational Age">
+                description = <"Gestational age at time of this visit (weeks + days).">
+            >
+            ["id0.100"] = <
+                text = <"Pregnancy Summary">
+                description = <"Summary of current pregnancy status.">
+            >
+            ["id0.110"] = <
+                text = <"Pregnancy Status">
+                description = <"Current pregnancy summary using official pregnancy_summary.v0 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Obstetric History">
+                description = <"Previous pregnancy history and outcomes.">
+            >
+            ["id0.210"] = <
+                text = <"Previous Pregnancies">
+                description = <"Details of previous pregnancies using story.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Current Pregnancy">
+                description = <"History of current pregnancy.">
+            >
+            ["id0.310"] = <
+                text = <"Pregnancy Symptoms">
+                description = <"Current symptoms and concerns using story.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Vital Signs">
+                description = <"Maternal vital signs measurements.">
+            >
+            ["id0.410"] = <
+                text = <"Blood Pressure">
+                description = <"Maternal blood pressure using blood_pressure.v2 archetype.">
+            >
+            ["id0.420"] = <
+                text = <"Pulse">
+                description = <"Maternal heart rate using pulse.v2 archetype.">
+            >
+            ["id0.430"] = <
+                text = <"Body Weight">
+                description = <"Maternal weight using body_weight.v2 archetype.">
+            >
+            ["id0.440"] = <
+                text = <"Height">
+                description = <"Maternal height using height.v2 archetype.">
+            >
+            ["id0.450"] = <
+                text = <"BMI">
+                description = <"Body mass index using body_mass_index.v2 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Physical Examination">
+                description = <"Maternal physical examination findings.">
+            >
+            ["id0.510"] = <
+                text = <"General Examination">
+                description = <"General and systemic examination using exam.v1 archetype.">
+            >
+            ["id0.520"] = <
+                text = <"Abdominal Examination">
+                description = <"Obstetric abdominal examination (fundal height, fetal lie, presentation) using exam.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Fetal Assessment">
+                description = <"Fetal wellbeing assessment.">
+            >
+            ["id0.610"] = <
+                text = <"Fetal Heart Rate">
+                description = <"Fetal heart rate using pulse.v2 archetype.">
+            >
+            ["id0.620"] = <
+                text = <"Fetal Movements">
+                description = <"Fetal movement assessment using fetal_movement.v0 archetype.">
+            >
+            ["id0.630"] = <
+                text = <"Ultrasound Findings">
+                description = <"Obstetric ultrasound results using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Laboratory Tests">
+                description = <"Antenatal laboratory test results.">
+            >
+            ["id0.710"] = <
+                text = <"Laboratory Results">
+                description = <"Laboratory test results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Problems and Diagnoses">
+                description = <"Pregnancy complications and diagnoses.">
+            >
+            ["id0.810"] = <
+                text = <"Pregnancy Complication">
+                description = <"Pregnancy complication or high-risk factor using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Risk Assessment">
+                description = <"Pregnancy risk assessment.">
+            >
+            ["id0.910"] = <
+                text = <"Pregnancy Risk Factors">
+                description = <"Risk factors and stratification using health_risk.v1 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Care Plan">
+                description = <"Antenatal care plan and interventions.">
+            >
+            ["id1.010"] = <
+                text = <"Medication Order">
+                description = <"Medications and supplements using medication_order.v3 archetype.">
+            >
+            ["id1.020"] = <
+                text = <"Service Request">
+                description = <"Additional tests or referrals using service_request.v1 archetype.">
+            >
+            ["id1.030"] = <
+                text = <"Follow-up Plan">
+                description = <"Follow-up and next visit plan using care_plan.v0 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Patient Education">
+                description = <"Education and counseling provided.">
+            >
+            ["id1.110"] = <
+                text = <"Recommendations">
+                description = <"Patient counseling and advice using recommendation.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Booking visit">
+                description = <"First antenatal visit for booking and initial assessment.">
+            >
+            ["at0.2"] = <
+                text = <"Routine follow-up">
+                description = <"Routine antenatal follow-up visit.">
+            >
+            ["at0.3"] = <
+                text = <"High-risk follow-up">
+                description = <"Follow-up visit for high-risk pregnancy.">
+            >
+            ["at0.4"] = <
+                text = <"Ultrasound scan">
+                description = <"Visit specifically for ultrasound examination.">
+            >
+            ["at0.5"] = <
+                text = <"Screening tests">
+                description = <"Visit for antenatal screening tests.">
+            >
+            ["at0.6"] = <
+                text = <"Problem-focused visit">
+                description = <"Visit for specific pregnancy concern or complication.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rencontre de Soins Prénatals">
+                description = <"Une visite de soins prénatals pour une patiente enceinte.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Visite">
+                description = <"Identifiant unique pour cette visite de soins prénatals.">
+            >
+            ["id0.110"] = <
+                text = <"Statut de Grossesse">
+                description = <"Résumé de grossesse actuelle utilisant l'archétype officiel pregnancy_summary.v0.">
+            >
+        >
+    >

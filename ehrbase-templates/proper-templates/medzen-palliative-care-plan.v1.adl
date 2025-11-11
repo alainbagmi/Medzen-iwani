@@ -1,0 +1,813 @@
+archetype (adl_version=1.5.1)
+    openEHR-EHR-COMPOSITION.medzen_palliative_care_plan.v1
+specialize
+    openEHR-EHR-COMPOSITION.care_plan.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Health">
+                ["organisation"] = <"MedZen">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-02-11">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"published">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive palliative care plan including symptom management, advance care planning, quality of life assessment, and end-of-life care preferences.">
+            use = <"Use for documenting palliative care plans including:
+- Symptom assessment and management (pain, dyspnea, nausea, fatigue)
+- Advance care planning and directives
+- Goals of care discussions
+- Quality of life assessment
+- Functional status (Karnofsky Performance Status, ECOG)
+- Psychological and spiritual support
+- Family and caregiver support
+- Bereavement planning
+- Hospice care coordination
+- End-of-life preferences
+- Location of care preferences (home, hospice, hospital)">
+            keywords = <"palliative care", "hospice", "end-of-life", "symptom management", "pain", "dyspnea", "advance directive", "DNR", "quality of life", "comfort care", "terminal care", "bereavement">
+            copyright = <"© MedZen Health 2025">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Pour enregistrer un plan de soins palliatifs complet comprenant la gestion des symptômes, la planification préalable des soins, l'évaluation de la qualité de vie et les préférences de soins de fin de vie.">
+            use = <"Utiliser pour documenter les plans de soins palliatifs incluant:
+- Évaluation et gestion des symptômes (douleur, dyspnée, nausée, fatigue)
+- Planification préalable des soins et directives anticipées
+- Discussions sur les objectifs de soins
+- Évaluation de la qualité de vie
+- État fonctionnel (statut de performance Karnofsky, ECOG)
+- Soutien psychologique et spirituel
+- Soutien familial et des aidants
+- Planification du deuil
+- Coordination des soins de hospice
+- Préférences de fin de vie
+- Préférences de lieu de soins (domicile, hospice, hôpital)">
+            keywords = <"soins palliatifs", "hospice", "fin de vie", "gestion des symptômes", "douleur", "dyspnée", "directive anticipée", "RCR", "qualité de vie", "soins de confort", "soins terminaux", "deuil">
+            copyright = <"© MedZen Health 2025">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Palliative Care Plan
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0.1]}  -- persistent
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Primary Diagnosis / Life-Limiting Condition
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.19,    -- Cancer (advanced/metastatic)
+                                            at0.20,    -- Heart failure (end-stage)
+                                            at0.21,    -- COPD (end-stage)
+                                            at0.22,    -- Chronic kidney disease (end-stage)
+                                            at0.23,    -- Liver disease (end-stage)
+                                            at0.24,    -- Dementia (advanced)
+                                            at0.25,    -- Motor neuron disease (ALS)
+                                            at0.26,    -- Stroke with severe disability
+                                            at0.27,    -- HIV/AIDS (advanced)
+                                            at0.28,    -- Multiple system organ failure
+                                            at0.29,    -- Frailty syndrome
+                                            at0.30]    -- Other life-limiting condition
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Prognosis Estimate
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.31,    -- Days to weeks
+                                            at0.32,    -- Weeks to months
+                                            at0.33,    -- Months to year
+                                            at0.34,    -- Greater than 1 year
+                                            at0.35]    -- Uncertain
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Phase of Care
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.36,    -- Stable
+                                            at0.37,    -- Unstable / Deteriorating
+                                            at0.38,    -- Terminal / End-of-life
+                                            at0.39]    -- Bereavement
+                                        }
+                                    }
+                                }
+                            }
+                            allow_archetype CLUSTER[id0.11] occurrences matches {0..*} matches {    -- Care Plan Identifiers
+                                include
+                                    archetype_id/value matches {/openEHR-EHR-CLUSTER\.identifier\.v0/}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            allow_archetype SECTION[id0.12] occurrences matches {1} matches {    -- Patient and Family Background
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1|openEHR-EHR-EVALUATION\.social_summary\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.13] occurrences matches {1} matches {    -- Palliative Care Goals and Preferences
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.goal\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.14] occurrences matches {1} matches {    -- Advance Care Planning
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.advance_care_directive\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.15] occurrences matches {0..1} matches {    -- Resuscitation Status and DNR
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.16] occurrences matches {0..1} matches {    -- Surrogate Decision Maker
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.individual_personal\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.17] occurrences matches {1} matches {    -- Symptom Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.symptom_sign_screening\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.18] occurrences matches {0..1} matches {    -- Pain Assessment and Management
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.pain_scale\.v0|openEHR-EHR-INSTRUCTION\.medication_order\.v3/}
+                }
+            }
+            allow_archetype SECTION[id0.19] occurrences matches {0..1} matches {    -- Dyspnea Assessment and Management
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1|openEHR-EHR-INSTRUCTION\.medication_order\.v3/}
+                }
+            }
+            allow_archetype SECTION[id0.20] occurrences matches {0..1} matches {    -- Nausea and Vomiting Management
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1|openEHR-EHR-INSTRUCTION\.medication_order\.v3/}
+                }
+            }
+            allow_archetype SECTION[id0.21] occurrences matches {0..1} matches {    -- Fatigue and Weakness
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.22] occurrences matches {0..1} matches {    -- Delirium and Agitation Management
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1|openEHR-EHR-INSTRUCTION\.medication_order\.v3/}
+                }
+            }
+            allow_archetype SECTION[id0.23] occurrences matches {0..1} matches {    -- Nutrition and Hydration
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.nutritional_status\.v0|openEHR-EHR-INSTRUCTION\.therapeutic_good_use\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.24] occurrences matches {0..1} matches {    -- Functional Status Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.25] occurrences matches {0..1} matches {    -- Quality of Life Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.26] occurrences matches {0..1} matches {    -- Psychological and Emotional Support
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1|openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.27] occurrences matches {0..1} matches {    -- Spiritual and Existential Support
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1|openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.28] occurrences matches {0..1} matches {    -- Family and Caregiver Support
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.29] occurrences matches {0..1} matches {    -- Medication List for Symptom Control
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.medication_order\.v3|openEHR-EHR-ACTION\.medication\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.30] occurrences matches {0..1} matches {    -- Non-Pharmacological Interventions
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.service_request\.v1|openEHR-EHR-ACTION\.procedure\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.31] occurrences matches {0..1} matches {    -- Equipment and Assistive Devices
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.device\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.32] occurrences matches {0..1} matches {    -- Location of Care Preferences
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.goal\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.33] occurrences matches {0..1} matches {    -- Hospice Enrollment and Coordination
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.34] occurrences matches {0..1} matches {    -- Crisis and Emergency Management Plan
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.35] occurrences matches {0..1} matches {    -- End-of-Life Care Preferences
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.advance_care_directive\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.36] occurrences matches {0..1} matches {    -- After-Death Care and Cultural Practices
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.37] occurrences matches {0..1} matches {    -- Bereavement Support Planning
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.38] occurrences matches {1} matches {    -- Multidisciplinary Team Involved
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.individual_professional\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.39] occurrences matches {1} matches {    -- Care Plan Review and Updates
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Palliative Care Plan">
+                    description = <"A comprehensive plan for palliative care focusing on symptom management, quality of life, and end-of-life care preferences.">
+                >
+                ["at0.1"] = <
+                    text = <"persistent">
+                    description = <"Ongoing palliative care plan that is updated over time.">
+                >
+                ["id0.5"] = <
+                    text = <"Primary Diagnosis / Life-Limiting Condition">
+                    description = <"The primary life-limiting diagnosis or condition necessitating palliative care.">
+                >
+                ["at0.19"] = <
+                    text = <"Cancer (advanced/metastatic)">
+                    description = <"Advanced or metastatic cancer requiring palliative care.">
+                >
+                ["at0.20"] = <
+                    text = <"Heart failure (end-stage)">
+                    description = <"End-stage congestive heart failure.">
+                >
+                ["at0.21"] = <
+                    text = <"COPD (end-stage)">
+                    description = <"End-stage chronic obstructive pulmonary disease.">
+                >
+                ["at0.22"] = <
+                    text = <"Chronic kidney disease (end-stage)">
+                    description = <"End-stage renal disease.">
+                >
+                ["at0.23"] = <
+                    text = <"Liver disease (end-stage)">
+                    description = <"End-stage liver disease / cirrhosis.">
+                >
+                ["at0.24"] = <
+                    text = <"Dementia (advanced)">
+                    description = <"Advanced dementia with functional decline.">
+                >
+                ["at0.25"] = <
+                    text = <"Motor neuron disease (ALS)">
+                    description = <"Amyotrophic lateral sclerosis or other motor neuron disease.">
+                >
+                ["at0.26"] = <
+                    text = <"Stroke with severe disability">
+                    description = <"Severe stroke with significant functional impairment.">
+                >
+                ["at0.27"] = <
+                    text = <"HIV/AIDS (advanced)">
+                    description = <"Advanced HIV/AIDS requiring palliative care.">
+                >
+                ["at0.28"] = <
+                    text = <"Multiple system organ failure">
+                    description = <"Failure of multiple organ systems.">
+                >
+                ["at0.29"] = <
+                    text = <"Frailty syndrome">
+                    description = <"Severe frailty with progressive decline.">
+                >
+                ["at0.30"] = <
+                    text = <"Other life-limiting condition">
+                    description = <"Other condition limiting life expectancy.">
+                >
+                ["id0.7"] = <
+                    text = <"Prognosis Estimate">
+                    description = <"Estimated prognosis for life expectancy.">
+                >
+                ["at0.31"] = <
+                    text = <"Days to weeks">
+                    description = <"Prognosis of days to weeks.">
+                >
+                ["at0.32"] = <
+                    text = <"Weeks to months">
+                    description = <"Prognosis of weeks to months.">
+                >
+                ["at0.33"] = <
+                    text = <"Months to year">
+                    description = <"Prognosis of months to a year.">
+                >
+                ["at0.34"] = <
+                    text = <"Greater than 1 year">
+                    description = <"Prognosis greater than one year.">
+                >
+                ["at0.35"] = <
+                    text = <"Uncertain">
+                    description = <"Prognosis uncertain.">
+                >
+                ["id0.9"] = <
+                    text = <"Phase of Care">
+                    description = <"Current phase of palliative care.">
+                >
+                ["at0.36"] = <
+                    text = <"Stable">
+                    description = <"Patient condition is stable.">
+                >
+                ["at0.37"] = <
+                    text = <"Unstable / Deteriorating">
+                    description = <"Patient condition is unstable or deteriorating.">
+                >
+                ["at0.38"] = <
+                    text = <"Terminal / End-of-life">
+                    description = <"Patient is in terminal phase, end-of-life care.">
+                >
+                ["at0.39"] = <
+                    text = <"Bereavement">
+                    description = <"Post-death bereavement support phase.">
+                >
+                ["id0.11"] = <
+                    text = <"Care Plan Identifiers">
+                    description = <"Identifiers associated with this palliative care plan.">
+                >
+                ["id0.12"] = <
+                    text = <"Patient and Family Background">
+                    description = <"Patient's social situation, family structure, cultural and religious background.">
+                >
+                ["id0.13"] = <
+                    text = <"Palliative Care Goals and Preferences">
+                    description = <"Patient's stated goals for care, priorities, what matters most to them.">
+                >
+                ["id0.14"] = <
+                    text = <"Advance Care Planning">
+                    description = <"Advance directives, living will, healthcare power of attorney, POLST/MOLST forms.">
+                >
+                ["id0.15"] = <
+                    text = <"Resuscitation Status and DNR">
+                    description = <"Do Not Resuscitate (DNR) status, Do Not Intubate (DNI), comfort measures only.">
+                >
+                ["id0.16"] = <
+                    text = <"Surrogate Decision Maker">
+                    description = <"Designated surrogate decision maker or healthcare proxy information.">
+                >
+                ["id0.17"] = <
+                    text = <"Symptom Assessment">
+                    description = <"Comprehensive symptom assessment including pain, dyspnea, nausea, fatigue, constipation, anxiety, depression.">
+                >
+                ["id0.18"] = <
+                    text = <"Pain Assessment and Management">
+                    description = <"Pain assessment using validated scales (NRS, VAS, FLACC), pain management plan including opioids, adjuvants, interventional approaches.">
+                >
+                ["id0.19"] = <
+                    text = <"Dyspnea Assessment and Management">
+                    description = <"Breathlessness assessment and management including opioids, oxygen therapy, positioning, anxiolytics.">
+                >
+                ["id0.20"] = <
+                    text = <"Nausea and Vomiting Management">
+                    description = <"Assessment and management of nausea/vomiting including antiemetics, etiology-directed therapy.">
+                >
+                ["id0.21"] = <
+                    text = <"Fatigue and Weakness">
+                    description = <"Assessment of fatigue, weakness, and interventions to optimize energy and function.">
+                >
+                ["id0.22"] = <
+                    text = <"Delirium and Agitation Management">
+                    description = <"Assessment and management of delirium, agitation, terminal restlessness.">
+                >
+                ["id0.23"] = <
+                    text = <"Nutrition and Hydration">
+                    description = <"Nutritional status, appetite, artificial nutrition/hydration decisions, cultural considerations around food.">
+                >
+                ["id0.24"] = <
+                    text = <"Functional Status Assessment">
+                    description = <"Functional assessment using Karnofsky Performance Status (KPS), ECOG, Palliative Performance Scale (PPS), activities of daily living.">
+                >
+                ["id0.25"] = <
+                    text = <"Quality of Life Assessment">
+                    description = <"Quality of life assessment using validated tools (ESAS, IPOS, FACIT-PAL, McGill Quality of Life).">
+                >
+                ["id0.26"] = <
+                    text = <"Psychological and Emotional Support">
+                    description = <"Assessment of anxiety, depression, fear, grief; counseling, psychotherapy, psychiatric medication management.">
+                >
+                ["id0.27"] = <
+                    text = <"Spiritual and Existential Support">
+                    description = <"Spiritual needs assessment, meaning-making, religious practices, chaplaincy involvement.">
+                >
+                ["id0.28"] = <
+                    text = <"Family and Caregiver Support">
+                    description = <"Caregiver burden assessment, respite care, family meetings, caregiver training and education.">
+                >
+                ["id0.29"] = <
+                    text = <"Medication List for Symptom Control">
+                    description = <"Comprehensive list of medications for symptom management including opioids, antiemetics, anxiolytics, adjuvants.">
+                >
+                ["id0.30"] = <
+                    text = <"Non-Pharmacological Interventions">
+                    description = <"Complementary therapies such as massage, music therapy, aromatherapy, relaxation techniques, spiritual care.">
+                >
+                ["id0.31"] = <
+                    text = <"Equipment and Assistive Devices">
+                    description = <"Durable medical equipment including hospital bed, wheelchair, oxygen, suction, comfort aids.">
+                >
+                ["id0.32"] = <
+                    text = <"Location of Care Preferences">
+                    description = <"Preferred location for ongoing care and death (home, hospice facility, hospital, nursing home).">
+                >
+                ["id0.33"] = <
+                    text = <"Hospice Enrollment and Coordination">
+                    description = <"Hospice referral, enrollment status, hospice agency information, coordination with hospice team.">
+                >
+                ["id0.34"] = <
+                    text = <"Crisis and Emergency Management Plan">
+                    description = <"Plan for managing crisis situations including severe pain, dyspnea, bleeding, seizures; emergency medication kit.">
+                >
+                ["id0.35"] = <
+                    text = <"End-of-Life Care Preferences">
+                    description = <"Specific preferences for care at end of life including withdrawal of interventions, who should be present, rituals.">
+                >
+                ["id0.36"] = <
+                    text = <"After-Death Care and Cultural Practices">
+                    description = <"Cultural, religious, or personal preferences for care of the body after death, funeral arrangements.">
+                >
+                ["id0.37"] = <
+                    text = <"Bereavement Support Planning">
+                    description = <"Anticipated bereavement needs of family, referral to bereavement counseling, support groups.">
+                >
+                ["id0.38"] = <
+                    text = <"Multidisciplinary Team Involved">
+                    description = <"Members of the palliative care team including physician, nurse, social worker, chaplain, therapists, pharmacist.">
+                >
+                ["id0.39"] = <
+                    text = <"Care Plan Review and Updates">
+                    description = <"Schedule for regular review and update of care plan, documentation of changes in condition or goals.">
+                >
+            >
+        >
+        ["fr"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Plan de soins palliatifs">
+                    description = <"Un plan complet de soins palliatifs axé sur la gestion des symptômes, la qualité de vie et les préférences de soins de fin de vie.">
+                >
+                ["at0.1"] = <
+                    text = <"persistant">
+                    description = <"Plan de soins palliatifs continu mis à jour au fil du temps.">
+                >
+                ["id0.5"] = <
+                    text = <"Diagnostic principal / Condition limitant la vie">
+                    description = <"Le diagnostic principal ou la condition limitant la vie nécessitant des soins palliatifs.">
+                >
+                ["at0.19"] = <
+                    text = <"Cancer (avancé/métastatique)">
+                    description = <"Cancer avancé ou métastatique nécessitant des soins palliatifs.">
+                >
+                ["at0.20"] = <
+                    text = <"Insuffisance cardiaque (en phase terminale)">
+                    description = <"Insuffisance cardiaque congestive en phase terminale.">
+                >
+                ["at0.21"] = <
+                    text = <"MPOC (en phase terminale)">
+                    description = <"Maladie pulmonaire obstructive chronique en phase terminale.">
+                >
+                ["at0.22"] = <
+                    text = <"Maladie rénale chronique (en phase terminale)">
+                    description = <"Insuffisance rénale terminale.">
+                >
+                ["at0.23"] = <
+                    text = <"Maladie hépatique (en phase terminale)">
+                    description = <"Maladie hépatique en phase terminale / cirrhose.">
+                >
+                ["at0.24"] = <
+                    text = <"Démence (avancée)">
+                    description = <"Démence avancée avec déclin fonctionnel.">
+                >
+                ["at0.25"] = <
+                    text = <"Maladie du motoneurone (SLA)">
+                    description = <"Sclérose latérale amyotrophique ou autre maladie du motoneurone.">
+                >
+                ["at0.26"] = <
+                    text = <"AVC avec handicap sévère">
+                    description = <"AVC sévère avec déficience fonctionnelle significative.">
+                >
+                ["at0.27"] = <
+                    text = <"VIH/SIDA (avancé)">
+                    description = <"VIH/SIDA avancé nécessitant des soins palliatifs.">
+                >
+                ["at0.28"] = <
+                    text = <"Défaillance multiviscérale">
+                    description = <"Défaillance de plusieurs systèmes d'organes.">
+                >
+                ["at0.29"] = <
+                    text = <"Syndrome de fragilité">
+                    description = <"Fragilité sévère avec déclin progressif.">
+                >
+                ["at0.30"] = <
+                    text = <"Autre condition limitant la vie">
+                    description = <"Autre condition limitant l'espérance de vie.">
+                >
+                ["id0.7"] = <
+                    text = <"Estimation du pronostic">
+                    description = <"Pronostic estimé de l'espérance de vie.">
+                >
+                ["at0.31"] = <
+                    text = <"Jours à semaines">
+                    description = <"Pronostic de jours à semaines.">
+                >
+                ["at0.32"] = <
+                    text = <"Semaines à mois">
+                    description = <"Pronostic de semaines à mois.">
+                >
+                ["at0.33"] = <
+                    text = <"Mois à un an">
+                    description = <"Pronostic de mois à un an.">
+                >
+                ["at0.34"] = <
+                    text = <"Plus d'un an">
+                    description = <"Pronostic de plus d'un an.">
+                >
+                ["at0.35"] = <
+                    text = <"Incertain">
+                    description = <"Pronostic incertain.">
+                >
+                ["id0.9"] = <
+                    text = <"Phase de soins">
+                    description = <"Phase actuelle des soins palliatifs.">
+                >
+                ["at0.36"] = <
+                    text = <"Stable">
+                    description = <"L'état du patient est stable.">
+                >
+                ["at0.37"] = <
+                    text = <"Instable / Détérioration">
+                    description = <"L'état du patient est instable ou se détériore.">
+                >
+                ["at0.38"] = <
+                    text = <"Terminal / Fin de vie">
+                    description = <"Le patient est en phase terminale, soins de fin de vie.">
+                >
+                ["at0.39"] = <
+                    text = <"Deuil">
+                    description = <"Phase de soutien au deuil après le décès.">
+                >
+                ["id0.11"] = <
+                    text = <"Identifiants du plan de soins">
+                    description = <"Identifiants associés à ce plan de soins palliatifs.">
+                >
+                ["id0.12"] = <
+                    text = <"Contexte du patient et de la famille">
+                    description = <"Situation sociale du patient, structure familiale, contexte culturel et religieux.">
+                >
+                ["id0.13"] = <
+                    text = <"Objectifs et préférences de soins palliatifs">
+                    description = <"Objectifs déclarés du patient pour les soins, priorités, ce qui compte le plus pour eux.">
+                >
+                ["id0.14"] = <
+                    text = <"Planification préalable des soins">
+                    description = <"Directives anticipées, testament de vie, procuration en matière de soins de santé, formulaires POLST/MOLST.">
+                >
+                ["id0.15"] = <
+                    text = <"Statut de réanimation et RCR">
+                    description = <"Statut de non-réanimation (RCR), non-intubation (DNI), mesures de confort uniquement.">
+                >
+                ["id0.16"] = <
+                    text = <"Décideur substitut">
+                    description = <"Informations sur le décideur substitut désigné ou le mandataire en matière de soins de santé.">
+                >
+                ["id0.17"] = <
+                    text = <"Évaluation des symptômes">
+                    description = <"Évaluation complète des symptômes incluant douleur, dyspnée, nausée, fatigue, constipation, anxiété, dépression.">
+                >
+                ["id0.18"] = <
+                    text = <"Évaluation et gestion de la douleur">
+                    description = <"Évaluation de la douleur à l'aide d'échelles validées (NRS, VAS, FLACC), plan de gestion de la douleur incluant opioïdes, adjuvants, approches interventionnelles.">
+                >
+                ["id0.19"] = <
+                    text = <"Évaluation et gestion de la dyspnée">
+                    description = <"Évaluation et gestion de l'essoufflement incluant opioïdes, oxygénothérapie, positionnement, anxiolytiques.">
+                >
+                ["id0.20"] = <
+                    text = <"Gestion des nausées et vomissements">
+                    description = <"Évaluation et gestion des nausées/vomissements incluant antiémétiques, thérapie dirigée par l'étiologie.">
+                >
+                ["id0.21"] = <
+                    text = <"Fatigue et faiblesse">
+                    description = <"Évaluation de la fatigue, de la faiblesse et interventions pour optimiser l'énergie et la fonction.">
+                >
+                ["id0.22"] = <
+                    text = <"Gestion du delirium et de l'agitation">
+                    description = <"Évaluation et gestion du delirium, de l'agitation, de l'agitation terminale.">
+                >
+                ["id0.23"] = <
+                    text = <"Nutrition et hydratation">
+                    description = <"État nutritionnel, appétit, décisions sur la nutrition/hydratation artificielle, considérations culturelles autour de l'alimentation.">
+                >
+                ["id0.24"] = <
+                    text = <"Évaluation de l'état fonctionnel">
+                    description = <"Évaluation fonctionnelle utilisant le statut de performance Karnofsky (KPS), ECOG, échelle de performance palliative (PPS), activités de la vie quotidienne.">
+                >
+                ["id0.25"] = <
+                    text = <"Évaluation de la qualité de vie">
+                    description = <"Évaluation de la qualité de vie à l'aide d'outils validés (ESAS, IPOS, FACIT-PAL, McGill Quality of Life).">
+                >
+                ["id0.26"] = <
+                    text = <"Soutien psychologique et émotionnel">
+                    description = <"Évaluation de l'anxiété, de la dépression, de la peur, du deuil; counseling, psychothérapie, gestion psychiatrique des médicaments.">
+                >
+                ["id0.27"] = <
+                    text = <"Soutien spirituel et existentiel">
+                    description = <"Évaluation des besoins spirituels, création de sens, pratiques religieuses, implication de l'aumônerie.">
+                >
+                ["id0.28"] = <
+                    text = <"Soutien familial et des aidants">
+                    description = <"Évaluation du fardeau des aidants, soins de répit, réunions familiales, formation et éducation des aidants.">
+                >
+                ["id0.29"] = <
+                    text = <"Liste des médicaments pour le contrôle des symptômes">
+                    description = <"Liste complète des médicaments pour la gestion des symptômes incluant opioïdes, antiémétiques, anxiolytiques, adjuvants.">
+                >
+                ["id0.30"] = <
+                    text = <"Interventions non pharmacologiques">
+                    description = <"Thérapies complémentaires telles que massage, musicothérapie, aromathérapie, techniques de relaxation, soins spirituels.">
+                >
+                ["id0.31"] = <
+                    text = <"Équipement et dispositifs d'assistance">
+                    description = <"Équipement médical durable incluant lit d'hôpital, fauteuil roulant, oxygène, aspiration, aides au confort.">
+                >
+                ["id0.32"] = <
+                    text = <"Préférences de lieu de soins">
+                    description = <"Lieu préféré pour les soins continus et le décès (domicile, établissement de soins palliatifs, hôpital, maison de soins infirmiers).">
+                >
+                ["id0.33"] = <
+                    text = <"Inscription et coordination des soins palliatifs">
+                    description = <"Référence en soins palliatifs, statut d'inscription, informations sur l'agence de soins palliatifs, coordination avec l'équipe de soins palliatifs.">
+                >
+                ["id0.34"] = <
+                    text = <"Plan de gestion de crise et d'urgence">
+                    description = <"Plan pour gérer les situations de crise incluant douleur sévère, dyspnée, saignements, convulsions; trousse de médicaments d'urgence.">
+                >
+                ["id0.35"] = <
+                    text = <"Préférences de soins de fin de vie">
+                    description = <"Préférences spécifiques pour les soins en fin de vie incluant le retrait des interventions, qui devrait être présent, rituels.">
+                >
+                ["id0.36"] = <
+                    text = <"Soins après le décès et pratiques culturelles">
+                    description = <"Préférences culturelles, religieuses ou personnelles pour les soins du corps après le décès, arrangements funéraires.">
+                >
+                ["id0.37"] = <
+                    text = <"Planification du soutien au deuil">
+                    description = <"Besoins de deuil anticipés de la famille, référence au counseling de deuil, groupes de soutien.">
+                >
+                ["id0.38"] = <
+                    text = <"Équipe multidisciplinaire impliquée">
+                    description = <"Membres de l'équipe de soins palliatifs incluant médecin, infirmière, travailleur social, aumônier, thérapeutes, pharmacien.">
+                >
+                ["id0.39"] = <
+                    text = <"Révision et mises à jour du plan de soins">
+                    description = <"Calendrier de révision et de mise à jour régulière du plan de soins, documentation des changements de condition ou d'objectifs.">
+                >
+            >
+        >
+    >

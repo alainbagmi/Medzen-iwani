@@ -1,0 +1,3 @@
+{
+  "query": "query GetAllSpecialties { specialtiesCollection(orderBy: {display_order: AscNullsLast}) { edges { node { id specialty_code specialty_name description parent_specialty_id icon color is_active display_order metadata created_at updated_at } } } }"
+}

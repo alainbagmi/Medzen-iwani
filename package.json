@@ -1,0 +1,8 @@
+{
+  "name": "medzen-iwani",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "lint": "cd firebase/functions && npm run lint"
+  }
+}

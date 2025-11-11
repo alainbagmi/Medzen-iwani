@@ -1,0 +1,1158 @@
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_neurology_examination.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+                ["organisation"] = <"MedZen Health">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Development Team">
+        ["organisation"] = <"MedZen Health">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"unmanaged">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive neurology examination encounter including stroke evaluation, epilepsy management, headache assessment, neurodegenerative disease evaluation, and detailed neurological examination for the MedZen health records system.">
+            use = <"Use to document neurology consultations covering neurological conditions including stroke, epilepsy, headache disorders, movement disorders, neurodegenerative diseases, neuromuscular disorders, and other neurological conditions. Supports acute neurological assessment, chronic disease management, and specialized neurological testing.">
+            keywords = <"neurology", "stroke", "epilepsy", "seizure", "headache", "migraine", "Parkinson", "dementia", "multiple sclerosis", "neuropathy", "NIHSS", "neurological examination", "cranial nerves">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une consultation d'examen neurologique complet incluant l'évaluation d'AVC, la gestion de l'épilepsie, l'évaluation des céphalées, l'évaluation des maladies neurodégénératives et l'examen neurologique détaillé pour le système de dossiers de santé MedZen.">
+            use = <"Utiliser pour documenter les consultations de neurologie couvrant les affections neurologiques dont l'AVC, l'épilepsie, les céphalées, les troubles du mouvement, les maladies neurodégénératives, les troubles neuromusculaires et autres affections neurologiques. Prend en charge l'évaluation neurologique aiguë, la gestion des maladies chroniques et les tests neurologiques spécialisés.">
+            keywords = <"neurologie", "AVC", "épilepsie", "crise", "céphalée", "migraine", "Parkinson", "démence", "sclérose en plaques", "neuropathie", "NIHSS", "examen neurologique", "nerfs crâniens">
+        >
+    >
+    other_details = <
+        ["licence"] = <"This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License.">
+        ["custodian_organisation"] = <"MedZen Health">
+        ["references"] = <"National Institute of Neurological Disorders and Stroke (NINDS), International League Against Epilepsy (ILAE), International Headache Society (IHS), Movement Disorder Society, American Academy of Neurology">
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Neurology Examination
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.2] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,     -- Initial consultation
+                                            at0.2,     -- Follow-up visit
+                                            at0.3,     -- Acute stroke evaluation
+                                            at0.4,     -- Seizure clinic
+                                            at0.5,     -- Headache clinic
+                                            at0.6,     -- Movement disorder clinic
+                                            at0.7,     -- Neuromuscular clinic
+                                            at0.8]     -- Emergency consultation
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Primary Neurological Condition
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.9,     -- Ischemic stroke
+                                            at0.10,    -- Hemorrhagic stroke
+                                            at0.11,    -- Transient ischemic attack
+                                            at0.12,    -- Epilepsy
+                                            at0.13,    -- Migraine
+                                            at0.14,    -- Tension-type headache
+                                            at0.15,    -- Cluster headache
+                                            at0.16,    -- Parkinson disease
+                                            at0.17,    -- Essential tremor
+                                            at0.18,    -- Alzheimer disease
+                                            at0.19,    -- Vascular dementia
+                                            at0.20,    -- Multiple sclerosis
+                                            at0.21,    -- Peripheral neuropathy
+                                            at0.22,    -- Myasthenia gravis
+                                            at0.23,    -- Guillain-Barré syndrome
+                                            at0.24,    -- Brain tumor
+                                            at0.25]    -- Other neurological condition
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- NIHSS Score
+                                value matches {
+                                    DV_COUNT[id0.6] matches {
+                                        magnitude matches {|0..42|}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Modified Rankin Scale
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.26,    -- mRS 0 (No symptoms)
+                                            at0.27,    -- mRS 1 (No significant disability)
+                                            at0.28,    -- mRS 2 (Slight disability)
+                                            at0.29,    -- mRS 3 (Moderate disability)
+                                            at0.30,    -- mRS 4 (Moderately severe disability)
+                                            at0.31,    -- mRS 5 (Severe disability)
+                                            at0.32]    -- mRS 6 (Dead)
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Glasgow Coma Scale
+                                value matches {
+                                    DV_COUNT[id0.10] matches {
+                                        magnitude matches {|3..15|}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Chief Complaint and History of Present Illness
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Neurological History Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.320, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.330, openEHR-EHR-OBSERVATION.body_temperature.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- General Physical Examination Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Neurological Examination Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Cranial Nerves Examination Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Motor System Examination Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Sensory System Examination Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.810, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Reflexes and Coordination Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Gait and Balance Assessment Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.010, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Stroke Assessment Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.110, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.120, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Epilepsy and Seizure Assessment Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.210, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.220, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Headache Assessment Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.310, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.320, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Movement Disorder Assessment Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.410, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Cognitive Assessment Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.510, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Imaging Studies Section
+            use_archetype SECTION[id1.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.610, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Laboratory Tests Section
+            use_archetype SECTION[id1.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.710, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Electrophysiology Studies Section
+            use_archetype SECTION[id1.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.810, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Problem/Diagnosis List Section
+            use_archetype SECTION[id1.900, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.910, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Medication Management Section
+            use_archetype SECTION[id2.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id2.010, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id2.020, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Treatment Plan Section
+            use_archetype SECTION[id2.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id2.110, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id2.120, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Follow-up and Disposition Section
+            use_archetype SECTION[id2.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id2.210, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Neurology Examination">
+                description = <"A comprehensive neurological examination encounter for assessment and management of neurological conditions.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter Type">
+                description = <"The type of neurology encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Initial consultation">
+                description = <"First neurology consultation.">
+            >
+            ["at0.2"] = <
+                text = <"Follow-up visit">
+                description = <"Routine neurology follow-up.">
+            >
+            ["at0.3"] = <
+                text = <"Acute stroke evaluation">
+                description = <"Emergency stroke assessment.">
+            >
+            ["at0.4"] = <
+                text = <"Seizure clinic">
+                description = <"Epilepsy specialty clinic visit.">
+            >
+            ["at0.5"] = <
+                text = <"Headache clinic">
+                description = <"Specialized headache evaluation.">
+            >
+            ["at0.6"] = <
+                text = <"Movement disorder clinic">
+                description = <"Parkinson's and movement disorder clinic.">
+            >
+            ["at0.7"] = <
+                text = <"Neuromuscular clinic">
+                description = <"Specialized neuromuscular disorder clinic.">
+            >
+            ["at0.8"] = <
+                text = <"Emergency consultation">
+                description = <"Urgent neurological assessment.">
+            >
+            ["id0.3"] = <
+                text = <"Primary Neurological Condition">
+                description = <"Main neurological diagnosis being addressed.">
+            >
+            ["at0.9"] = <
+                text = <"Ischemic stroke">
+                description = <"Stroke due to arterial occlusion.">
+            >
+            ["at0.10"] = <
+                text = <"Hemorrhagic stroke">
+                description = <"Stroke due to bleeding.">
+            >
+            ["at0.11"] = <
+                text = <"Transient ischemic attack">
+                description = <"Temporary stroke symptoms.">
+            >
+            ["at0.12"] = <
+                text = <"Epilepsy">
+                description = <"Recurrent seizure disorder.">
+            >
+            ["at0.13"] = <
+                text = <"Migraine">
+                description = <"Recurrent severe headache with neurological symptoms.">
+            >
+            ["at0.14"] = <
+                text = <"Tension-type headache">
+                description = <"Chronic tension headache.">
+            >
+            ["at0.15"] = <
+                text = <"Cluster headache">
+                description = <"Severe unilateral headache with autonomic features.">
+            >
+            ["at0.16"] = <
+                text = <"Parkinson disease">
+                description = <"Progressive movement disorder.">
+            >
+            ["at0.17"] = <
+                text = <"Essential tremor">
+                description = <"Action tremor without other neurological signs.">
+            >
+            ["at0.18"] = <
+                text = <"Alzheimer disease">
+                description = <"Progressive dementia.">
+            >
+            ["at0.19"] = <
+                text = <"Vascular dementia">
+                description = <"Cognitive decline due to cerebrovascular disease.">
+            >
+            ["at0.20"] = <
+                text = <"Multiple sclerosis">
+                description = <"Demyelinating autoimmune disease.">
+            >
+            ["at0.21"] = <
+                text = <"Peripheral neuropathy">
+                description = <"Nerve damage causing weakness or numbness.">
+            >
+            ["at0.22"] = <
+                text = <"Myasthenia gravis">
+                description = <"Neuromuscular junction disorder.">
+            >
+            ["at0.23"] = <
+                text = <"Guillain-Barré syndrome">
+                description = <"Acute inflammatory demyelinating polyneuropathy.">
+            >
+            ["at0.24"] = <
+                text = <"Brain tumor">
+                description = <"Intracranial mass lesion.">
+            >
+            ["at0.25"] = <
+                text = <"Other neurological condition">
+                description = <"Other neurological diagnosis.">
+            >
+            ["id0.5"] = <
+                text = <"NIHSS Score">
+                description = <"National Institutes of Health Stroke Scale score (0-42, higher = more severe).">
+            >
+            ["id0.7"] = <
+                text = <"Modified Rankin Scale">
+                description = <"Functional disability scale post-stroke.">
+            >
+            ["at0.26"] = <
+                text = <"mRS 0 (No symptoms)">
+                description = <"No symptoms at all.">
+            >
+            ["at0.27"] = <
+                text = <"mRS 1 (No significant disability)">
+                description = <"Able to carry out all usual activities.">
+            >
+            ["at0.28"] = <
+                text = <"mRS 2 (Slight disability)">
+                description = <"Unable to carry out all previous activities but able to look after own affairs.">
+            >
+            ["at0.29"] = <
+                text = <"mRS 3 (Moderate disability)">
+                description = <"Requires some help but able to walk unassisted.">
+            >
+            ["at0.30"] = <
+                text = <"mRS 4 (Moderately severe disability)">
+                description = <"Unable to walk or attend to bodily needs without assistance.">
+            >
+            ["at0.31"] = <
+                text = <"mRS 5 (Severe disability)">
+                description = <"Bedridden, incontinent, requires constant care.">
+            >
+            ["at0.32"] = <
+                text = <"mRS 6 (Dead)">
+                description = <"Death.">
+            >
+            ["id0.9"] = <
+                text = <"Glasgow Coma Scale">
+                description = <"Level of consciousness score (3-15, lower = more impaired).">
+            >
+            ["id0.100"] = <
+                text = <"Chief Complaint and History of Present Illness">
+                description = <"Patient's presenting neurological complaint.">
+            >
+            ["id0.110"] = <
+                text = <"History of Present Illness">
+                description = <"Detailed account of current neurological symptoms including onset, progression, character, severity, associated symptoms.">
+            >
+            ["id0.200"] = <
+                text = <"Neurological History Section">
+                description = <"Past neurological conditions and risk factors.">
+            >
+            ["id0.210"] = <
+                text = <"Neurological History">
+                description = <"Prior strokes, seizures, head trauma, neurosurgery, risk factors (hypertension, diabetes, smoking, hyperlipidemia, atrial fibrillation).">
+            >
+            ["id0.300"] = <
+                text = <"Vital Signs Section">
+                description = <"Vital sign measurements.">
+            >
+            ["id0.310"] = <
+                text = <"Blood Pressure">
+                description = <"Blood pressure measurement (critical in stroke assessment).">
+            >
+            ["id0.320"] = <
+                text = <"Heart Rate">
+                description = <"Pulse rate and rhythm.">
+            >
+            ["id0.330"] = <
+                text = <"Temperature">
+                description = <"Body temperature.">
+            >
+            ["id0.400"] = <
+                text = <"General Physical Examination Section">
+                description = <"General physical examination findings.">
+            >
+            ["id0.410"] = <
+                text = <"General Exam">
+                description = <"Cardiovascular, respiratory, abdominal examination, carotid bruits.">
+            >
+            ["id0.500"] = <
+                text = <"Neurological Examination Section">
+                description = <"Comprehensive neurological examination.">
+            >
+            ["id0.510"] = <
+                text = <"Neurological Exam">
+                description = <"Mental status, cranial nerves, motor, sensory, reflexes, coordination, gait, overall neurological assessment.">
+            >
+            ["id0.600"] = <
+                text = <"Cranial Nerves Examination Section">
+                description = <"Assessment of cranial nerves I-XII.">
+            >
+            ["id0.610"] = <
+                text = <"Cranial Nerves">
+                description = <"CN I (olfactory), CN II (visual acuity, fields, fundoscopy), CN III/IV/VI (extraocular movements, pupils), CN V (facial sensation, jaw), CN VII (facial movement), CN VIII (hearing), CN IX/X (swallow, gag, palate), CN XI (shoulder shrug, head turn), CN XII (tongue).">
+            >
+            ["id0.700"] = <
+                text = <"Motor System Examination Section">
+                description = <"Motor function assessment.">
+            >
+            ["id0.710"] = <
+                text = <"Motor Examination">
+                description = <"Muscle bulk, tone, power (MRC 0-5 scale), involuntary movements, tremor, rigidity, bradykinesia.">
+            >
+            ["id0.800"] = <
+                text = <"Sensory System Examination Section">
+                description = <"Sensory function assessment.">
+            >
+            ["id0.810"] = <
+                text = <"Sensory Examination">
+                description = <"Light touch, pinprick, vibration, proprioception, cortical sensation (stereognosis, graphesthesia, two-point discrimination).">
+            >
+            ["id0.900"] = <
+                text = <"Reflexes and Coordination Section">
+                description = <"Reflex and cerebellar testing.">
+            >
+            ["id0.910"] = <
+                text = <"Reflexes and Coordination">
+                description = <"Deep tendon reflexes (biceps, triceps, knee, ankle), plantar response, finger-nose-finger, heel-shin, rapid alternating movements, Romberg test.">
+            >
+            ["id1.000"] = <
+                text = <"Gait and Balance Assessment Section">
+                description = <"Assessment of walking and balance.">
+            >
+            ["id1.010"] = <
+                text = <"Gait and Balance">
+                description = <"Gait pattern, tandem walking, heel walking, toe walking, pull test, postural stability, fall risk.">
+            >
+            ["id1.100"] = <
+                text = <"Stroke Assessment Section">
+                description = <"Acute stroke evaluation.">
+            >
+            ["id1.110"] = <
+                text = <"Stroke Clinical Assessment">
+                description = <"NIHSS scoring, time of symptom onset, last known well time, thrombolysis eligibility (tPA criteria), thrombectomy consideration, FAST (Face-Arm-Speech-Time).">
+            >
+            ["id1.120"] = <
+                text = <"Stroke Management Plan">
+                description = <"Acute intervention plan, secondary prevention, risk factor modification.">
+            >
+            ["id1.200"] = <
+                text = <"Epilepsy and Seizure Assessment Section">
+                description = <"Seizure and epilepsy evaluation.">
+            >
+            ["id1.210"] = <
+                text = <"Seizure History">
+                description = <"Seizure type (focal, generalized, tonic-clonic, absence, myoclonic), frequency, duration, aura, post-ictal state, triggers, medication adherence, therapeutic drug levels.">
+            >
+            ["id1.220"] = <
+                text = <"Epilepsy Management">
+                description = <"Seizure control status, anti-epileptic drug (AED) regimen, side effects, lifestyle modifications, driving restrictions.">
+            >
+            ["id1.300"] = <
+                text = <"Headache Assessment Section">
+                description = <"Detailed headache evaluation.">
+            >
+            ["id1.310"] = <
+                text = <"Headache Characteristics">
+                description = <"Location, quality, severity (0-10 scale), duration, frequency, onset, progression, triggers, associated symptoms (nausea, photophobia, phonophobia, visual aura), ICHD-3 criteria.">
+            >
+            ["id1.320"] = <
+                text = <"Headache Impact">
+                description = <"MIDAS (Migraine Disability Assessment Scale), HIT-6 (Headache Impact Test), impact on daily activities.">
+            >
+            ["id1.400"] = <
+                text = <"Movement Disorder Assessment Section">
+                description = <"Parkinson's and movement disorder evaluation.">
+            >
+            ["id1.410"] = <
+                text = <"Movement Disorder Findings">
+                description = <"UPDRS (Unified Parkinson's Disease Rating Scale), Hoehn and Yahr stage, tremor type (rest, postural, action), rigidity, bradykinesia, postural instability, dyskinesia, dystonia, chorea.">
+            >
+            ["id1.500"] = <
+                text = <"Cognitive Assessment Section">
+                description = <"Cognitive function testing.">
+            >
+            ["id1.510"] = <
+                text = <"Cognitive Testing">
+                description = <"MMSE, MoCA, Clock Drawing Test, orientation, memory (immediate, short-term, long-term), attention, language, visuospatial, executive function.">
+            >
+            ["id1.600"] = <
+                text = <"Imaging Studies Section">
+                description = <"Neuroimaging results.">
+            >
+            ["id1.610"] = <
+                text = <"Neuroimaging">
+                description = <"CT brain (non-contrast, CT angiography, CT perfusion), MRI brain (T1, T2, FLAIR, DWI, MRA, MRV), spine imaging.">
+            >
+            ["id1.700"] = <
+                text = <"Laboratory Tests Section">
+                description = <"Laboratory investigations.">
+            >
+            ["id1.710"] = <
+                text = <"Laboratory Results">
+                description = <"CBC, CMP, coagulation studies, lipid profile, HbA1c, vitamin B12, thyroid function, AED levels, CSF analysis if indicated.">
+            >
+            ["id1.800"] = <
+                text = <"Electrophysiology Studies Section">
+                description = <"Neurophysiological testing results.">
+            >
+            ["id1.810"] = <
+                text = <"Electrophysiology">
+                description = <"EEG (electroencephalogram), EMG (electromyography), NCS (nerve conduction studies), evoked potentials (visual, auditory, somatosensory).">
+            >
+            ["id1.900"] = <
+                text = <"Problem/Diagnosis List Section">
+                description = <"Neurological diagnoses.">
+            >
+            ["id1.910"] = <
+                text = <"Neurological Diagnoses">
+                description = <"Primary and secondary neurological diagnoses with anatomical localization.">
+            >
+            ["id2.000"] = <
+                text = <"Medication Management Section">
+                description = <"Neurological medication prescriptions.">
+            >
+            ["id2.010"] = <
+                text = <"Medication Orders">
+                description = <"Anti-epileptics (levetiracetam, valproate, carbamazepine, lamotrigine), anti-parkinsonian (levodopa, dopamine agonists, MAO-B inhibitors), migraine preventive (beta-blockers, anticonvulsants, CGRP antagonists), acute migraine (triptans, NSAIDs), anticoagulants/antiplatelets.">
+            >
+            ["id2.020"] = <
+                text = <"Current Medications">
+                description = <"Review of existing neurological medications, adherence, therapeutic drug monitoring.">
+            >
+            ["id2.100"] = <
+                text = <"Treatment Plan Section">
+                description = <"Comprehensive neurological treatment plan.">
+            >
+            ["id2.110"] = <
+                text = <"Treatment Recommendations">
+                description = <"Medication plan, therapy referrals (physical, occupational, speech), lifestyle modifications, seizure precautions, stroke prevention.">
+            >
+            ["id2.120"] = <
+                text = <"Referrals and Services">
+                description = <"Referrals to neurosurgery, neuroradiology, neuropsychology, rehabilitation, social work.">
+            >
+            ["id2.200"] = <
+                text = <"Follow-up and Disposition Section">
+                description = <"Follow-up plan and disposition.">
+            >
+            ["id2.210"] = <
+                text = <"Disposition Recommendations">
+                description = <"Follow-up schedule, monitoring plan, red flag symptoms to watch for, emergency contact instructions.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Examen neurologique">
+                description = <"Consultation d'examen neurologique complet pour l'évaluation et la gestion des affections neurologiques.">
+            >
+            ["id0.1"] = <
+                text = <"Type de consultation">
+                description = <"Type de consultation neurologique.">
+            >
+            ["at0.1"] = <
+                text = <"Consultation initiale">
+                description = <"Première consultation en neurologie.">
+            >
+            ["at0.2"] = <
+                text = <"Visite de suivi">
+                description = <"Suivi neurologique de routine.">
+            >
+            ["at0.3"] = <
+                text = <"Évaluation d'AVC aigu">
+                description = <"Évaluation d'urgence d'AVC.">
+            >
+            ["at0.4"] = <
+                text = <"Clinique de l'épilepsie">
+                description = <"Visite à la clinique spécialisée en épilepsie.">
+            >
+            ["at0.5"] = <
+                text = <"Clinique des céphalées">
+                description = <"Évaluation spécialisée des céphalées.">
+            >
+            ["at0.6"] = <
+                text = <"Clinique des troubles du mouvement">
+                description = <"Clinique Parkinson et troubles du mouvement.">
+            >
+            ["at0.7"] = <
+                text = <"Clinique neuromusculaire">
+                description = <"Clinique spécialisée en troubles neuromusculaires.">
+            >
+            ["at0.8"] = <
+                text = <"Consultation d'urgence">
+                description = <"Évaluation neurologique urgente.">
+            >
+            ["id0.3"] = <
+                text = <"Affection neurologique principale">
+                description = <"Diagnostic neurologique principal traité.">
+            >
+            ["at0.9"] = <
+                text = <"AVC ischémique">
+                description = <"AVC dû à une occlusion artérielle.">
+            >
+            ["at0.10"] = <
+                text = <"AVC hémorragique">
+                description = <"AVC dû à un saignement.">
+            >
+            ["at0.11"] = <
+                text = <"Accident ischémique transitoire">
+                description = <"Symptômes temporaires d'AVC.">
+            >
+            ["at0.12"] = <
+                text = <"Épilepsie">
+                description = <"Trouble convulsif récurrent.">
+            >
+            ["at0.13"] = <
+                text = <"Migraine">
+                description = <"Céphalée sévère récurrente avec symptômes neurologiques.">
+            >
+            ["at0.14"] = <
+                text = <"Céphalée de tension">
+                description = <"Céphalée de tension chronique.">
+            >
+            ["at0.15"] = <
+                text = <"Algie vasculaire de la face">
+                description = <"Céphalée unilatérale sévère avec signes autonomiques.">
+            >
+            ["at0.16"] = <
+                text = <"Maladie de Parkinson">
+                description = <"Trouble du mouvement progressif.">
+            >
+            ["at0.17"] = <
+                text = <"Tremblement essentiel">
+                description = <"Tremblement d'action sans autres signes neurologiques.">
+            >
+            ["at0.18"] = <
+                text = <"Maladie d'Alzheimer">
+                description = <"Démence progressive.">
+            >
+            ["at0.19"] = <
+                text = <"Démence vasculaire">
+                description = <"Déclin cognitif dû à une maladie cérébrovasculaire.">
+            >
+            ["at0.20"] = <
+                text = <"Sclérose en plaques">
+                description = <"Maladie auto-immune démyélinisante.">
+            >
+            ["at0.21"] = <
+                text = <"Neuropathie périphérique">
+                description = <"Lésion nerveuse causant faiblesse ou engourdissement.">
+            >
+            ["at0.22"] = <
+                text = <"Myasthénie grave">
+                description = <"Trouble de la jonction neuromusculaire.">
+            >
+            ["at0.23"] = <
+                text = <"Syndrome de Guillain-Barré">
+                description = <"Polyradiculonévrite démyélinisante inflammatoire aiguë.">
+            >
+            ["at0.24"] = <
+                text = <"Tumeur cérébrale">
+                description = <"Lésion de masse intracrânienne.">
+            >
+            ["at0.25"] = <
+                text = <"Autre affection neurologique">
+                description = <"Autre diagnostic neurologique.">
+            >
+            ["id0.5"] = <
+                text = <"Score NIHSS">
+                description = <"Score échelle d'AVC du NIH (0-42, plus élevé = plus sévère).">
+            >
+            ["id0.7"] = <
+                text = <"Échelle de Rankin modifiée">
+                description = <"Échelle d'incapacité fonctionnelle post-AVC.">
+            >
+            ["at0.26"] = <
+                text = <"mRS 0 (Aucun symptôme)">
+                description = <"Aucun symptôme du tout.">
+            >
+            ["at0.27"] = <
+                text = <"mRS 1 (Aucune incapacité significative)">
+                description = <"Capable d'effectuer toutes les activités habituelles.">
+            >
+            ["at0.28"] = <
+                text = <"mRS 2 (Incapacité légère)">
+                description = <"Incapable d'effectuer toutes les activités antérieures mais capable de s'occuper de ses affaires.">
+            >
+            ["at0.29"] = <
+                text = <"mRS 3 (Incapacité modérée)">
+                description = <"Nécessite de l'aide mais capable de marcher sans assistance.">
+            >
+            ["at0.30"] = <
+                text = <"mRS 4 (Incapacité modérément sévère)">
+                description = <"Incapable de marcher ou de s'occuper de ses besoins corporels sans assistance.">
+            >
+            ["at0.31"] = <
+                text = <"mRS 5 (Incapacité sévère)">
+                description = <"Alité, incontinent, nécessite des soins constants.">
+            >
+            ["at0.32"] = <
+                text = <"mRS 6 (Décédé)">
+                description = <"Décès.">
+            >
+            ["id0.9"] = <
+                text = <"Échelle de Glasgow">
+                description = <"Score de niveau de conscience (3-15, inférieur = plus altéré).">
+            >
+            ["id0.100"] = <
+                text = <"Motif principal de consultation et histoire de la maladie actuelle">
+                description = <"Plainte neurologique présentée par le patient.">
+            >
+            ["id0.110"] = <
+                text = <"Histoire de la maladie actuelle">
+                description = <"Compte rendu détaillé des symptômes neurologiques actuels incluant début, progression, caractère, gravité, symptômes associés.">
+            >
+            ["id0.200"] = <
+                text = <"Section Antécédents neurologiques">
+                description = <"Affections neurologiques antérieures et facteurs de risque.">
+            >
+            ["id0.210"] = <
+                text = <"Antécédents neurologiques">
+                description = <"AVC antérieurs, crises, traumatisme crânien, neurochirurgie, facteurs de risque (hypertension, diabète, tabagisme, hyperlipidémie, fibrillation auriculaire).">
+            >
+            ["id0.300"] = <
+                text = <"Section Signes vitaux">
+                description = <"Mesures des signes vitaux.">
+            >
+            ["id0.310"] = <
+                text = <"Tension artérielle">
+                description = <"Mesure de la pression artérielle (critique dans l'évaluation d'AVC).">
+            >
+            ["id0.320"] = <
+                text = <"Fréquence cardiaque">
+                description = <"Fréquence et rythme du pouls.">
+            >
+            ["id0.330"] = <
+                text = <"Température">
+                description = <"Température corporelle.">
+            >
+            ["id0.400"] = <
+                text = <"Section Examen physique général">
+                description = <"Résultats de l'examen physique général.">
+            >
+            ["id0.410"] = <
+                text = <"Examen général">
+                description = <"Examen cardiovasculaire, respiratoire, abdominal, souffles carotidiens.">
+            >
+            ["id0.500"] = <
+                text = <"Section Examen neurologique">
+                description = <"Examen neurologique complet.">
+            >
+            ["id0.510"] = <
+                text = <"Examen neurologique">
+                description = <"État mental, nerfs crâniens, moteur, sensitif, réflexes, coordination, démarche, évaluation neurologique globale.">
+            >
+            ["id0.600"] = <
+                text = <"Section Examen des nerfs crâniens">
+                description = <"Évaluation des nerfs crâniens I-XII.">
+            >
+            ["id0.610"] = <
+                text = <"Nerfs crâniens">
+                description = <"NC I (olfactif), NC II (acuité visuelle, champs, fond d'œil), NC III/IV/VI (mouvements oculaires, pupilles), NC V (sensation faciale, mâchoire), NC VII (mouvement facial), NC VIII (audition), NC IX/X (déglutition, réflexe nauséeux, palais), NC XI (haussement d'épaules, rotation tête), NC XII (langue).">
+            >
+            ["id0.700"] = <
+                text = <"Section Examen du système moteur">
+                description = <"Évaluation de la fonction motrice.">
+            >
+            ["id0.710"] = <
+                text = <"Examen moteur">
+                description = <"Volume musculaire, tonus, force (échelle MRC 0-5), mouvements involontaires, tremblement, rigidité, bradykinésie.">
+            >
+            ["id0.800"] = <
+                text = <"Section Examen du système sensitif">
+                description = <"Évaluation de la fonction sensorielle.">
+            >
+            ["id0.810"] = <
+                text = <"Examen sensitif">
+                description = <"Toucher léger, piqûre, vibration, proprioception, sensation corticale (stéréognosie, graphesthésie, discrimination à deux points).">
+            >
+            ["id0.900"] = <
+                text = <"Section Réflexes et coordination">
+                description = <"Tests réflexes et cérébelleux.">
+            >
+            ["id0.910"] = <
+                text = <"Réflexes et coordination">
+                description = <"Réflexes tendineux profonds (biceps, triceps, genou, cheville), réponse plantaire, doigt-nez-doigt, talon-tibia, mouvements alternés rapides, test de Romberg.">
+            >
+            ["id1.000"] = <
+                text = <"Section Évaluation de la démarche et de l'équilibre">
+                description = <"Évaluation de la marche et de l'équilibre.">
+            >
+            ["id1.010"] = <
+                text = <"Démarche et équilibre">
+                description = <"Pattern de démarche, marche en tandem, marche sur talons, marche sur pointes, test de traction, stabilité posturale, risque de chute.">
+            >
+            ["id1.100"] = <
+                text = <"Section Évaluation d'AVC">
+                description = <"Évaluation d'AVC aigu.">
+            >
+            ["id1.110"] = <
+                text = <"Évaluation clinique d'AVC">
+                description = <"Score NIHSS, heure de début des symptômes, dernière heure connue normale, éligibilité à la thrombolyse (critères tPA), considération de thrombectomie, FAST (Face-Bras-Parole-Temps).">
+            >
+            ["id1.120"] = <
+                text = <"Plan de gestion d'AVC">
+                description = <"Plan d'intervention aiguë, prévention secondaire, modification des facteurs de risque.">
+            >
+            ["id1.200"] = <
+                text = <"Section Évaluation de l'épilepsie et des crises">
+                description = <"Évaluation des crises et de l'épilepsie.">
+            >
+            ["id1.210"] = <
+                text = <"Historique des crises">
+                description = <"Type de crise (focale, généralisée, tonico-clonique, absence, myoclonique), fréquence, durée, aura, état post-critique, déclencheurs, observance médicamenteuse, niveaux thérapeutiques.">
+            >
+            ["id1.220"] = <
+                text = <"Gestion de l'épilepsie">
+                description = <"Statut de contrôle des crises, régime antiépileptique (AED), effets secondaires, modifications du mode de vie, restrictions de conduite.">
+            >
+            ["id1.300"] = <
+                text = <"Section Évaluation des céphalées">
+                description = <"Évaluation détaillée des céphalées.">
+            >
+            ["id1.310"] = <
+                text = <"Caractéristiques de la céphalée">
+                description = <"Localisation, qualité, gravité (échelle 0-10), durée, fréquence, début, progression, déclencheurs, symptômes associés (nausée, photophobie, phonophobie, aura visuelle), critères ICHD-3.">
+            >
+            ["id1.320"] = <
+                text = <"Impact de la céphalée">
+                description = <"MIDAS (échelle d'évaluation de l'incapacité migraineuse), HIT-6 (test d'impact de la céphalée), impact sur les activités quotidiennes.">
+            >
+            ["id1.400"] = <
+                text = <"Section Évaluation des troubles du mouvement">
+                description = <"Évaluation Parkinson et troubles du mouvement.">
+            >
+            ["id1.410"] = <
+                text = <"Résultats des troubles du mouvement">
+                description = <"UPDRS (échelle unifiée d'évaluation de la maladie de Parkinson), stade Hoehn et Yahr, type de tremblement (repos, postural, action), rigidité, bradykinésie, instabilité posturale, dyskinésie, dystonie, chorée.">
+            >
+            ["id1.500"] = <
+                text = <"Section Évaluation cognitive">
+                description = <"Tests de fonction cognitive.">
+            >
+            ["id1.510"] = <
+                text = <"Tests cognitifs">
+                description = <"MMSE, MoCA, Test de l'horloge, orientation, mémoire (immédiate, court terme, long terme), attention, langage, visuospatial, fonction exécutive.">
+            >
+            ["id1.600"] = <
+                text = <"Section Études d'imagerie">
+                description = <"Résultats de neuroimagerie.">
+            >
+            ["id1.610"] = <
+                text = <"Neuroimagerie">
+                description = <"TDM cérébral (sans contraste, angio-TDM, TDM de perfusion), IRM cérébrale (T1, T2, FLAIR, DWI, ARM, MRV), imagerie spinale.">
+            >
+            ["id1.700"] = <
+                text = <"Section Tests de laboratoire">
+                description = <"Investigations de laboratoire.">
+            >
+            ["id1.710"] = <
+                text = <"Résultats de laboratoire">
+                description = <"NFS, profil métabolique, études de coagulation, profil lipidique, HbA1c, vitamine B12, fonction thyroïdienne, niveaux AED, analyse LCR si indiqué.">
+            >
+            ["id1.800"] = <
+                text = <"Section Études d'électrophysiologie">
+                description = <"Résultats de tests neurophysiologiques.">
+            >
+            ["id1.810"] = <
+                text = <"Électrophysiologie">
+                description = <"EEG (électroencéphalogramme), EMG (électromyographie), études de conduction nerveuse (NCS), potentiels évoqués (visuels, auditifs, somatosensoriels).">
+            >
+            ["id1.900"] = <
+                text = <"Section Liste des problèmes/diagnostics">
+                description = <"Diagnostics neurologiques.">
+            >
+            ["id1.910"] = <
+                text = <"Diagnostics neurologiques">
+                description = <"Diagnostics neurologiques primaires et secondaires avec localisation anatomique.">
+            >
+            ["id2.000"] = <
+                text = <"Section Gestion des médicaments">
+                description = <"Prescriptions de médicaments neurologiques.">
+            >
+            ["id2.010"] = <
+                text = <"Ordonnances de médicaments">
+                description = <"Antiépileptiques (lévétiracétam, valproate, carbamazépine, lamotrigine), antiparkinsoniens (lévodopa, agonistes dopaminergiques, inhibiteurs MAO-B), préventif migraine (bêta-bloquants, anticonvulsivants, antagonistes CGRP), migraine aiguë (triptans, AINS), anticoagulants/antiplaquettaires.">
+            >
+            ["id2.020"] = <
+                text = <"Médicaments actuels">
+                description = <"Revue des médicaments neurologiques existants, observance, surveillance thérapeutique des médicaments.">
+            >
+            ["id2.100"] = <
+                text = <"Section Plan de traitement">
+                description = <"Plan de traitement neurologique complet.">
+            >
+            ["id2.110"] = <
+                text = <"Recommandations de traitement">
+                description = <"Plan de médication, références en thérapie (physique, occupationnelle, parole), modifications du mode de vie, précautions contre les crises, prévention d'AVC.">
+            >
+            ["id2.120"] = <
+                text = <"Références et services">
+                description = <"Références vers neurochirurgie, neuroradiologie, neuropsychologie, réadaptation, travail social.">
+            >
+            ["id2.200"] = <
+                text = <"Section Suivi et disposition">
+                description = <"Plan de suivi et disposition.">
+            >
+            ["id2.210"] = <
+                text = <"Recommandations de disposition">
+                description = <"Calendrier de suivi, plan de surveillance, symptômes d'alerte à surveiller, instructions de contact d'urgence.">
+            >
+        >
+    >

@@ -1,0 +1,218 @@
+{
+  "data": {
+    "usersCollection": {
+      "edges": [
+        {
+          "node": {
+            "id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+            "full_name": "Dummy  Doctor",
+            "date_of_birth": "1980-01-01",
+            "gender": "male",
+            "email": "dr.dummy@example.com",
+            "phone_number": "+237600000000",
+            "country": "CM",
+            "preferred_language": "English",
+            "timezone": "UTC",
+            "account_status": "active",
+            "last_seen_at": "2025-11-05T12:44:40.119147+00:00",
+            "created_at": "2025-11-05T12:33:58.330766+00:00",
+            "updated_at": "2025-11-05T12:44:40.119147+00:00",
+            "avatar_url": "https://example.com/avatar.png",
+            "unique_patient_id": "UPI-DUMMY-0001"
+          }
+        }
+      ]
+    },
+    "user_profilesCollection": {
+      "edges": [
+        {
+          "node": {
+            "id": "6c4ddc7f-ba11-44f8-96c6-1098191d4bc3",
+            "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+            "role": "doctor",
+            "profile_completion_percentage": 0,
+            "required_fields_completed": null,
+            "verification_status": "pending",
+            "verified_at": null,
+            "verified_by": null,
+            "verification_documents": [],
+            "specializations": null,
+            "credentials": null,
+            "license_numbers": null,
+            "created_at": "2025-11-05T12:35:06.185522+00:00",
+            "updated_at": "2025-11-05T12:46:14.490282+00:00",
+            "subscription_type": null,
+            "subscription_expires_at": null,
+            "subscription_status": null,
+            "id_card_number": "ID-DUMMY-0001",
+            "id_number_type": null,
+            "preferred_language": null,
+            "insurance_info": {
+              "provider": "Dummy Insurance",
+              "policy_number": "POL-DUMMY-0001",
+              "insurance_number": "INS-DUMMY-0001"
+            },
+            "has_insurance": null,
+            "insurance_provider": "Dummy Insurance",
+            "insurance_policy_number": "POL-DUMMY-0001",
+            "emergency_contact_1_name": "John Doe",
+            "emergency_contact_1_phone": "+237611111111",
+            "emergency_contact_1_relationship": "friend",
+            "emergency_contact_2_name": "Jane Doe",
+            "emergency_contact_2_phone": "+237622222222",
+            "emergency_contact_2_relationship": "colleague",
+            "date_of_birth": null,
+            "gender": null,
+            "city": "Douala",
+            "region_code": "LT",
+            "work_phone": null,
+            "work_email": null,
+            "department": null,
+            "position_title": null,
+            "last_login_at": null,
+            "login_count": null,
+            "account_notes": null,
+            "professional_summary": null,
+            "education_background": null,
+            "years_experience": null
+          }
+        }
+      ]
+    },
+    "medical_provider_profilesCollection": {
+      "edges": [
+        {
+          "node": {
+            "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+            "medical_license_number": "MD-45",
+            "license_issuing_authority": "Cameroon Medical Council",
+            "license_expiry_date": "2025-11-05",
+            "professional_registration_number": "REG-DUMMY-0001",
+            "primary_specialization": "general_medicine",
+            "secondary_specializations": [],
+            "sub_specialties": [],
+            "areas_of_expertise": [],
+            "medical_school": "Dummy Medical School",
+            "graduation_year": 2005,
+            "residency_programs": [],
+            "fellowship_programs": [],
+            "board_certifications": [],
+            "continuing_education_credits": 0,
+            "years_of_experience": 5,
+            "previous_positions": [],
+            "practice_type": "clinic",
+            "consultation_fee_range": "[15000,25000]",
+            "languages_spoken": [
+              "en",
+              "fr"
+            ],
+            "working_hours": null,
+            "max_patients_per_day": 20,
+            "consultation_duration_minutes": 30,
+            "accepts_emergency_calls": false,
+            "telemedicine_setup_complete": false,
+            "video_consultation_enabled": false,
+            "audio_consultation_enabled": false,
+            "chat_consultation_enabled": false,
+            "ussd_consultation_enabled": false,
+            "total_consultations": 0,
+            "patient_satisfaction_avg": 4.00,
+            "response_time_avg_minutes": 15,
+            "consultation_completion_rate": 0.95,
+            "hospital_affiliations": [],
+            "professional_memberships": [],
+            "content_creator_status": false,
+            "total_posts_created": 0,
+            "total_followers": 0,
+            "content_engagement_score": 0.00,
+            "background_check_completed": false,
+            "malpractice_insurance_valid": false,
+            "is_specialist": false,
+            "unique_identifier": "PROV-UID-DUMMY-0001",
+            "professional_role": "doctor",
+            "preferred_language": null,
+            "timezone": null,
+            "profile_picture_url": null,
+            "created_at": "2025-11-05T12:38:39.591572+00:00",
+            "updated_at": "2025-11-05T20:26:33.249006+00:00",
+            "bio": null,
+            "notes": {
+              "professional_role_warning": "Current value 'doctor' should be updated to 'Medical Doctor' to match standardized provider types list",
+              "required_provider_types": [
+                "Dentist",
+                "Doctor of Osteopathic Medicine",
+                "Emergency Medical Technician",
+                "Licensed Clinical Social Worker",
+                "Medical Doctor",
+                "Medical Technologist",
+                "Nurse Practitioner",
+                "Occupational Therapist",
+                "Optometrist",
+                "Pharmacist",
+                "Physical Therapist",
+                "Physician Assistant",
+                "Psychologist",
+                "Registered Nurse",
+                "Respiratory Therapist"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "provider_facilitiesCollection": {
+      "edges": [],
+      "error": {
+        "code": "PGRST205",
+        "message": "Could not find the table 'public.provider_facilities' in the schema cache",
+        "hint": "Perhaps you meant the table 'public.provider_specialties'",
+        "note": "The provider_facilities table does not exist in the database. This may need to be created or the query should reference a different table."
+      }
+    }
+  },
+  "metadata": {
+    "query_timestamp": "2025-11-06",
+    "total_providers": 1,
+    "data_completeness": "90%",
+    "missing_tables": [
+      "provider_facilities"
+    ],
+    "issues": [
+      {
+        "field": "medical_provider_profiles.professional_role",
+        "current_value": "doctor",
+        "expected_values": [
+          "Dentist",
+          "Doctor of Osteopathic Medicine",
+          "Emergency Medical Technician",
+          "Licensed Clinical Social Worker",
+          "Medical Doctor",
+          "Medical Technologist",
+          "Nurse Practitioner",
+          "Occupational Therapist",
+          "Optometrist",
+          "Pharmacist",
+          "Physical Therapist",
+          "Physician Assistant",
+          "Psychologist",
+          "Registered Nurse",
+          "Respiratory Therapist"
+        ],
+        "recommended_action": "Update to 'Medical Doctor'"
+      }
+    ],
+    "available_specialties_count": 100,
+    "provider_has_secondary_specialties": false
+  },
+  "graphql_query_variables": {
+    "userId": "ae6a139c-51fd-4d7c-877d-4bf19834a07d"
+  },
+  "query_notes": [
+    "All data successfully retrieved from Supabase database",
+    "Response structure matches the provided GraphQL query format",
+    "professional_role field needs to be updated to use standardized provider type values",
+    "provider_facilities table not found - may need to be created or query updated",
+    "provider_specialties table exists but is empty for this provider",
+    "Specialties table is populated with 100+ medical specialties"
+  ]
+}

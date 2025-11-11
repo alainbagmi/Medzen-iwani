@@ -1,0 +1,3 @@
+{
+  "query": "query { specialtiesCollection(first: 200, orderBy: {specialty_name: AscNullsLast}) { edges { node { specialty_name specialty_code } } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } }"
+}

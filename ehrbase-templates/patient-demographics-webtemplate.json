@@ -1,0 +1,494 @@
+{
+  "templateId": "medzen.patient.demographics.v1",
+  "version": "1.0.0",
+  "defaultLanguage": "en",
+  "languages": ["en", "fr"],
+  "tree": {
+    "id": "patient_demographics",
+    "name": "Patient Demographics",
+    "localizedName": "Patient Demographics",
+    "rmType": "COMPOSITION",
+    "nodeId": "openEHR-EHR-COMPOSITION.report.v1",
+    "min": 1,
+    "max": 1,
+    "localizedNames": {
+      "en": "Patient Demographics",
+      "fr": "Données Démographiques du Patient"
+    },
+    "localizedDescriptions": {
+      "en": "Basic demographic and contact information for patients",
+      "fr": "Informations démographiques et de contact de base pour les patients"
+    },
+    "children": [
+      {
+        "id": "category",
+        "name": "category",
+        "rmType": "DV_CODED_TEXT",
+        "min": 1,
+        "max": 1,
+        "inputs": [
+          {
+            "suffix": "code",
+            "type": "CODED_TEXT",
+            "list": [
+              {
+                "value": "433",
+                "label": "event",
+                "localizedLabels": {
+                  "en": "event"
+                }
+              }
+            ],
+            "terminology": "openehr"
+          }
+        ]
+      },
+      {
+        "id": "context",
+        "rmType": "EVENT_CONTEXT",
+        "min": 1,
+        "max": 1,
+        "children": [
+          {
+            "id": "start_time",
+            "name": "start_time",
+            "rmType": "DV_DATE_TIME",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "setting",
+            "name": "setting",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "TEXT",
+                "defaultValue": "238",
+                "terminology": "openehr"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "patient_identification",
+        "name": "Patient Identification",
+        "localizedName": "Patient Identification",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.person_data.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Patient Identification",
+          "fr": "Identification du Patient"
+        },
+        "children": [
+          {
+            "id": "patient_id",
+            "name": "Patient ID",
+            "rmType": "DV_IDENTIFIER",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "medical_record_number",
+            "name": "Medical Record Number",
+            "rmType": "DV_IDENTIFIER",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "full_name",
+            "name": "Full Name",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "date_of_birth",
+            "name": "Date of Birth",
+            "rmType": "DV_DATE",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          },
+          {
+            "id": "gender",
+            "name": "Gender",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "male", "label": "Male"},
+                  {"value": "female", "label": "Female"},
+                  {"value": "other", "label": "Other"},
+                  {"value": "prefer_not_to_say", "label": "Prefer not to say"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "nationality",
+            "name": "Nationality",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "contact_information",
+        "name": "Contact Information",
+        "localizedName": "Contact Information",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.contact_info.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Contact Information",
+          "fr": "Coordonnées"
+        },
+        "children": [
+          {
+            "id": "primary_phone",
+            "name": "Primary Phone",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "email",
+            "name": "Email",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "address_line_1",
+            "name": "Address Line 1",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "address_line_2",
+            "name": "Address Line 2",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "city",
+            "name": "City",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "region",
+            "name": "Region/State",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "country",
+            "name": "Country",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "postal_code",
+            "name": "Postal Code",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "emergency_contacts",
+        "name": "Emergency Contacts",
+        "localizedName": "Emergency Contacts",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.emergency_contact.v0",
+        "min": 0,
+        "max": -1,
+        "localizedNames": {
+          "en": "Emergency Contacts",
+          "fr": "Contacts d'Urgence"
+        },
+        "children": [
+          {
+            "id": "contact_name",
+            "name": "Contact Name",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "relationship",
+            "name": "Relationship",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "contact_phone",
+            "name": "Contact Phone",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "is_primary_contact",
+            "name": "Is Primary Contact",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "insurance_information",
+        "name": "Insurance Information",
+        "localizedName": "Insurance Information",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.insurance_info.v0",
+        "min": 0,
+        "max": -1,
+        "localizedNames": {
+          "en": "Insurance Information",
+          "fr": "Informations d'Assurance"
+        },
+        "children": [
+          {
+            "id": "insurance_provider",
+            "name": "Insurance Provider",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "policy_number",
+            "name": "Policy Number",
+            "rmType": "DV_IDENTIFIER",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "policy_holder_name",
+            "name": "Policy Holder Name",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "coverage_type",
+            "name": "Coverage Type",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "basic", "label": "Basic"},
+                  {"value": "standard", "label": "Standard"},
+                  {"value": "premium", "label": "Premium"},
+                  {"value": "cnps", "label": "CNPS"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "expiry_date",
+            "name": "Expiry Date",
+            "rmType": "DV_DATE",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "preferences",
+        "name": "Patient Preferences",
+        "localizedName": "Patient Preferences",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.preferences.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Patient Preferences",
+          "fr": "Préférences du Patient"
+        },
+        "children": [
+          {
+            "id": "preferred_language",
+            "name": "Preferred Language",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "preferred_contact_method",
+            "name": "Preferred Contact Method",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "phone", "label": "Phone"},
+                  {"value": "email", "label": "Email"},
+                  {"value": "sms", "label": "SMS"},
+                  {"value": "app_notification", "label": "App Notification"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "appointment_reminders",
+            "name": "Appointment Reminders",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,292 @@
+-- MedZen Medication Dispensing Record Template
+-- Pharmacy dispensing event documentation
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_medication_dispensing_record.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record the dispensing of medications from a pharmacy to a patient, including prescription verification, patient counseling, and dispensing details.">
+            use = <"Used by pharmacists to document medication dispensing events, including verification of prescriptions, counseling provided, quantity dispensed, and any substitutions or interventions. Supports both prescription and over-the-counter medication dispensing.">
+            keywords = <"pharmacy", "dispensing", "medication", "prescription", "counseling", "drug interaction", "substitution">
+            misuse = <"Not for recording medication administration by healthcare providers (use medication administration record). Not for recording prescriptions (use medication order template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer la délivrance de médicaments d'une pharmacie à un patient, y compris la vérification des ordonnances, le conseil aux patients et les détails de délivrance.">
+            use = <"Utilisé par les pharmaciens pour documenter les événements de délivrance de médicaments.">
+            keywords = <"pharmacie", "délivrance", "médicament", "ordonnance", "conseil">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Medication Dispensing Record
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Dispensing ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Dispensing Record"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Prescription ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.4] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Prescription"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Dispensing Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Prescription medication
+                                            at0.2,    -- Over-the-counter (OTC)
+                                            at0.3,    -- Emergency supply
+                                            at0.4,    -- Repeat prescription
+                                            at0.5]    -- Partial dispense
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Prescription Verification Status
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.6,    -- Verified - no issues
+                                            at0.7,    -- Verified - with clarification
+                                            at0.8,    -- Verified - with substitution
+                                            at0.9,    -- Unable to verify
+                                            at0.10]   -- Not applicable (OTC)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Prescription Details Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Prescription Information
+
+            -- Original prescription order (reference)
+            use_archetype INSTRUCTION[id0.110, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..1}
+
+            -- Dispensing Action Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Dispensing Details
+
+            -- Medication dispensed using official archetype
+            use_archetype ACTION[id0.210, openEHR-EHR-ACTION.medication.v1] occurrences matches {1..*}
+
+            -- Drug Interaction Check Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Safety Checks
+
+            -- Drug interaction alerts
+            use_archetype EVALUATION[id0.310, openEHR-EHR-EVALUATION.adverse_reaction_risk.v1] occurrences matches {0..*}
+
+            -- Contraindications
+            use_archetype EVALUATION[id0.320, openEHR-EHR-EVALUATION.contraindication.v1] occurrences matches {0..*}
+
+            -- Substitution Section (if applicable)
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Medication Substitution
+
+            -- Therapeutic substitution details
+            use_archetype EVALUATION[id0.410, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..1}
+
+            -- Patient Counseling Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Patient Education
+
+            -- Counseling and instructions provided
+            use_archetype EVALUATION[id0.510, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Pharmacist Intervention Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pharmacist Notes
+
+            -- Clinical interventions and notes
+            use_archetype EVALUATION[id0.610, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Payment and Insurance Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Payment Information
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Medication Dispensing Record">
+                description = <"A record of medication dispensed from a pharmacy to a patient.">
+            >
+            ["id0.1"] = <
+                text = <"Dispensing ID">
+                description = <"Unique identifier for this dispensing event.">
+            >
+            ["id0.3"] = <
+                text = <"Prescription ID">
+                description = <"Reference to the original prescription order.">
+            >
+            ["id0.5"] = <
+                text = <"Dispensing Type">
+                description = <"Type of dispensing event.">
+            >
+            ["id0.7"] = <
+                text = <"Prescription Verification Status">
+                description = <"Status of prescription verification by pharmacist.">
+            >
+            ["id0.100"] = <
+                text = <"Prescription Information">
+                description = <"Details of the original prescription.">
+            >
+            ["id0.110"] = <
+                text = <"Prescription Order">
+                description = <"Original prescription using medication_order.v3 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Dispensing Details">
+                description = <"Details of medications dispensed.">
+            >
+            ["id0.210"] = <
+                text = <"Medication Dispensed">
+                description = <"Medication dispensing action using medication.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Safety Checks">
+                description = <"Drug interaction and contraindication checks.">
+            >
+            ["id0.310"] = <
+                text = <"Drug Interaction Alert">
+                description = <"Potential adverse drug interactions using adverse_reaction_risk.v1 archetype.">
+            >
+            ["id0.320"] = <
+                text = <"Contraindication">
+                description = <"Contraindications identified using contraindication.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Medication Substitution">
+                description = <"Details of any therapeutic or generic substitution.">
+            >
+            ["id0.410"] = <
+                text = <"Substituted Medication">
+                description = <"Details of substitute medication using medication_summary.v0 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Patient Education">
+                description = <"Counseling and instructions provided to patient.">
+            >
+            ["id0.510"] = <
+                text = <"Counseling Provided">
+                description = <"Patient counseling and advice using recommendation.v2 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Pharmacist Notes">
+                description = <"Clinical interventions and pharmacist observations.">
+            >
+            ["id0.610"] = <
+                text = <"Pharmacist Intervention">
+                description = <"Clinical notes and interventions using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Payment Information">
+                description = <"Payment and insurance details.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for dispensing encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Prescription medication">
+                description = <"Medication dispensed based on a prescription.">
+            >
+            ["at0.2"] = <
+                text = <"Over-the-counter (OTC)">
+                description = <"Non-prescription medication dispensed.">
+            >
+            ["at0.3"] = <
+                text = <"Emergency supply">
+                description = <"Emergency dispensing without prescription.">
+            >
+            ["at0.4"] = <
+                text = <"Repeat prescription">
+                description = <"Dispensing from a repeat prescription.">
+            >
+            ["at0.5"] = <
+                text = <"Partial dispense">
+                description = <"Partial quantity dispensed due to stock shortage.">
+            >
+            ["at0.6"] = <
+                text = <"Verified - no issues">
+                description = <"Prescription verified with no issues found.">
+            >
+            ["at0.7"] = <
+                text = <"Verified - with clarification">
+                description = <"Prescription verified after prescriber clarification.">
+            >
+            ["at0.8"] = <
+                text = <"Verified - with substitution">
+                description = <"Prescription verified with therapeutic substitution.">
+            >
+            ["at0.9"] = <
+                text = <"Unable to verify">
+                description = <"Unable to verify prescription authenticity.">
+            >
+            ["at0.10"] = <
+                text = <"Not applicable (OTC)">
+                description = <"Verification not applicable for over-the-counter medication.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Registre de Délivrance de Médicaments">
+                description = <"Un registre de médicaments délivrés d'une pharmacie à un patient.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Délivrance">
+                description = <"Identifiant unique pour cet événement de délivrance.">
+            >
+            ["id0.210"] = <
+                text = <"Médicament Délivré">
+                description = <"Action de délivrance de médicament utilisant l'archétype medication.v1.">
+            >
+        >
+    >

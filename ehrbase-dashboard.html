@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EHRbase Dashboard - MedZen Iwani</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .status-item {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .status-item h3 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .status-item p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            background: white;
+            padding: 0;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            background: #f8f9fa;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tab-content {
+            padding: 30px;
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .search-box {
+            margin-bottom: 25px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .card h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card .badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .card .meta {
+            color: #999;
+            font-size: 13px;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th {
+            background: #f8f9fa;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        table td {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #666;
+        }
+
+        table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f0f0f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-top: 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            opacity: 0.3;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            width: 100%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        pre {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .detail-value {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 EHRbase Dashboard</h1>
+            <p>MedZen Iwani - OpenEHR Health Records Management</p>
+            <div class="status-bar">
+                <div class="status-item">
+                    <h3 id="template-count">-</h3>
+                    <p>OpenEHR Templates</p>
+                </div>
+                <div class="status-item">
+                    <h3 id="ehr-count">-</h3>
+                    <p>Electronic Health Records</p>
+                </div>
+                <div class="status-item">
+                    <h3 id="status">🔄</h3>
+                    <p>System Status</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="switchTab('templates')">📋 Templates</button>
+                <button class="tab-button" onclick="switchTab('ehrs')">👤 Health Records</button>
+                <button class="tab-button" onclick="switchTab('compositions')">📝 Compositions</button>
+            </div>
+
+            <div id="templates-tab" class="tab-content active">
+                <div class="search-box">
+                    <input type="text" id="template-search" placeholder="🔍 Search templates..." oninput="searchTemplates(this.value)">
+                </div>
+                <div id="templates-container" class="loading">Loading templates...</div>
+            </div>
+
+            <div id="ehrs-tab" class="tab-content">
+                <div class="search-box">
+                    <input type="text" id="ehr-search" placeholder="🔍 Search health records..." oninput="searchEHRs(this.value)">
+                </div>
+                <div id="ehrs-container" class="loading">Loading health records...</div>
+            </div>
+
+            <div id="compositions-tab" class="tab-content">
+                <p style="margin-bottom: 20px; color: #666;">Select a template to view compositions:</p>
+                <div id="template-selector-container"></div>
+                <div id="compositions-container" class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p>Select a template above to view compositions</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for details -->
+    <div id="detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Details</h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://ehrbase.mylestechsolutions.com/ehrbase';
+        const AUTH_HEADER = 'Basic ' + btoa('ehrbase-user:ehrbase-password');
+
+        // Global data storage
+        let allTemplates = [];
+        let allEHRs = [];
+        let currentCompositions = [];
+
+        // API Helper
+        async function apiCall(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Authorization': AUTH_HEADER,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+
+        // Load Templates
+        async function loadTemplates() {
+            try {
+                const templates = await apiCall('/rest/openehr/v1/definition/template/adl1.4');
+                allTemplates = templates;
+
+                document.getElementById('template-count').textContent = templates.length;
+                renderTemplates(templates);
+                renderTemplateSelector(templates);
+            } catch (error) {
+                document.getElementById('templates-container').innerHTML =
+                    `<div class="error">❌ Failed to load templates: ${error.message}</div>`;
+            }
+        }
+
+        // Render Templates
+        function renderTemplates(templates) {
+            const container = document.getElementById('templates-container');
+
+            if (templates.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No templates found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="grid">
+                    ${templates.map(t => `
+                        <div class="card" onclick="viewTemplateDetails('${t.template_id}')">
+                            <h3>
+                                ${escapeHtml(t.concept)}
+                                <span class="badge">${getTemplateType(t.archetype_id)}</span>
+                            </h3>
+                            <div class="meta">
+                                <strong>Template ID:</strong> ${escapeHtml(t.template_id)}<br>
+                                <strong>Archetype:</strong> ${escapeHtml(t.archetype_id)}<br>
+                                <strong>Created:</strong> ${formatDate(t.created_timestamp)}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Load EHRs
+        async function loadEHRs() {
+            try {
+                // Get first EHR ID to check system
+                const testEhr = await apiCall('/rest/openehr/v1/ehr?subject_id=test&subject_namespace=medzen');
+
+                // For demo, we'll just show existing EHRs
+                // In production, you'd query all EHRs via AQL
+                const ehrIds = ['f72f79ce-d67f-4149-8f1b-5ae70a44d371', 'fd0c45f8-29f7-476c-a7a6-198f033c7485'];
+
+                const ehrsPromises = ehrIds.map(id =>
+                    apiCall(`/rest/openehr/v1/ehr/${id}`).catch(() => null)
+                );
+
+                const ehrs = (await Promise.all(ehrsPromises)).filter(e => e !== null);
+                allEHRs = ehrs;
+
+                document.getElementById('ehr-count').textContent = ehrs.length;
+                renderEHRs(ehrs);
+            } catch (error) {
+                document.getElementById('ehrs-container').innerHTML =
+                    `<div class="error">❌ Failed to load EHRs: ${error.message}</div>`;
+            }
+        }
+
+        // Render EHRs
+        function renderEHRs(ehrs) {
+            const container = document.getElementById('ehrs-container');
+
+            if (ehrs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No health records found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>EHR ID</th>
+                                <th>Subject ID</th>
+                                <th>Namespace</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${ehrs.map(ehr => `
+                                <tr>
+                                    <td><code>${ehr.ehr_id.value}</code></td>
+                                    <td>${ehr.ehr_status.subject.external_ref?.id?.value || 'N/A'}</td>
+                                    <td>${ehr.ehr_status.subject.external_ref?.namespace || 'N/A'}</td>
+                                    <td>${formatDate(ehr.time_created.value)}</td>
+                                    <td>
+                                        ${ehr.ehr_status.is_queryable ? '✅' : '❌'} Queryable<br>
+                                        ${ehr.ehr_status.is_modifiable ? '✅' : '❌'} Modifiable
+                                    </td>
+                                    <td>
+                                        <button class="btn" onclick="viewEHRDetails('${ehr.ehr_id.value}')">View</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Render Template Selector
+        function renderTemplateSelector(templates) {
+            const container = document.getElementById('template-selector-container');
+            container.innerHTML = `
+                <select onchange="loadCompositions(this.value)" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; margin-bottom: 25px;">
+                    <option value="">Select a template...</option>
+                    ${templates.map(t => `
+                        <option value="${escapeHtml(t.template_id)}">${escapeHtml(t.concept)}</option>
+                    `).join('')}
+                </select>
+            `;
+        }
+
+        // Load Compositions for Template
+        async function loadCompositions(templateId) {
+            if (!templateId) {
+                document.getElementById('compositions-container').innerHTML = `
+                    <div class="empty-state">
+                        <p>Select a template above to view compositions</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const container = document.getElementById('compositions-container');
+            container.innerHTML = '<div class="loading">Loading compositions...</div>';
+
+            try {
+                // Query compositions using AQL
+                const aql = `SELECT c FROM EHR e CONTAINS COMPOSITION c WHERE c/archetype_details/template_id/value = '${templateId}'`;
+                const result = await apiCall(`/rest/openehr/v1/query/aql?q=${encodeURIComponent(aql)}`);
+
+                currentCompositions = result.rows || [];
+
+                if (currentCompositions.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <p>No compositions found for this template</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="grid">
+                        ${currentCompositions.map((row, idx) => {
+                            const comp = row[0];
+                            return `
+                                <div class="card" onclick="viewCompositionDetails(${idx})">
+                                    <h3>
+                                        ${escapeHtml(comp.name?.value || 'Composition')}
+                                        <span class="badge">${comp.archetype_node_id}</span>
+                                    </h3>
+                                    <div class="meta">
+                                        <strong>UID:</strong> ${comp.uid?.value || 'N/A'}<br>
+                                        <strong>Context:</strong> ${comp.context?.start_time?.value || 'N/A'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="error">❌ Failed to load compositions: ${error.message}</div>
+                `;
+            }
+        }
+
+        // View Details Functions
+        async function viewTemplateDetails(templateId) {
+            try {
+                const template = await apiCall(`/rest/openehr/v1/definition/template/adl1.4/${templateId}`);
+
+                document.getElementById('modal-title').textContent = 'Template Details';
+                document.getElementById('modal-body').innerHTML = `
+                    <div class="detail-grid">
+                        <div class="detail-label">Template ID:</div>
+                        <div class="detail-value">${escapeHtml(template.template_id || templateId)}</div>
+
+                        <div class="detail-label">Concept:</div>
+                        <div class="detail-value">${escapeHtml(template.concept || 'N/A')}</div>
+
+                        <div class="detail-label">Archetype:</div>
+                        <div class="detail-value">${escapeHtml(template.archetype_id || 'N/A')}</div>
+                    </div>
+
+                    <h3 style="margin-top: 25px; margin-bottom: 15px; color: #667eea;">Template Content:</h3>
+                    <pre>${escapeHtml(JSON.stringify(template, null, 2))}</pre>
+                `;
+
+                document.getElementById('detail-modal').classList.add('active');
+            } catch (error) {
+                alert('Failed to load template details: ' + error.message);
+            }
+        }
+
+        async function viewEHRDetails(ehrId) {
+            const ehr = allEHRs.find(e => e.ehr_id.value === ehrId);
+            if (!ehr) return;
+
+            document.getElementById('modal-title').textContent = 'EHR Details';
+            document.getElementById('modal-body').innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-label">EHR ID:</div>
+                    <div class="detail-value"><code>${ehr.ehr_id.value}</code></div>
+
+                    <div class="detail-label">Subject ID:</div>
+                    <div class="detail-value">${ehr.ehr_status.subject.external_ref?.id?.value || 'N/A'}</div>
+
+                    <div class="detail-label">Namespace:</div>
+                    <div class="detail-value">${ehr.ehr_status.subject.external_ref?.namespace || 'N/A'}</div>
+
+                    <div class="detail-label">Created:</div>
+                    <div class="detail-value">${formatDate(ehr.time_created.value)}</div>
+
+                    <div class="detail-label">Queryable:</div>
+                    <div class="detail-value">${ehr.ehr_status.is_queryable ? '✅ Yes' : '❌ No'}</div>
+
+                    <div class="detail-label">Modifiable:</div>
+                    <div class="detail-value">${ehr.ehr_status.is_modifiable ? '✅ Yes' : '❌ No'}</div>
+                </div>
+
+                <h3 style="margin-top: 25px; margin-bottom: 15px; color: #667eea;">Complete EHR Data:</h3>
+                <pre>${escapeHtml(JSON.stringify(ehr, null, 2))}</pre>
+            `;
+
+            document.getElementById('detail-modal').classList.add('active');
+        }
+
+        function viewCompositionDetails(index) {
+            const comp = currentCompositions[index][0];
+
+            document.getElementById('modal-title').textContent = 'Composition Details';
+            document.getElementById('modal-body').innerHTML = `
+                <div class="detail-grid">
+                    <div class="detail-label">Name:</div>
+                    <div class="detail-value">${escapeHtml(comp.name?.value || 'N/A')}</div>
+
+                    <div class="detail-label">UID:</div>
+                    <div class="detail-value"><code>${comp.uid?.value || 'N/A'}</code></div>
+
+                    <div class="detail-label">Archetype:</div>
+                    <div class="detail-value">${escapeHtml(comp.archetype_node_id)}</div>
+                </div>
+
+                <h3 style="margin-top: 25px; margin-bottom: 15px; color: #667eea;">Complete Composition Data:</h3>
+                <pre>${escapeHtml(JSON.stringify(comp, null, 2))}</pre>
+            `;
+
+            document.getElementById('detail-modal').classList.add('active');
+        }
+
+        // Search Functions
+        function searchTemplates(query) {
+            const filtered = allTemplates.filter(t =>
+                t.concept.toLowerCase().includes(query.toLowerCase()) ||
+                t.template_id.toLowerCase().includes(query.toLowerCase()) ||
+                t.archetype_id.toLowerCase().includes(query.toLowerCase())
+            );
+            renderTemplates(filtered);
+        }
+
+        function searchEHRs(query) {
+            const filtered = allEHRs.filter(e =>
+                e.ehr_id.value.toLowerCase().includes(query.toLowerCase()) ||
+                (e.ehr_status.subject.external_ref?.id?.value || '').toLowerCase().includes(query.toLowerCase())
+            );
+            renderEHRs(filtered);
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Modal
+        function closeModal() {
+            document.getElementById('detail-modal').classList.remove('active');
+        }
+
+        // Utilities
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            return new Date(dateStr).toLocaleString();
+        }
+
+        function getTemplateType(archetypeId) {
+            if (archetypeId.includes('encounter')) return 'Encounter';
+            if (archetypeId.includes('report')) return 'Report';
+            if (archetypeId.includes('prescription')) return 'Prescription';
+            if (archetypeId.includes('list')) return 'List';
+            if (archetypeId.includes('summary')) return 'Summary';
+            return 'Other';
+        }
+
+        // Initialize
+        async function init() {
+            try {
+                await Promise.all([loadTemplates(), loadEHRs()]);
+                document.getElementById('status').textContent = '✅';
+            } catch (error) {
+                document.getElementById('status').textContent = '❌';
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Close modal on outside click
+        document.getElementById('detail-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'detail-modal') {
+                closeModal();
+            }
+        });
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>

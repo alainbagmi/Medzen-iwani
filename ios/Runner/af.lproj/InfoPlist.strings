@@ -1,0 +1,9 @@
+NSCameraUsageDescription = "laat gebruik toe";
+NSPhotoLibraryUsageDescription = "laat gebruik toe";
+NSBluetoothAlwaysUsageDescription = "laat gebruik toe";
+NSFaceIDUsageDescription = "laat gebruik toe";
+NSCalendarsUsageDescription = "laat gebruik toe";
+NSContactsUsageDescription = "laat gebruik toe";
+NSLocationWhenInUseUsageDescription = "laat gebruik toe";
+NSMicrophoneUsageDescription = "laat gebruik toe";
+PermissionGroupNotification = "laat gebruik toe";

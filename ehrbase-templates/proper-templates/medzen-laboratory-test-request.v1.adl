@@ -1,0 +1,218 @@
+-- MedZen Laboratory Test Request Template
+-- Laboratory test ordering and requisition template
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_laboratory_test_request.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.request.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a request for one or more laboratory tests including clinical context and specimen requirements.">
+            use = <"Used when healthcare providers order laboratory investigations including blood tests, urine tests, microbiology cultures, and other pathology services. Supports both routine and urgent test requests with proper specimen tracking.">
+            keywords = <"laboratory", "test", "request", "pathology", "specimen", "blood test", "urine test", "culture">
+            misuse = <"Not for recording laboratory results (use laboratory result report template). Not for imaging requests (use imaging request template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une demande pour un ou plusieurs tests de laboratoire incluant le contexte clinique et les exigences d'échantillon.">
+            use = <"Utilisé lorsque les prestataires de soins commandent des investigations de laboratoire incluant des tests sanguins, des tests d'urine, des cultures microbiologiques et d'autres services de pathologie.">
+            keywords = <"laboratoire", "test", "demande", "pathologie", "échantillon", "test sanguin">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Laboratory Test Request
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Request ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Laboratory Request"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Priority
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Routine
+                                            at0.2,    -- Urgent
+                                            at0.3,    -- Emergency
+                                            at0.4]    -- STAT
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Clinical Urgency
+                                value matches {
+                                    DV_TEXT[id0.6]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Requesting Provider Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Requester Details
+
+            -- Clinical Information Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Context
+
+            -- Clinical indication/reason for test
+            use_archetype EVALUATION[id0.210, openEHR-EHR-EVALUATION.reason_for_encounter.v1] occurrences matches {0..1}
+
+            -- Relevant clinical history
+            use_archetype OBSERVATION[id0.220, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Test Requests Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Tests Requested
+
+            -- Individual laboratory test orders using official archetype
+            use_archetype INSTRUCTION[id0.310, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {1..*}
+
+            -- Specimen Details Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Specimen Information
+
+            -- Specimen details using official archetype
+            use_archetype CLUSTER[id0.410, openEHR-EHR-CLUSTER.specimen.v1] occurrences matches {0..*}
+
+            -- Distribution List Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Distribution
+
+            -- Additional Notes
+            use_archetype EVALUATION[id0.600, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Laboratory Test Request">
+                description = <"A request for one or more laboratory investigations.">
+            >
+            ["id0.1"] = <
+                text = <"Request ID">
+                description = <"Unique identifier for this laboratory request.">
+            >
+            ["id0.3"] = <
+                text = <"Priority">
+                description = <"Clinical priority of the laboratory request.">
+            >
+            ["id0.5"] = <
+                text = <"Clinical Urgency">
+                description = <"Narrative description of why urgent processing is required.">
+            >
+            ["id0.100"] = <
+                text = <"Requester Details">
+                description = <"Information about the healthcare provider requesting the tests.">
+            >
+            ["id0.200"] = <
+                text = <"Clinical Context">
+                description = <"Clinical information supporting the test request.">
+            >
+            ["id0.210"] = <
+                text = <"Reason for Test">
+                description = <"Clinical indication or reason for requesting the laboratory test using reason_for_encounter.v1 archetype.">
+            >
+            ["id0.220"] = <
+                text = <"Clinical History">
+                description = <"Relevant patient history using story.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Tests Requested">
+                description = <"Section containing individual laboratory test requests.">
+            >
+            ["id0.310"] = <
+                text = <"Laboratory Test Order">
+                description = <"Individual laboratory test request using official service_request.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Specimen Information">
+                description = <"Details about specimens collected for testing.">
+            >
+            ["id0.410"] = <
+                text = <"Specimen Details">
+                description = <"Specimen information using official specimen.v1 cluster archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Distribution List">
+                description = <"List of recipients who should receive test results.">
+            >
+            ["id0.600"] = <
+                text = <"Additional Notes">
+                description = <"Additional clinical notes or special instructions using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for request.">
+            >
+            ["at0.1"] = <
+                text = <"Routine">
+                description = <"Standard processing time for non-urgent tests.">
+            >
+            ["at0.2"] = <
+                text = <"Urgent">
+                description = <"Expedited processing required within hours.">
+            >
+            ["at0.3"] = <
+                text = <"Emergency">
+                description = <"Critical processing required for emergency care.">
+            >
+            ["at0.4"] = <
+                text = <"STAT">
+                description = <"Immediate processing required, highest priority.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Demande de Test de Laboratoire">
+                description = <"Une demande pour une ou plusieurs investigations de laboratoire.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Demande">
+                description = <"Identifiant unique pour cette demande de laboratoire.">
+            >
+            ["id0.310"] = <
+                text = <"Commande de Test de Laboratoire">
+                description = <"Demande individuelle de test de laboratoire utilisant l'archétype officiel service_request.v1.">
+            >
+        >
+    >

@@ -1,0 +1,515 @@
+-- MedZen Nephrology Encounter Template
+-- Chronic kidney disease, dialysis, and kidney transplant management
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_nephrology_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive nephrology consultation including chronic kidney disease (CKD) management, dialysis treatment sessions, kidney transplant evaluation and follow-up, acute kidney injury assessment, and management of kidney-related complications.">
+            use = <"Used by nephrologists and renal care providers to document patient encounters for kidney diseases including CKD (with GFR staging), hemodialysis and peritoneal dialysis sessions, kidney transplant pre/post-operative care, nephrolithiasis (kidney stones), glomerulonephritis, electrolyte disorders, and hypertension related to kidney disease. Supports both initial consultations, follow-up visits, dialysis session documentation, and transplant monitoring.">
+            keywords = <"nephrology", "kidney", "CKD", "chronic kidney disease", "dialysis", "hemodialysis", "peritoneal dialysis", "transplant", "GFR", "creatinine", "kidney stones", "nephrolithiasis", "electrolytes", "renal failure">
+            misuse = <"Not for recording kidney surgery procedures (use surgical procedure template). Not for recording urological procedures (use urology template if available, otherwise use procedure template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une consultation néphrologique complète incluant la prise en charge de l'insuffisance rénale chronique, les séances de dialyse, l'évaluation et le suivi de transplantation rénale, et l'évaluation de l'insuffisance rénale aiguë.">
+            use = <"Utilisé par les néphrologues et les prestataires de soins rénaux pour documenter les consultations de patients pour les maladies rénales.">
+            keywords = <"néphrologie", "rein", "IRC", "insuffisance rénale chronique", "dialyse", "hémodialyse", "dialyse péritonéale", "transplantation", "DFG", "créatinine", "calculs rénaux">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Nephrology Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Nephrology Encounter"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Initial consultation
+                                            at0.2,    -- Follow-up visit
+                                            at0.3,    -- CKD management
+                                            at0.4,    -- Hemodialysis session
+                                            at0.5,    -- Peritoneal dialysis review
+                                            at0.6,    -- Transplant evaluation
+                                            at0.7,    -- Post-transplant follow-up
+                                            at0.8,    -- Acute kidney injury
+                                            at0.9]    -- Kidney stone consultation
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- CKD Stage
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.10,    -- Stage 1 (GFR ≥90)
+                                            at0.11,    -- Stage 2 (GFR 60-89)
+                                            at0.12,    -- Stage 3a (GFR 45-59)
+                                            at0.13,    -- Stage 3b (GFR 30-44)
+                                            at0.14,    -- Stage 4 (GFR 15-29)
+                                            at0.15,    -- Stage 5 (GFR <15 or dialysis)
+                                            at0.16]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Dialysis Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.17,    -- Hemodialysis
+                                            at0.18,    -- Peritoneal dialysis (CAPD)
+                                            at0.19,    -- Peritoneal dialysis (APD/CCPD)
+                                            at0.20,    -- Not on dialysis
+                                            at0.21]    -- Pre-dialysis
+                                        }
+                                    }
+                                }
+                            >
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Presenting History Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- History
+
+            -- Chief complaint and renal symptoms
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Renal History Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Renal History
+
+            -- Previous kidney disease, dialysis history, transplant history
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+
+            -- Blood pressure (critical for CKD and dialysis patients)
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {1..*}
+
+            -- Pulse
+            use_archetype OBSERVATION[id0.320, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+
+            -- Body weight (fluid balance monitoring for dialysis)
+            use_archetype OBSERVATION[id0.330, openEHR-EHR-OBSERVATION.body_weight.v2] occurrences matches {1..*}
+
+            -- Physical Examination Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Physical Examination
+
+            -- General and systemic examination (edema, fluid status, vascular access)
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Renal Function Tests Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Renal Function
+
+            -- Creatinine, eGFR, BUN, electrolytes
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {1..*}
+
+            -- Urinalysis Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Urinalysis
+
+            -- Urinalysis results (protein, blood, casts, 24-hour protein)
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Imaging Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Renal Imaging
+
+            -- Renal ultrasound, CT urogram, kidney biopsy results
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Dialysis Session Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Dialysis Session
+
+            -- Hemodialysis or peritoneal dialysis procedure
+            use_archetype ACTION[id0.810, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Dialysis adequacy (Kt/V, URR)
+            use_archetype OBSERVATION[id0.820, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Vascular Access Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Vascular Access
+
+            -- Vascular access assessment (AV fistula, AV graft, catheter)
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1}
+
+            -- Transplant Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Kidney Transplant
+
+            -- Transplant evaluation or post-transplant monitoring
+            use_archetype OBSERVATION[id1.010, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Immunosuppression labs (tacrolimus levels, cyclosporine levels)
+            use_archetype OBSERVATION[id1.020, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Problems and Diagnoses Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}
+
+            -- Renal diagnoses (CKD, AKI, nephrolithiasis, glomerulonephritis)
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Treatment Plan Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Treatment
+
+            -- Nephrology medications (phosphate binders, EPO, vitamin D, immunosuppressants)
+            use_archetype INSTRUCTION[id1.210, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Service requests (kidney biopsy, dialysis access creation, transplant referral)
+            use_archetype INSTRUCTION[id1.220, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up and Monitoring Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Follow-up Plan
+
+            -- Care plan (dialysis schedule, lab monitoring frequency)
+            use_archetype INSTRUCTION[id1.310, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Patient Education Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Education & Diet
+
+            -- Diet counseling (low protein, low potassium, phosphate restriction, fluid restriction)
+            use_archetype EVALUATION[id1.410, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Clinical Notes Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Synopsis
+
+            -- Provider notes and clinical observations
+            use_archetype EVALUATION[id1.510, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Nephrology Encounter">
+                description = <"A nephrology consultation or dialysis session.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter ID">
+                description = <"Unique identifier for this nephrology encounter.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"Type of nephrology encounter.">
+            >
+            ["id0.5"] = <
+                text = <"CKD Stage">
+                description = <"Chronic kidney disease stage based on eGFR.">
+            >
+            ["id0.7"] = <
+                text = <"Dialysis Type">
+                description = <"Type of dialysis modality.">
+            >
+            ["id0.100"] = <
+                text = <"History">
+                description = <"Presenting renal history.">
+            >
+            ["id0.110"] = <
+                text = <"Chief Complaint">
+                description = <"Chief complaint and symptoms using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Renal History">
+                description = <"Previous kidney disease and dialysis history.">
+            >
+            ["id0.210"] = <
+                text = <"Previous Renal History">
+                description = <"Past kidney disease and treatments using story.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Vital Signs">
+                description = <"Vital signs measurements.">
+            >
+            ["id0.310"] = <
+                text = <"Blood Pressure">
+                description = <"Blood pressure monitoring using blood_pressure.v2 archetype.">
+            >
+            ["id0.320"] = <
+                text = <"Pulse">
+                description = <"Heart rate using pulse.v2 archetype.">
+            >
+            ["id0.330"] = <
+                text = <"Body Weight">
+                description = <"Weight for fluid balance monitoring using body_weight.v2 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Physical Examination">
+                description = <"Physical examination findings.">
+            >
+            ["id0.410"] = <
+                text = <"Examination">
+                description = <"General examination using exam.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Renal Function">
+                description = <"Renal function test results.">
+            >
+            ["id0.510"] = <
+                text = <"Renal Function Tests">
+                description = <"Creatinine, eGFR, BUN, electrolytes using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Urinalysis">
+                description = <"Urinalysis results.">
+            >
+            ["id0.610"] = <
+                text = <"Urine Tests">
+                description = <"Urinalysis findings using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Renal Imaging">
+                description = <"Kidney imaging studies.">
+            >
+            ["id0.710"] = <
+                text = <"Imaging Results">
+                description = <"Renal imaging findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Dialysis Session">
+                description = <"Dialysis treatment session.">
+            >
+            ["id0.810"] = <
+                text = <"Dialysis Procedure">
+                description = <"Dialysis session using procedure.v1 archetype.">
+            >
+            ["id0.820"] = <
+                text = <"Dialysis Adequacy">
+                description = <"Dialysis adequacy assessment using story.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Vascular Access">
+                description = <"Vascular access assessment.">
+            >
+            ["id0.910"] = <
+                text = <"Access Assessment">
+                description = <"Vascular access evaluation using exam.v1 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Kidney Transplant">
+                description = <"Transplant evaluation or monitoring.">
+            >
+            ["id1.010"] = <
+                text = <"Transplant Status">
+                description = <"Transplant evaluation or post-transplant status using story.v1 archetype.">
+            >
+            ["id1.020"] = <
+                text = <"Immunosuppression Labs">
+                description = <"Immunosuppressant drug levels using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Problems and Diagnoses">
+                description = <"Renal diagnoses.">
+            >
+            ["id1.110"] = <
+                text = <"Renal Diagnosis">
+                description = <"Kidney disease diagnoses using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Treatment Plan">
+                description = <"Nephrology treatment plan.">
+            >
+            ["id1.210"] = <
+                text = <"Medications">
+                description = <"Nephrology medications using medication_order.v3 archetype.">
+            >
+            ["id1.220"] = <
+                text = <"Service Requests">
+                description = <"Additional tests and procedures using service_request.v1 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Follow-up Plan">
+                description = <"Follow-up and monitoring plan.">
+            >
+            ["id1.310"] = <
+                text = <"Care Plan">
+                description = <"Nephrology care plan using care_plan.v0 archetype.">
+            >
+            ["id1.400"] = <
+                text = <"Education & Diet">
+                description = <"Patient education and dietary counseling.">
+            >
+            ["id1.410"] = <
+                text = <"Dietary Counseling">
+                description = <"Renal diet counseling using recommendation.v2 archetype.">
+            >
+            ["id1.500"] = <
+                text = <"Clinical Synopsis">
+                description = <"Provider clinical notes.">
+            >
+            ["id1.510"] = <
+                text = <"Clinical Notes">
+                description = <"Clinical observations using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Initial consultation">
+                description = <"First nephrology consultation.">
+            >
+            ["at0.2"] = <
+                text = <"Follow-up visit">
+                description = <"Routine nephrology follow-up.">
+            >
+            ["at0.3"] = <
+                text = <"CKD management">
+                description = <"Chronic kidney disease monitoring and management.">
+            >
+            ["at0.4"] = <
+                text = <"Hemodialysis session">
+                description = <"Hemodialysis treatment session.">
+            >
+            ["at0.5"] = <
+                text = <"Peritoneal dialysis review">
+                description = <"Peritoneal dialysis follow-up and adequacy assessment.">
+            >
+            ["at0.6"] = <
+                text = <"Transplant evaluation">
+                description = <"Kidney transplant candidate evaluation.">
+            >
+            ["at0.7"] = <
+                text = <"Post-transplant follow-up">
+                description = <"Post-kidney transplant monitoring.">
+            >
+            ["at0.8"] = <
+                text = <"Acute kidney injury">
+                description = <"Acute kidney injury evaluation and management.">
+            >
+            ["at0.9"] = <
+                text = <"Kidney stone consultation">
+                description = <"Nephrolithiasis evaluation and management.">
+            >
+            ["at0.10"] = <
+                text = <"Stage 1">
+                description = <"CKD Stage 1 with kidney damage and normal or increased GFR (≥90 mL/min/1.73m²).">
+            >
+            ["at0.11"] = <
+                text = <"Stage 2">
+                description = <"CKD Stage 2 with mild decrease in GFR (60-89 mL/min/1.73m²).">
+            >
+            ["at0.12"] = <
+                text = <"Stage 3a">
+                description = <"CKD Stage 3a with moderate decrease in GFR (45-59 mL/min/1.73m²).">
+            >
+            ["at0.13"] = <
+                text = <"Stage 3b">
+                description = <"CKD Stage 3b with moderate to severe decrease in GFR (30-44 mL/min/1.73m²).">
+            >
+            ["at0.14"] = <
+                text = <"Stage 4">
+                description = <"CKD Stage 4 with severe decrease in GFR (15-29 mL/min/1.73m²).">
+            >
+            ["at0.15"] = <
+                text = <"Stage 5">
+                description = <"CKD Stage 5 kidney failure (GFR <15 mL/min/1.73m² or on dialysis).">
+            >
+            ["at0.16"] = <
+                text = <"Not applicable">
+                description = <"CKD staging not applicable for this patient.">
+            >
+            ["at0.17"] = <
+                text = <"Hemodialysis">
+                description = <"In-center or home hemodialysis.">
+            >
+            ["at0.18"] = <
+                text = <"Peritoneal dialysis (CAPD)">
+                description = <"Continuous ambulatory peritoneal dialysis.">
+            >
+            ["at0.19"] = <
+                text = <"Peritoneal dialysis (APD/CCPD)">
+                description = <"Automated peritoneal dialysis/continuous cyclic peritoneal dialysis.">
+            >
+            ["at0.20"] = <
+                text = <"Not on dialysis">
+                description = <"Patient not currently on dialysis.">
+            >
+            ["at0.21"] = <
+                text = <"Pre-dialysis">
+                description = <"Pre-dialysis education and planning phase.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Consultation Néphrologique">
+                description = <"Une consultation néphrologique ou séance de dialyse.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Consultation">
+                description = <"Identifiant unique pour cette consultation néphrologique.">
+            >
+            ["id0.5"] = <
+                text = <"Stade IRC">
+                description = <"Stade d'insuffisance rénale chronique basé sur le DFG.">
+            >
+            ["id0.7"] = <
+                text = <"Type de Dialyse">
+                description = <"Type de modalité de dialyse.">
+            >
+            ["id0.500"] = <
+                text = <"Fonction Rénale">
+                description = <"Résultats des tests de fonction rénale.">
+            >
+            ["id0.800"] = <
+                text = <"Séance de Dialyse">
+                description = <"Séance de traitement de dialyse.">
+            >
+            ["id1.000"] = <
+                text = <"Transplantation Rénale">
+                description = <"Évaluation ou suivi de transplantation.">
+            >
+            ["id1.210"] = <
+                text = <"Médicaments">
+                description = <"Médicaments néphrologiques utilisant l'archétype medication_order.v3.">
+            >
+        >
+    >

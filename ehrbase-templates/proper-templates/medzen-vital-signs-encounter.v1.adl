@@ -1,0 +1,194 @@
+-- MedZen Vital Signs Encounter Template
+-- Uses official OpenEHR observation archetypes
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_vital_signs_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record vital signs measurements during a patient encounter using official openEHR observation archetypes.">
+            use = <"Used during telemedicine consultations, in-person visits, and routine health monitoring to capture standardized vital signs.">
+            keywords = <"vital signs", "blood pressure", "heart rate", "temperature", "respiratory rate", "oxygen saturation", "encounter">
+            misuse = <"Not for recording detailed clinical assessments or diagnoses. Use appropriate EVALUATION archetypes for those purposes.">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer les mesures de signes vitaux lors d'une rencontre patient en utilisant les archétypes d'observation openEHR officiels.">
+            use = <"Utilisé lors de consultations de télémédecine, de visites en personne et de surveillance de santé de routine pour capturer des signes vitaux standardisés.">
+            keywords = <"signes vitaux", "tension artérielle", "fréquence cardiaque", "température", "fréquence respiratoire", "saturation en oxygène", "rencontre">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Vital Signs Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Encounter"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Telemedicine
+                                            at0.2,    -- In-person visit
+                                            at0.3,    -- Home visit
+                                            at0.4]    -- Routine monitoring
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Blood Pressure measurement using official archetype
+            use_archetype OBSERVATION[id0.10, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..*}
+
+            -- Pulse/Heart rate
+            use_archetype OBSERVATION[id0.20, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+
+            -- Body temperature
+            use_archetype OBSERVATION[id0.30, openEHR-EHR-OBSERVATION.body_temperature.v2] occurrences matches {0..*}
+
+            -- Respiratory rate
+            use_archetype OBSERVATION[id0.40, openEHR-EHR-OBSERVATION.respiration.v2] occurrences matches {0..*}
+
+            -- Oxygen saturation (SpO2)
+            use_archetype OBSERVATION[id0.50, openEHR-EHR-OBSERVATION.pulse_oximetry.v1] occurrences matches {0..*}
+
+            -- Body height
+            use_archetype OBSERVATION[id0.60, openEHR-EHR-OBSERVATION.height.v2] occurrences matches {0..1}
+
+            -- Body weight
+            use_archetype OBSERVATION[id0.70, openEHR-EHR-OBSERVATION.body_weight.v2] occurrences matches {0..*}
+
+            -- BMI (if calculated)
+            use_archetype OBSERVATION[id0.80, openEHR-EHR-OBSERVATION.body_mass_index.v2] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Vital Signs Encounter">
+                description = <"A clinical encounter for recording vital signs measurements.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter ID">
+                description = <"Unique identifier for this clinical encounter.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"The type or setting of the clinical encounter.">
+            >
+            ["id0.10"] = <
+                text = <"Blood Pressure">
+                description = <"Systemic arterial blood pressure measurement using official blood_pressure.v2 archetype.">
+            >
+            ["id0.20"] = <
+                text = <"Pulse/Heart Rate">
+                description = <"Heart rate measurement using official pulse.v2 archetype.">
+            >
+            ["id0.30"] = <
+                text = <"Body Temperature">
+                description = <"Body temperature measurement using official body_temperature.v2 archetype.">
+            >
+            ["id0.40"] = <
+                text = <"Respiratory Rate">
+                description = <"Respiratory rate measurement using official respiration.v2 archetype.">
+            >
+            ["id0.50"] = <
+                text = <"Oxygen Saturation">
+                description = <"Peripheral oxygen saturation (SpO2) using official pulse_oximetry.v1 archetype.">
+            >
+            ["id0.60"] = <
+                text = <"Body Height">
+                description = <"Body height measurement using official height.v2 archetype.">
+            >
+            ["id0.70"] = <
+                text = <"Body Weight">
+                description = <"Body weight measurement using official body_weight.v2 archetype.">
+            >
+            ["id0.80"] = <
+                text = <"Body Mass Index">
+                description = <"BMI calculation using official body_mass_index.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Telemedicine">
+                description = <"Remote consultation via video or phone.">
+            >
+            ["at0.2"] = <
+                text = <"In-person visit">
+                description = <"Face-to-face consultation at facility.">
+            >
+            ["at0.3"] = <
+                text = <"Home visit">
+                description = <"Healthcare provider visit to patient's home.">
+            >
+            ["at0.4"] = <
+                text = <"Routine monitoring">
+                description = <"Scheduled routine health monitoring.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rencontre de Signes Vitaux">
+                description = <"Une rencontre clinique pour enregistrer les mesures de signes vitaux.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Rencontre">
+                description = <"Identifiant unique pour cette rencontre clinique.">
+            >
+            ["id0.10"] = <
+                text = <"Tension Artérielle">
+                description = <"Mesure de la tension artérielle systémique utilisant l'archétype officiel blood_pressure.v2.">
+            >
+        >
+    >

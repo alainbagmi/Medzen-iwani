@@ -1,0 +1,1178 @@
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_psychiatric_assessment.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+                ["organisation"] = <"MedZen Health">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Development Team">
+        ["organisation"] = <"MedZen Health">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"unmanaged">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive psychiatric assessment encounter including mental health evaluation, psychiatric diagnoses, mental status examination, suicide risk assessment, psychiatric medication management, and psychotherapy documentation for the MedZen health records system.">
+            use = <"Use to document psychiatric consultations covering mental health conditions including depression, anxiety disorders, psychotic disorders, bipolar disorder, substance use disorders, personality disorders, and other psychiatric conditions. Supports diagnostic assessment, risk evaluation, treatment planning, and psychiatric medication management.">
+            keywords = <"psychiatry", "mental health", "depression", "anxiety", "psychosis", "bipolar", "suicide risk", "mental status", "psychotherapy", "psychiatric medication", "schizophrenia", "PTSD", "OCD", "substance abuse">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une évaluation psychiatrique complète comprenant l'évaluation de la santé mentale, les diagnostics psychiatriques, l'examen de l'état mental, l'évaluation du risque suicidaire, la gestion des médicaments psychiatriques et la documentation de la psychothérapie pour le système de dossiers de santé MedZen.">
+            use = <"Utiliser pour documenter les consultations psychiatriques couvrant les affections de santé mentale dont la dépression, les troubles anxieux, les troubles psychotiques, le trouble bipolaire, les troubles liés à l'utilisation de substances, les troubles de la personnalité et autres affections psychiatriques. Prend en charge l'évaluation diagnostique, l'évaluation des risques, la planification du traitement et la gestion des médicaments psychiatriques.">
+            keywords = <"psychiatrie", "santé mentale", "dépression", "anxiété", "psychose", "bipolaire", "risque suicidaire", "état mental", "psychothérapie", "médicament psychiatrique", "schizophrénie", "TSPT", "TOC", "toxicomanie">
+        >
+    >
+    other_details = <
+        ["licence"] = <"This work is licensed under the Creative Commons Attribution-ShareAlike 4.0 International License.">
+        ["custodian_organisation"] = <"MedZen Health">
+        ["references"] = <"DSM-5-TR, ICD-11, Columbia-Suicide Severity Rating Scale (C-SSRS), PHQ-9, GAD-7, BPRS, PANSS">
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Psychiatric Assessment
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Assessment Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.2] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,     -- Initial psychiatric evaluation
+                                            at0.2,     -- Follow-up visit
+                                            at0.3,     -- Medication management
+                                            at0.4,     -- Crisis intervention
+                                            at0.5,     -- Pre-admission assessment
+                                            at0.6,     -- Discharge planning
+                                            at0.7,     -- Psychotherapy session
+                                            at0.8]     -- Court-ordered evaluation
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Primary Psychiatric Diagnosis
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.9,     -- Major depressive disorder
+                                            at0.10,    -- Generalized anxiety disorder
+                                            at0.11,    -- Panic disorder
+                                            at0.12,    -- Social anxiety disorder
+                                            at0.13,    -- Obsessive-compulsive disorder
+                                            at0.14,    -- Post-traumatic stress disorder
+                                            at0.15,    -- Bipolar I disorder
+                                            at0.16,    -- Bipolar II disorder
+                                            at0.17,    -- Schizophrenia
+                                            at0.18,    -- Schizoaffective disorder
+                                            at0.19,    -- Substance use disorder
+                                            at0.20,    -- Personality disorder
+                                            at0.21,    -- Eating disorder
+                                            at0.22,    -- Adjustment disorder
+                                            at0.23,    -- Attention-deficit/hyperactivity disorder
+                                            at0.24]    -- Other psychiatric condition
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Suicide Risk Level
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.25,    -- No risk
+                                            at0.26,    -- Low risk
+                                            at0.27,    -- Moderate risk
+                                            at0.28,    -- High risk
+                                            at0.29]    -- Imminent risk
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Violence Risk Level
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.30,    -- No risk
+                                            at0.31,    -- Low risk
+                                            at0.32,    -- Moderate risk
+                                            at0.33,    -- High risk
+                                            at0.34]    -- Imminent risk
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Legal Status
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.35,    -- Voluntary
+                                            at0.36,    -- Involuntary commitment
+                                            at0.37,    -- Court-ordered treatment
+                                            at0.38,    -- Forensic evaluation
+                                            at0.39]    -- Competency evaluation
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Chief Complaint and History of Present Illness
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Psychiatric History Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id0.220, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Substance Use History Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id0.320, openEHR-EHR-EVALUATION.substance_use_summary.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Family Psychiatric History Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id0.410, openEHR-EHR-EVALUATION.family_history.v2] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Social and Developmental History Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id0.510, openEHR-EHR-EVALUATION.social_summary.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Mental Status Examination Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.620, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Cognitive Assessment Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Suicide Risk Assessment Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.810, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id0.820, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Violence Risk Assessment Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id0.920, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Symptom Rating Scales Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.010, openEHR-EHR-OBSERVATION.clinical_note.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Physical Examination Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.110, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Laboratory and Diagnostic Tests Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.210, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype OBSERVATION[id1.220, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Problem/Diagnosis List Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.310, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Psychiatric Medication Management Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id1.410, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.420, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.430, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Psychotherapy Documentation Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype ACTION[id1.510, openEHR-EHR-ACTION.health_education.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.520, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Safety Plan Section
+            use_archetype SECTION[id1.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.610, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id1.620, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Treatment Plan Section
+            use_archetype SECTION[id1.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.710, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype INSTRUCTION[id1.720, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+
+            -- Follow-up and Disposition Section
+            use_archetype SECTION[id1.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+            use_archetype EVALUATION[id1.810, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1..*} matches {
+                name matches {
+                    DV_TEXT matches {*}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Psychiatric Assessment">
+                description = <"A comprehensive psychiatric evaluation encounter for mental health assessment and treatment.">
+            >
+            ["id0.1"] = <
+                text = <"Assessment Type">
+                description = <"The type of psychiatric assessment being conducted.">
+            >
+            ["at0.1"] = <
+                text = <"Initial psychiatric evaluation">
+                description = <"Comprehensive first psychiatric assessment.">
+            >
+            ["at0.2"] = <
+                text = <"Follow-up visit">
+                description = <"Routine follow-up psychiatric appointment.">
+            >
+            ["at0.3"] = <
+                text = <"Medication management">
+                description = <"Visit focused on psychiatric medication adjustment.">
+            >
+            ["at0.4"] = <
+                text = <"Crisis intervention">
+                description = <"Emergency psychiatric assessment.">
+            >
+            ["at0.5"] = <
+                text = <"Pre-admission assessment">
+                description = <"Evaluation for psychiatric hospitalization.">
+            >
+            ["at0.6"] = <
+                text = <"Discharge planning">
+                description = <"Post-hospitalization follow-up.">
+            >
+            ["at0.7"] = <
+                text = <"Psychotherapy session">
+                description = <"Structured therapy session.">
+            >
+            ["at0.8"] = <
+                text = <"Court-ordered evaluation">
+                description = <"Forensic psychiatric evaluation.">
+            >
+            ["id0.3"] = <
+                text = <"Primary Psychiatric Diagnosis">
+                description = <"Main mental health diagnosis.">
+            >
+            ["at0.9"] = <
+                text = <"Major depressive disorder">
+                description = <"Clinical depression with persistent low mood.">
+            >
+            ["at0.10"] = <
+                text = <"Generalized anxiety disorder">
+                description = <"Excessive worry and anxiety.">
+            >
+            ["at0.11"] = <
+                text = <"Panic disorder">
+                description = <"Recurrent panic attacks.">
+            >
+            ["at0.12"] = <
+                text = <"Social anxiety disorder">
+                description = <"Intense fear of social situations.">
+            >
+            ["at0.13"] = <
+                text = <"Obsessive-compulsive disorder">
+                description = <"Intrusive thoughts and compulsive behaviors.">
+            >
+            ["at0.14"] = <
+                text = <"Post-traumatic stress disorder">
+                description = <"Trauma-related anxiety disorder.">
+            >
+            ["at0.15"] = <
+                text = <"Bipolar I disorder">
+                description = <"Mood disorder with manic episodes.">
+            >
+            ["at0.16"] = <
+                text = <"Bipolar II disorder">
+                description = <"Mood disorder with hypomanic episodes.">
+            >
+            ["at0.17"] = <
+                text = <"Schizophrenia">
+                description = <"Psychotic disorder with delusions and hallucinations.">
+            >
+            ["at0.18"] = <
+                text = <"Schizoaffective disorder">
+                description = <"Combined psychotic and mood symptoms.">
+            >
+            ["at0.19"] = <
+                text = <"Substance use disorder">
+                description = <"Addiction or substance abuse.">
+            >
+            ["at0.20"] = <
+                text = <"Personality disorder">
+                description = <"Maladaptive personality patterns.">
+            >
+            ["at0.21"] = <
+                text = <"Eating disorder">
+                description = <"Anorexia, bulimia, or binge eating disorder.">
+            >
+            ["at0.22"] = <
+                text = <"Adjustment disorder">
+                description = <"Stress-related emotional difficulties.">
+            >
+            ["at0.23"] = <
+                text = <"Attention-deficit/hyperactivity disorder">
+                description = <"ADHD with inattention and/or hyperactivity.">
+            >
+            ["at0.24"] = <
+                text = <"Other psychiatric condition">
+                description = <"Other mental health diagnosis.">
+            >
+            ["id0.5"] = <
+                text = <"Suicide Risk Level">
+                description = <"Assessment of suicide risk severity.">
+            >
+            ["at0.25"] = <
+                text = <"No risk">
+                description = <"No suicidal ideation or intent.">
+            >
+            ["at0.26"] = <
+                text = <"Low risk">
+                description = <"Passive suicidal ideation without plan.">
+            >
+            ["at0.27"] = <
+                text = <"Moderate risk">
+                description = <"Suicidal ideation with vague plan.">
+            >
+            ["at0.28"] = <
+                text = <"High risk">
+                description = <"Suicidal ideation with specific plan.">
+            >
+            ["at0.29"] = <
+                text = <"Imminent risk">
+                description = <"Immediate danger of suicide attempt.">
+            >
+            ["id0.7"] = <
+                text = <"Violence Risk Level">
+                description = <"Assessment of risk of violence to others.">
+            >
+            ["at0.30"] = <
+                text = <"No risk">
+                description = <"No violent thoughts or intent.">
+            >
+            ["at0.31"] = <
+                text = <"Low risk">
+                description = <"Minimal risk of violence.">
+            >
+            ["at0.32"] = <
+                text = <"Moderate risk">
+                description = <"Some risk factors present.">
+            >
+            ["at0.33"] = <
+                text = <"High risk">
+                description = <"Significant risk of violence.">
+            >
+            ["at0.34"] = <
+                text = <"Imminent risk">
+                description = <"Immediate danger of violent behavior.">
+            >
+            ["id0.9"] = <
+                text = <"Legal Status">
+                description = <"Legal status of psychiatric treatment.">
+            >
+            ["at0.35"] = <
+                text = <"Voluntary">
+                description = <"Patient seeking treatment voluntarily.">
+            >
+            ["at0.36"] = <
+                text = <"Involuntary commitment">
+                description = <"Patient held against will for safety.">
+            >
+            ["at0.37"] = <
+                text = <"Court-ordered treatment">
+                description = <"Treatment mandated by court.">
+            >
+            ["at0.38"] = <
+                text = <"Forensic evaluation">
+                description = <"Evaluation for legal proceedings.">
+            >
+            ["at0.39"] = <
+                text = <"Competency evaluation">
+                description = <"Assessment of decision-making capacity.">
+            >
+            ["id0.100"] = <
+                text = <"Chief Complaint and History of Present Illness">
+                description = <"Patient's presenting problem and current psychiatric symptoms.">
+            >
+            ["id0.110"] = <
+                text = <"History of Present Illness">
+                description = <"Detailed account of current psychiatric symptoms including onset, duration, severity, precipitating factors, impact on functioning.">
+            >
+            ["id0.200"] = <
+                text = <"Psychiatric History Section">
+                description = <"Past psychiatric diagnoses and treatments.">
+            >
+            ["id0.210"] = <
+                text = <"Past Psychiatric History">
+                description = <"Previous mental health diagnoses, hospitalizations, suicide attempts, self-harm, psychiatric medications tried, psychotherapy history.">
+            >
+            ["id0.220"] = <
+                text = <"Treatment History Summary">
+                description = <"Summary of past psychiatric treatments and responses.">
+            >
+            ["id0.300"] = <
+                text = <"Substance Use History Section">
+                description = <"History of alcohol and drug use.">
+            >
+            ["id0.310"] = <
+                text = <"Substance Use Details">
+                description = <"Alcohol, tobacco, cannabis, stimulants, opioids, sedatives, hallucinogens: current use, frequency, quantity, age of onset, periods of abstinence, treatment history.">
+            >
+            ["id0.320"] = <
+                text = <"Substance Use Summary">
+                description = <"Summary of substance use patterns and severity.">
+            >
+            ["id0.400"] = <
+                text = <"Family Psychiatric History Section">
+                description = <"Mental illness in family members.">
+            >
+            ["id0.410"] = <
+                text = <"Family History">
+                description = <"Depression, anxiety, psychosis, bipolar disorder, suicide, substance abuse in first-degree relatives.">
+            >
+            ["id0.500"] = <
+                text = <"Social and Developmental History Section">
+                description = <"Social context and developmental background.">
+            >
+            ["id0.510"] = <
+                text = <"Social History">
+                description = <"Living situation, support system, employment, education, legal issues, trauma history, childhood adversity.">
+            >
+            ["id0.520"] = <
+                text = <"Developmental History">
+                description = <"Birth complications, developmental milestones, childhood behavioral problems, academic performance.">
+            >
+            ["id0.600"] = <
+                text = <"Mental Status Examination Section">
+                description = <"Systematic psychiatric examination findings.">
+            >
+            ["id0.610"] = <
+                text = <"Mental Status Exam">
+                description = <"Appearance, behavior, speech, mood, affect, thought process, thought content, perceptions, cognition, insight, judgment.">
+            >
+            ["id0.620"] = <
+                text = <"MSE Notes">
+                description = <"Additional mental status examination observations.">
+            >
+            ["id0.700"] = <
+                text = <"Cognitive Assessment Section">
+                description = <"Cognitive function testing.">
+            >
+            ["id0.710"] = <
+                text = <"Cognitive Testing">
+                description = <"Mini-Mental State Exam (MMSE), Montreal Cognitive Assessment (MoCA), Clock Drawing Test, other cognitive screening.">
+            >
+            ["id0.800"] = <
+                text = <"Suicide Risk Assessment Section">
+                description = <"Comprehensive suicide risk evaluation.">
+            >
+            ["id0.810"] = <
+                text = <"Suicide Risk Factors">
+                description = <"C-SSRS: ideation, intent, plan, means, prior attempts, protective factors, warning signs, precipitants.">
+            >
+            ["id0.820"] = <
+                text = <"Suicide Risk Formulation">
+                description = <"Overall suicide risk assessment and safety planning needs.">
+            >
+            ["id0.900"] = <
+                text = <"Violence Risk Assessment Section">
+                description = <"Assessment of risk of harm to others.">
+            >
+            ["id0.910"] = <
+                text = <"Violence Risk Factors">
+                description = <"Homicidal ideation, violent thoughts, access to weapons, history of violence, substance use, psychotic symptoms.">
+            >
+            ["id0.920"] = <
+                text = <"Violence Risk Formulation">
+                description = <"Overall violence risk assessment and management plan.">
+            >
+            ["id1.000"] = <
+                text = <"Symptom Rating Scales Section">
+                description = <"Standardized psychiatric assessment tools.">
+            >
+            ["id1.010"] = <
+                text = <"Rating Scales">
+                description = <"PHQ-9 (depression), GAD-7 (anxiety), BPRS (psychosis), PANSS (schizophrenia), YMRS (mania), PCL-5 (PTSD), Y-BOCS (OCD).">
+            >
+            ["id1.100"] = <
+                text = <"Physical Examination Section">
+                description = <"General physical examination findings.">
+            >
+            ["id1.110"] = <
+                text = <"Physical Exam">
+                description = <"Vital signs, general appearance, neurological exam, signs of self-harm, medication side effects (tremor, weight changes, EPS).">
+            >
+            ["id1.200"] = <
+                text = <"Laboratory and Diagnostic Tests Section">
+                description = <"Medical workup results.">
+            >
+            ["id1.210"] = <
+                text = <"Laboratory Results">
+                description = <"CBC, CMP, thyroid function, vitamin B12, toxicology screen, therapeutic drug levels.">
+            >
+            ["id1.220"] = <
+                text = <"Imaging Results">
+                description = <"Brain MRI/CT if indicated for organic causes.">
+            >
+            ["id1.300"] = <
+                text = <"Problem/Diagnosis List Section">
+                description = <"Current psychiatric diagnoses.">
+            >
+            ["id1.310"] = <
+                text = <"Psychiatric Diagnoses">
+                description = <"DSM-5-TR or ICD-11 diagnoses with specifiers and severity.">
+            >
+            ["id1.400"] = <
+                text = <"Psychiatric Medication Management Section">
+                description = <"Psychotropic medication prescriptions.">
+            >
+            ["id1.410"] = <
+                text = <"Medication Orders">
+                description = <"Antidepressants (SSRI, SNRI, TCA, MAOI), antipsychotics (typical, atypical), mood stabilizers, anxiolytics, stimulants, hypnotics.">
+            >
+            ["id1.420"] = <
+                text = <"Current Medications">
+                description = <"Review of existing psychiatric medications, adherence, side effects.">
+            >
+            ["id1.430"] = <
+                text = <"Medication Rationale">
+                description = <"Justification for medication choices and target symptoms.">
+            >
+            ["id1.500"] = <
+                text = <"Psychotherapy Documentation Section">
+                description = <"Therapy session notes and interventions.">
+            >
+            ["id1.510"] = <
+                text = <"Therapy Interventions">
+                description = <"CBT, DBT, psychodynamic therapy, supportive therapy, family therapy, group therapy interventions performed.">
+            >
+            ["id1.520"] = <
+                text = <"Therapy Progress">
+                description = <"Patient's response to therapy, therapeutic alliance, homework compliance, goals addressed.">
+            >
+            ["id1.600"] = <
+                text = <"Safety Plan Section">
+                description = <"Crisis prevention and management plan.">
+            >
+            ["id1.610"] = <
+                text = <"Safety Plan">
+                description = <"Warning signs, coping strategies, social supports, crisis contacts, professional resources, means restriction.">
+            >
+            ["id1.620"] = <
+                text = <"Crisis Resources">
+                description = <"Emergency contact numbers, crisis hotline, ED instructions.">
+            >
+            ["id1.700"] = <
+                text = <"Treatment Plan Section">
+                description = <"Comprehensive psychiatric treatment plan.">
+            >
+            ["id1.710"] = <
+                text = <"Treatment Recommendations">
+                description = <"Medication plan, psychotherapy approach, frequency of sessions, treatment goals, monitoring plan.">
+            >
+            ["id1.720"] = <
+                text = <"Referrals and Services">
+                description = <"Referrals to specialists, case management, vocational rehab, housing assistance, substance abuse treatment.">
+            >
+            ["id1.800"] = <
+                text = <"Follow-up and Disposition Section">
+                description = <"Follow-up plan and disposition decision.">
+            >
+            ["id1.810"] = <
+                text = <"Disposition Recommendations">
+                description = <"Outpatient follow-up schedule, partial hospitalization, inpatient admission, discharge to home with safety plan.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Évaluation psychiatrique">
+                description = <"Consultation d'évaluation psychiatrique complète pour l'évaluation et le traitement de la santé mentale.">
+            >
+            ["id0.1"] = <
+                text = <"Type d'évaluation">
+                description = <"Type d'évaluation psychiatrique effectuée.">
+            >
+            ["at0.1"] = <
+                text = <"Évaluation psychiatrique initiale">
+                description = <"Évaluation psychiatrique complète initiale.">
+            >
+            ["at0.2"] = <
+                text = <"Visite de suivi">
+                description = <"Rendez-vous psychiatrique de suivi de routine.">
+            >
+            ["at0.3"] = <
+                text = <"Gestion des médicaments">
+                description = <"Visite axée sur l'ajustement des médicaments psychiatriques.">
+            >
+            ["at0.4"] = <
+                text = <"Intervention de crise">
+                description = <"Évaluation psychiatrique d'urgence.">
+            >
+            ["at0.5"] = <
+                text = <"Évaluation pré-admission">
+                description = <"Évaluation pour hospitalisation psychiatrique.">
+            >
+            ["at0.6"] = <
+                text = <"Planification de sortie">
+                description = <"Suivi post-hospitalisation.">
+            >
+            ["at0.7"] = <
+                text = <"Séance de psychothérapie">
+                description = <"Séance de thérapie structurée.">
+            >
+            ["at0.8"] = <
+                text = <"Évaluation ordonnée par le tribunal">
+                description = <"Évaluation psychiatrique médico-légale.">
+            >
+            ["id0.3"] = <
+                text = <"Diagnostic psychiatrique principal">
+                description = <"Principal diagnostic de santé mentale.">
+            >
+            ["at0.9"] = <
+                text = <"Trouble dépressif majeur">
+                description = <"Dépression clinique avec humeur dépressive persistante.">
+            >
+            ["at0.10"] = <
+                text = <"Trouble d'anxiété généralisée">
+                description = <"Inquiétude et anxiété excessives.">
+            >
+            ["at0.11"] = <
+                text = <"Trouble panique">
+                description = <"Crises de panique récurrentes.">
+            >
+            ["at0.12"] = <
+                text = <"Trouble d'anxiété sociale">
+                description = <"Peur intense des situations sociales.">
+            >
+            ["at0.13"] = <
+                text = <"Trouble obsessionnel-compulsif">
+                description = <"Pensées intrusives et comportements compulsifs.">
+            >
+            ["at0.14"] = <
+                text = <"Trouble de stress post-traumatique">
+                description = <"Trouble anxieux lié au trauma.">
+            >
+            ["at0.15"] = <
+                text = <"Trouble bipolaire I">
+                description = <"Trouble de l'humeur avec épisodes maniaques.">
+            >
+            ["at0.16"] = <
+                text = <"Trouble bipolaire II">
+                description = <"Trouble de l'humeur avec épisodes hypomaniaques.">
+            >
+            ["at0.17"] = <
+                text = <"Schizophrénie">
+                description = <"Trouble psychotique avec délires et hallucinations.">
+            >
+            ["at0.18"] = <
+                text = <"Trouble schizo-affectif">
+                description = <"Symptômes psychotiques et thymiques combinés.">
+            >
+            ["at0.19"] = <
+                text = <"Trouble de l'usage de substances">
+                description = <"Addiction ou abus de substances.">
+            >
+            ["at0.20"] = <
+                text = <"Trouble de la personnalité">
+                description = <"Modèles de personnalité inadaptés.">
+            >
+            ["at0.21"] = <
+                text = <"Trouble alimentaire">
+                description = <"Anorexie, boulimie ou hyperphagie boulimique.">
+            >
+            ["at0.22"] = <
+                text = <"Trouble de l'adaptation">
+                description = <"Difficultés émotionnelles liées au stress.">
+            >
+            ["at0.23"] = <
+                text = <"Trouble déficit de l'attention/hyperactivité">
+                description = <"TDAH avec inattention et/ou hyperactivité.">
+            >
+            ["at0.24"] = <
+                text = <"Autre affection psychiatrique">
+                description = <"Autre diagnostic de santé mentale.">
+            >
+            ["id0.5"] = <
+                text = <"Niveau de risque suicidaire">
+                description = <"Évaluation de la gravité du risque suicidaire.">
+            >
+            ["at0.25"] = <
+                text = <"Aucun risque">
+                description = <"Aucune idée suicidaire ou intention.">
+            >
+            ["at0.26"] = <
+                text = <"Risque faible">
+                description = <"Idées suicidaires passives sans plan.">
+            >
+            ["at0.27"] = <
+                text = <"Risque modéré">
+                description = <"Idées suicidaires avec plan vague.">
+            >
+            ["at0.28"] = <
+                text = <"Risque élevé">
+                description = <"Idées suicidaires avec plan spécifique.">
+            >
+            ["at0.29"] = <
+                text = <"Risque imminent">
+                description = <"Danger immédiat de tentative de suicide.">
+            >
+            ["id0.7"] = <
+                text = <"Niveau de risque de violence">
+                description = <"Évaluation du risque de violence envers autrui.">
+            >
+            ["at0.30"] = <
+                text = <"Aucun risque">
+                description = <"Aucune pensée ou intention violente.">
+            >
+            ["at0.31"] = <
+                text = <"Risque faible">
+                description = <"Risque minimal de violence.">
+            >
+            ["at0.32"] = <
+                text = <"Risque modéré">
+                description = <"Certains facteurs de risque présents.">
+            >
+            ["at0.33"] = <
+                text = <"Risque élevé">
+                description = <"Risque significatif de violence.">
+            >
+            ["at0.34"] = <
+                text = <"Risque imminent">
+                description = <"Danger immédiat de comportement violent.">
+            >
+            ["id0.9"] = <
+                text = <"Statut légal">
+                description = <"Statut juridique du traitement psychiatrique.">
+            >
+            ["at0.35"] = <
+                text = <"Volontaire">
+                description = <"Patient recherchant un traitement volontairement.">
+            >
+            ["at0.36"] = <
+                text = <"Engagement involontaire">
+                description = <"Patient retenu contre sa volonté pour sa sécurité.">
+            >
+            ["at0.37"] = <
+                text = <"Traitement ordonné par le tribunal">
+                description = <"Traitement mandaté par le tribunal.">
+            >
+            ["at0.38"] = <
+                text = <"Évaluation médico-légale">
+                description = <"Évaluation pour procédures judiciaires.">
+            >
+            ["at0.39"] = <
+                text = <"Évaluation de la compétence">
+                description = <"Évaluation de la capacité de prise de décision.">
+            >
+            ["id0.100"] = <
+                text = <"Motif principal de consultation et histoire de la maladie actuelle">
+                description = <"Problème présenté par le patient et symptômes psychiatriques actuels.">
+            >
+            ["id0.110"] = <
+                text = <"Histoire de la maladie actuelle">
+                description = <"Compte rendu détaillé des symptômes psychiatriques actuels incluant début, durée, gravité, facteurs déclenchants, impact sur le fonctionnement.">
+            >
+            ["id0.200"] = <
+                text = <"Section Antécédents psychiatriques">
+                description = <"Diagnostics et traitements psychiatriques antérieurs.">
+            >
+            ["id0.210"] = <
+                text = <"Antécédents psychiatriques">
+                description = <"Diagnostics de santé mentale antérieurs, hospitalisations, tentatives de suicide, automutilation, médicaments psychiatriques essayés, historique de psychothérapie.">
+            >
+            ["id0.220"] = <
+                text = <"Résumé de l'historique de traitement">
+                description = <"Résumé des traitements psychiatriques antérieurs et des réponses.">
+            >
+            ["id0.300"] = <
+                text = <"Section Historique de l'usage de substances">
+                description = <"Historique de consommation d'alcool et de drogues.">
+            >
+            ["id0.310"] = <
+                text = <"Détails de l'usage de substances">
+                description = <"Alcool, tabac, cannabis, stimulants, opioïdes, sédatifs, hallucinogènes: usage actuel, fréquence, quantité, âge de début, périodes d'abstinence, historique de traitement.">
+            >
+            ["id0.320"] = <
+                text = <"Résumé de l'usage de substances">
+                description = <"Résumé des patterns et gravité de l'usage de substances.">
+            >
+            ["id0.400"] = <
+                text = <"Section Antécédents psychiatriques familiaux">
+                description = <"Maladie mentale chez les membres de la famille.">
+            >
+            ["id0.410"] = <
+                text = <"Antécédents familiaux">
+                description = <"Dépression, anxiété, psychose, trouble bipolaire, suicide, abus de substances chez les parents du premier degré.">
+            >
+            ["id0.500"] = <
+                text = <"Section Antécédents sociaux et développementaux">
+                description = <"Contexte social et antécédents développementaux.">
+            >
+            ["id0.510"] = <
+                text = <"Antécédents sociaux">
+                description = <"Situation de vie, système de soutien, emploi, éducation, problèmes juridiques, historique de traumatisme, adversité de l'enfance.">
+            >
+            ["id0.520"] = <
+                text = <"Antécédents développementaux">
+                description = <"Complications à la naissance, jalons développementaux, problèmes comportementaux de l'enfance, performance scolaire.">
+            >
+            ["id0.600"] = <
+                text = <"Section Examen de l'état mental">
+                description = <"Résultats de l'examen psychiatrique systématique.">
+            >
+            ["id0.610"] = <
+                text = <"Examen de l'état mental">
+                description = <"Apparence, comportement, parole, humeur, affect, processus de pensée, contenu de pensée, perceptions, cognition, insight, jugement.">
+            >
+            ["id0.620"] = <
+                text = <"Notes EEM">
+                description = <"Observations supplémentaires de l'examen de l'état mental.">
+            >
+            ["id0.700"] = <
+                text = <"Section Évaluation cognitive">
+                description = <"Tests de fonction cognitive.">
+            >
+            ["id0.710"] = <
+                text = <"Tests cognitifs">
+                description = <"Mini-Mental State Exam (MMSE), Montreal Cognitive Assessment (MoCA), Test de l'horloge, autre dépistage cognitif.">
+            >
+            ["id0.800"] = <
+                text = <"Section Évaluation du risque suicidaire">
+                description = <"Évaluation complète du risque suicidaire.">
+            >
+            ["id0.810"] = <
+                text = <"Facteurs de risque suicidaire">
+                description = <"C-SSRS: idéation, intention, plan, moyens, tentatives antérieures, facteurs de protection, signes d'avertissement, précipitants.">
+            >
+            ["id0.820"] = <
+                text = <"Formulation du risque suicidaire">
+                description = <"Évaluation globale du risque suicidaire et besoins de planification de sécurité.">
+            >
+            ["id0.900"] = <
+                text = <"Section Évaluation du risque de violence">
+                description = <"Évaluation du risque de préjudice à autrui.">
+            >
+            ["id0.910"] = <
+                text = <"Facteurs de risque de violence">
+                description = <"Idéation homicide, pensées violentes, accès aux armes, antécédents de violence, usage de substances, symptômes psychotiques.">
+            >
+            ["id0.920"] = <
+                text = <"Formulation du risque de violence">
+                description = <"Évaluation globale du risque de violence et plan de gestion.">
+            >
+            ["id1.000"] = <
+                text = <"Section Échelles d'évaluation des symptômes">
+                description = <"Outils d'évaluation psychiatrique standardisés.">
+            >
+            ["id1.010"] = <
+                text = <"Échelles d'évaluation">
+                description = <"PHQ-9 (dépression), GAD-7 (anxiété), BPRS (psychose), PANSS (schizophrénie), YMRS (manie), PCL-5 (TSPT), Y-BOCS (TOC).">
+            >
+            ["id1.100"] = <
+                text = <"Section Examen physique">
+                description = <"Résultats de l'examen physique général.">
+            >
+            ["id1.110"] = <
+                text = <"Examen physique">
+                description = <"Signes vitaux, apparence générale, examen neurologique, signes d'automutilation, effets secondaires des médicaments (tremblements, changements de poids, SEP).">
+            >
+            ["id1.200"] = <
+                text = <"Section Tests de laboratoire et diagnostiques">
+                description = <"Résultats du bilan médical.">
+            >
+            ["id1.210"] = <
+                text = <"Résultats de laboratoire">
+                description = <"NFS, profil métabolique, fonction thyroïdienne, vitamine B12, dépistage toxicologique, niveaux thérapeutiques des médicaments.">
+            >
+            ["id1.220"] = <
+                text = <"Résultats d'imagerie">
+                description = <"IRM/TDM cérébrale si indiquée pour causes organiques.">
+            >
+            ["id1.300"] = <
+                text = <"Section Liste des problèmes/diagnostics">
+                description = <"Diagnostics psychiatriques actuels.">
+            >
+            ["id1.310"] = <
+                text = <"Diagnostics psychiatriques">
+                description = <"Diagnostics DSM-5-TR ou CIM-11 avec spécificateurs et gravité.">
+            >
+            ["id1.400"] = <
+                text = <"Section Gestion des médicaments psychiatriques">
+                description = <"Prescriptions de médicaments psychotropes.">
+            >
+            ["id1.410"] = <
+                text = <"Ordonnances de médicaments">
+                description = <"Antidépresseurs (ISRS, IRSN, ATC, IMAO), antipsychotiques (typiques, atypiques), stabilisateurs de l'humeur, anxiolytiques, stimulants, hypnotiques.">
+            >
+            ["id1.420"] = <
+                text = <"Médicaments actuels">
+                description = <"Revue des médicaments psychiatriques existants, observance, effets secondaires.">
+            >
+            ["id1.430"] = <
+                text = <"Justification des médicaments">
+                description = <"Justification des choix de médicaments et symptômes cibles.">
+            >
+            ["id1.500"] = <
+                text = <"Section Documentation de la psychothérapie">
+                description = <"Notes de séance de thérapie et interventions.">
+            >
+            ["id1.510"] = <
+                text = <"Interventions thérapeutiques">
+                description = <"Interventions TCC, TCD, thérapie psychodynamique, thérapie de soutien, thérapie familiale, thérapie de groupe effectuées.">
+            >
+            ["id1.520"] = <
+                text = <"Progrès en thérapie">
+                description = <"Réponse du patient à la thérapie, alliance thérapeutique, respect des devoirs, objectifs abordés.">
+            >
+            ["id1.600"] = <
+                text = <"Section Plan de sécurité">
+                description = <"Plan de prévention et de gestion de crise.">
+            >
+            ["id1.610"] = <
+                text = <"Plan de sécurité">
+                description = <"Signes d'avertissement, stratégies d'adaptation, soutiens sociaux, contacts de crise, ressources professionnelles, restriction des moyens.">
+            >
+            ["id1.620"] = <
+                text = <"Ressources de crise">
+                description = <"Numéros de contact d'urgence, ligne d'écoute de crise, instructions pour les urgences.">
+            >
+            ["id1.700"] = <
+                text = <"Section Plan de traitement">
+                description = <"Plan de traitement psychiatrique complet.">
+            >
+            ["id1.710"] = <
+                text = <"Recommandations de traitement">
+                description = <"Plan de médication, approche psychothérapeutique, fréquence des séances, objectifs de traitement, plan de surveillance.">
+            >
+            ["id1.720"] = <
+                text = <"Références et services">
+                description = <"Références vers spécialistes, gestion de cas, réadaptation professionnelle, aide au logement, traitement de l'abus de substances.">
+            >
+            ["id1.800"] = <
+                text = <"Section Suivi et disposition">
+                description = <"Plan de suivi et décision de disposition.">
+            >
+            ["id1.810"] = <
+                text = <"Recommandations de disposition">
+                description = <"Calendrier de suivi ambulatoire, hospitalisation partielle, admission en hospitalisation, sortie à domicile avec plan de sécurité.">
+            >
+        >
+    >

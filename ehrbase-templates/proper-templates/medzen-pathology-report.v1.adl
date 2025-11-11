@@ -1,0 +1,714 @@
+archetype (adl_version=1.5.1)
+    openEHR-EHR-COMPOSITION.medzen_pathology_report.v1
+specialize
+    openEHR-EHR-COMPOSITION.report.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Health">
+                ["organisation"] = <"MedZen">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-02-11">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"published">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive surgical pathology report including gross examination, microscopic findings, immunohistochemistry, molecular pathology, and cancer staging.">
+            use = <"Use for documenting pathology reports including:
+- Surgical pathology (biopsy, excision, resection specimens)
+- Cytopathology (fine needle aspiration, fluid cytology)
+- Hematopathology (bone marrow, lymph node)
+- Cancer staging and grading
+- Immunohistochemistry and special stains
+- Molecular pathology and genetic testing
+- Margin assessment for oncology specimens
+- Synoptic reporting (CAP protocols)
+- Frozen section diagnosis
+- Consultation cases">
+            keywords = <"pathology", "biopsy", "histopathology", "cytology", "immunohistochemistry", "molecular pathology", "cancer staging", "TNM", "microscopy", "diagnosis", "specimen">
+            copyright = <"© MedZen Health 2025">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Pour enregistrer un rapport de pathologie chirurgicale complet comprenant l'examen macroscopique, les résultats microscopiques, l'immunohistochimie, la pathologie moléculaire et la stadification du cancer.">
+            use = <"Utiliser pour documenter les rapports de pathologie incluant:
+- Pathologie chirurgicale (biopsie, excision, spécimens de résection)
+- Cytopathologie (aspiration à l'aiguille fine, cytologie des liquides)
+- Hématopathologie (moelle osseuse, ganglion lymphatique)
+- Stadification et gradation du cancer
+- Immunohistochimie et colorations spéciales
+- Pathologie moléculaire et tests génétiques
+- Évaluation des marges pour les spécimens oncologiques
+- Rapports synoptiques (protocoles CAP)
+- Diagnostic sur coupe congelée
+- Cas de consultation">
+            keywords = <"pathologie", "biopsie", "histopathologie", "cytologie", "immunohistochimie", "pathologie moléculaire", "stadification du cancer", "TNM", "microscopie", "diagnostic", "spécimen">
+            copyright = <"© MedZen Health 2025">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Pathology Report
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0.1]}  -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Specimen Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.19,    -- Biopsy (needle core)
+                                            at0.20,    -- Biopsy (incisional)
+                                            at0.21,    -- Biopsy (excisional)
+                                            at0.22,    -- Fine needle aspiration (FNA)
+                                            at0.23,    -- Surgical excision
+                                            at0.24,    -- Wide local excision
+                                            at0.25,    -- Resection specimen
+                                            at0.26,    -- Lymph node dissection
+                                            at0.27,    -- Bone marrow biopsy
+                                            at0.28,    -- Fluid cytology
+                                            at0.29,    -- Frozen section
+                                            at0.30,    -- Consultation case
+                                            at0.31]    -- Other specimen type
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Report Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.32,    -- Preliminary report
+                                            at0.33,    -- Final report
+                                            at0.34,    -- Addendum
+                                            at0.35,    -- Amended report
+                                            at0.36]    -- Corrected report
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Cancer Present
+                                value matches {
+                                    DV_BOOLEAN[id0.10] matches {
+                                        value matches {True, False}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.11] occurrences matches {0..1} matches {    -- Urgency
+                                value matches {
+                                    DV_CODED_TEXT[id0.12] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.37,    -- Routine
+                                            at0.38,    -- Urgent
+                                            at0.39]    -- STAT (immediate)
+                                        }
+                                    }
+                                }
+                            }
+                            allow_archetype CLUSTER[id0.13] occurrences matches {0..*} matches {    -- Report Identifiers
+                                include
+                                    archetype_id/value matches {/openEHR-EHR-CLUSTER\.identifier\.v0/}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            allow_archetype SECTION[id0.14] occurrences matches {1} matches {    -- Clinical Information
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.15] occurrences matches {1} matches {    -- Specimen Details
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.specimen\.v1|openEHR-EHR-CLUSTER\.anatomical_location\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.16] occurrences matches {0..1} matches {    -- Previous Pathology History
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.17] occurrences matches {1} matches {    -- Gross Examination
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.18] occurrences matches {0..1} matches {    -- Frozen Section Diagnosis
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.19] occurrences matches {1} matches {    -- Microscopic Examination
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.20] occurrences matches {0..1} matches {    -- Histological Type and Grade
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.21] occurrences matches {0..1} matches {    -- Immunohistochemistry
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.laboratory_test_result\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.22] occurrences matches {0..1} matches {    -- Special Stains
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.laboratory_test_result\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.23] occurrences matches {0..1} matches {    -- Molecular Pathology
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.laboratory_test_result\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.24] occurrences matches {0..1} matches {    -- Cytogenetics
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.laboratory_test_result\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.25] occurrences matches {0..1} matches {    -- Margins Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.26] occurrences matches {0..1} matches {    -- Lymph Nodes Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.27] occurrences matches {0..1} matches {    -- Lymphovascular Invasion
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.28] occurrences matches {0..1} matches {    -- Perineural Invasion
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.29] occurrences matches {0..1} matches {    -- TNM Staging
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.30] occurrences matches {0..1} matches {    -- Synoptic Report (CAP Protocol)
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.31] occurrences matches {1} matches {    -- Final Diagnosis
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.32] occurrences matches {0..1} matches {    -- Additional Comments
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.33] occurrences matches {0..1} matches {    -- Recommendations
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1|openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.34] occurrences matches {0..1} matches {    -- Consultation / Second Opinion
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Pathology Report">
+                    description = <"A comprehensive surgical pathology or cytopathology report documenting macroscopic and microscopic findings, special studies, and final diagnosis.">
+                >
+                ["at0.1"] = <
+                    text = <"event">
+                    description = <"Point-in-time pathology report event.">
+                >
+                ["id0.5"] = <
+                    text = <"Specimen Type">
+                    description = <"The type of specimen submitted for pathological examination.">
+                >
+                ["at0.19"] = <
+                    text = <"Biopsy (needle core)">
+                    description = <"Tissue obtained via needle core biopsy.">
+                >
+                ["at0.20"] = <
+                    text = <"Biopsy (incisional)">
+                    description = <"Partial removal of a lesion for diagnostic purposes.">
+                >
+                ["at0.21"] = <
+                    text = <"Biopsy (excisional)">
+                    description = <"Complete removal of a lesion with minimal margin.">
+                >
+                ["at0.22"] = <
+                    text = <"Fine needle aspiration (FNA)">
+                    description = <"Cytology specimen obtained via fine needle aspiration.">
+                >
+                ["at0.23"] = <
+                    text = <"Surgical excision">
+                    description = <"Surgically excised tissue specimen.">
+                >
+                ["at0.24"] = <
+                    text = <"Wide local excision">
+                    description = <"Excision with wide margins for oncological purposes.">
+                >
+                ["at0.25"] = <
+                    text = <"Resection specimen">
+                    description = <"Large tissue specimen from organ resection.">
+                >
+                ["at0.26"] = <
+                    text = <"Lymph node dissection">
+                    description = <"Multiple lymph nodes removed for staging.">
+                >
+                ["at0.27"] = <
+                    text = <"Bone marrow biopsy">
+                    description = <"Bone marrow aspirate and/or core biopsy.">
+                >
+                ["at0.28"] = <
+                    text = <"Fluid cytology">
+                    description = <"Cytological examination of body fluid (pleural, peritoneal, CSF, etc.).">
+                >
+                ["at0.29"] = <
+                    text = <"Frozen section">
+                    description = <"Intraoperative frozen section consultation.">
+                >
+                ["at0.30"] = <
+                    text = <"Consultation case">
+                    description = <"Slides or tissue blocks referred for expert opinion.">
+                >
+                ["at0.31"] = <
+                    text = <"Other specimen type">
+                    description = <"Other type of specimen not listed.">
+                >
+                ["id0.7"] = <
+                    text = <"Report Type">
+                    description = <"The type or status of this pathology report.">
+                >
+                ["at0.32"] = <
+                    text = <"Preliminary report">
+                    description = <"Initial report pending additional studies or review.">
+                >
+                ["at0.33"] = <
+                    text = <"Final report">
+                    description = <"Complete and finalized pathology report.">
+                >
+                ["at0.34"] = <
+                    text = <"Addendum">
+                    description = <"Additional information added to a previous report.">
+                >
+                ["at0.35"] = <
+                    text = <"Amended report">
+                    description = <"Report amended for corrections or clarifications.">
+                >
+                ["at0.36"] = <
+                    text = <"Corrected report">
+                    description = <"Report corrected for errors in the original.">
+                >
+                ["id0.9"] = <
+                    text = <"Cancer Present">
+                    description = <"Indicates whether malignancy was identified in the specimen.">
+                >
+                ["id0.11"] = <
+                    text = <"Urgency">
+                    description = <"The urgency level of the pathology report.">
+                >
+                ["at0.37"] = <
+                    text = <"Routine">
+                    description = <"Routine pathology reporting timeline.">
+                >
+                ["at0.38"] = <
+                    text = <"Urgent">
+                    description = <"Expedited reporting requested.">
+                >
+                ["at0.39"] = <
+                    text = <"STAT (immediate)">
+                    description = <"Immediate reporting required (e.g., frozen section).">
+                >
+                ["id0.13"] = <
+                    text = <"Report Identifiers">
+                    description = <"Identifiers associated with this pathology report (accession number, lab number).">
+                >
+                ["id0.14"] = <
+                    text = <"Clinical Information">
+                    description = <"Clinical history, indication for biopsy, working diagnosis, relevant imaging findings.">
+                >
+                ["id0.15"] = <
+                    text = <"Specimen Details">
+                    description = <"Detailed description of specimen(s) including anatomical site, laterality, size, number of specimens, fixation.">
+                >
+                ["id0.16"] = <
+                    text = <"Previous Pathology History">
+                    description = <"Relevant previous pathology findings on the same patient or same anatomical site.">
+                >
+                ["id0.17"] = <
+                    text = <"Gross Examination">
+                    description = <"Macroscopic examination of the specimen(s) including measurements, appearance, sectioning, sampling strategy.">
+                >
+                ["id0.18"] = <
+                    text = <"Frozen Section Diagnosis">
+                    description = <"Intraoperative frozen section diagnosis provided during surgery.">
+                >
+                ["id0.19"] = <
+                    text = <"Microscopic Examination">
+                    description = <"Histological description of tissue architecture, cellular features, inflammation, necrosis, etc.">
+                >
+                ["id0.20"] = <
+                    text = <"Histological Type and Grade">
+                    description = <"Specific tumor type, subtype, and histological grade (e.g., well-differentiated, poorly differentiated).">
+                >
+                ["id0.21"] = <
+                    text = <"Immunohistochemistry">
+                    description = <"Results of immunohistochemical stains (e.g., ER, PR, HER2, Ki-67, CK, CD markers).">
+                >
+                ["id0.22"] = <
+                    text = <"Special Stains">
+                    description = <"Results of special histochemical stains (e.g., PAS, Alcian blue, Masson trichrome, Congo red).">
+                >
+                ["id0.23"] = <
+                    text = <"Molecular Pathology">
+                    description = <"Results of molecular testing including gene mutations, MSI, PD-L1, FISH, PCR, next-generation sequencing.">
+                >
+                ["id0.24"] = <
+                    text = <"Cytogenetics">
+                    description = <"Chromosomal analysis and karyotyping results (particularly for hematological malignancies).">
+                >
+                ["id0.25"] = <
+                    text = <"Margins Assessment">
+                    description = <"Evaluation of surgical margins for presence or absence of tumor, distance to closest margin.">
+                >
+                ["id0.26"] = <
+                    text = <"Lymph Nodes Assessment">
+                    description = <"Number of lymph nodes examined, number positive for metastatic disease, extranodal extension.">
+                >
+                ["id0.27"] = <
+                    text = <"Lymphovascular Invasion">
+                    description = <"Presence or absence of tumor in lymphatic or vascular channels.">
+                >
+                ["id0.28"] = <
+                    text = <"Perineural Invasion">
+                    description = <"Presence or absence of tumor invasion of nerve sheaths.">
+                >
+                ["id0.29"] = <
+                    text = <"TNM Staging">
+                    description = <"Pathological TNM staging (pTNM) according to AJCC/UICC classification.">
+                >
+                ["id0.30"] = <
+                    text = <"Synoptic Report (CAP Protocol)">
+                    description = <"Standardized synoptic reporting according to College of American Pathologists (CAP) protocols.">
+                >
+                ["id0.31"] = <
+                    text = <"Final Diagnosis">
+                    description = <"Definitive pathological diagnosis with all relevant diagnostic information.">
+                >
+                ["id0.32"] = <
+                    text = <"Additional Comments">
+                    description = <"Additional pathologist comments, correlation with clinical/radiological findings, comparison with previous pathology.">
+                >
+                ["id0.33"] = <
+                    text = <"Recommendations">
+                    description = <"Recommendations for further testing, additional tissue sampling, clinical correlation, or follow-up.">
+                >
+                ["id0.34"] = <
+                    text = <"Consultation / Second Opinion">
+                    description = <"Documentation of consultation with other pathologists or subspecialty experts.">
+                >
+            >
+        >
+        ["fr"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Rapport de pathologie">
+                    description = <"Un rapport complet de pathologie chirurgicale ou cytopathologique documentant les résultats macroscopiques et microscopiques, les études spéciales et le diagnostic final.">
+                >
+                ["at0.1"] = <
+                    text = <"événement">
+                    description = <"Événement de rapport de pathologie ponctuel.">
+                >
+                ["id0.5"] = <
+                    text = <"Type de spécimen">
+                    description = <"Le type de spécimen soumis pour examen pathologique.">
+                >
+                ["at0.19"] = <
+                    text = <"Biopsie (carotte)">
+                    description = <"Tissu obtenu par biopsie à l'aiguille.">
+                >
+                ["at0.20"] = <
+                    text = <"Biopsie (incisionnelle)">
+                    description = <"Retrait partiel d'une lésion à des fins diagnostiques.">
+                >
+                ["at0.21"] = <
+                    text = <"Biopsie (excisionnelle)">
+                    description = <"Retrait complet d'une lésion avec marge minimale.">
+                >
+                ["at0.22"] = <
+                    text = <"Aspiration à l'aiguille fine (AAF)">
+                    description = <"Spécimen de cytologie obtenu par aspiration à l'aiguille fine.">
+                >
+                ["at0.23"] = <
+                    text = <"Excision chirurgicale">
+                    description = <"Spécimen de tissu excisé chirurgicalement.">
+                >
+                ["at0.24"] = <
+                    text = <"Excision locale large">
+                    description = <"Excision avec marges larges à des fins oncologiques.">
+                >
+                ["at0.25"] = <
+                    text = <"Spécimen de résection">
+                    description = <"Grand spécimen de tissu provenant d'une résection d'organe.">
+                >
+                ["at0.26"] = <
+                    text = <"Dissection ganglionnaire">
+                    description = <"Plusieurs ganglions lymphatiques retirés pour la stadification.">
+                >
+                ["at0.27"] = <
+                    text = <"Biopsie de moelle osseuse">
+                    description = <"Aspirat et/ou carotte de moelle osseuse.">
+                >
+                ["at0.28"] = <
+                    text = <"Cytologie de liquide">
+                    description = <"Examen cytologique de liquide corporel (pleural, péritonéal, LCR, etc.).">
+                >
+                ["at0.29"] = <
+                    text = <"Coupe congelée">
+                    description = <"Consultation sur coupe congelée peropératoire.">
+                >
+                ["at0.30"] = <
+                    text = <"Cas de consultation">
+                    description = <"Lames ou blocs de tissus référés pour avis d'expert.">
+                >
+                ["at0.31"] = <
+                    text = <"Autre type de spécimen">
+                    description = <"Autre type de spécimen non répertorié.">
+                >
+                ["id0.7"] = <
+                    text = <"Type de rapport">
+                    description = <"Le type ou le statut de ce rapport de pathologie.">
+                >
+                ["at0.32"] = <
+                    text = <"Rapport préliminaire">
+                    description = <"Rapport initial en attente d'études ou de révision supplémentaires.">
+                >
+                ["at0.33"] = <
+                    text = <"Rapport final">
+                    description = <"Rapport de pathologie complet et finalisé.">
+                >
+                ["at0.34"] = <
+                    text = <"Addendum">
+                    description = <"Informations supplémentaires ajoutées à un rapport précédent.">
+                >
+                ["at0.35"] = <
+                    text = <"Rapport modifié">
+                    description = <"Rapport modifié pour corrections ou clarifications.">
+                >
+                ["at0.36"] = <
+                    text = <"Rapport corrigé">
+                    description = <"Rapport corrigé pour erreurs dans l'original.">
+                >
+                ["id0.9"] = <
+                    text = <"Cancer présent">
+                    description = <"Indique si une malignité a été identifiée dans le spécimen.">
+                >
+                ["id0.11"] = <
+                    text = <"Urgence">
+                    description = <"Le niveau d'urgence du rapport de pathologie.">
+                >
+                ["at0.37"] = <
+                    text = <"Routine">
+                    description = <"Délai de rapport de pathologie de routine.">
+                >
+                ["at0.38"] = <
+                    text = <"Urgent">
+                    description = <"Rapport accéléré demandé.">
+                >
+                ["at0.39"] = <
+                    text = <"STAT (immédiat)">
+                    description = <"Rapport immédiat requis (ex. : coupe congelée).">
+                >
+                ["id0.13"] = <
+                    text = <"Identifiants du rapport">
+                    description = <"Identifiants associés à ce rapport de pathologie (numéro d'accession, numéro de laboratoire).">
+                >
+                ["id0.14"] = <
+                    text = <"Informations cliniques">
+                    description = <"Antécédents cliniques, indication pour la biopsie, diagnostic de travail, résultats d'imagerie pertinents.">
+                >
+                ["id0.15"] = <
+                    text = <"Détails du spécimen">
+                    description = <"Description détaillée du ou des spécimens incluant le site anatomique, la latéralité, la taille, le nombre de spécimens, la fixation.">
+                >
+                ["id0.16"] = <
+                    text = <"Histoire pathologique antérieure">
+                    description = <"Résultats pathologiques antérieurs pertinents sur le même patient ou le même site anatomique.">
+                >
+                ["id0.17"] = <
+                    text = <"Examen macroscopique">
+                    description = <"Examen macroscopique du ou des spécimens incluant les mesures, l'apparence, le sectionnement, la stratégie d'échantillonnage.">
+                >
+                ["id0.18"] = <
+                    text = <"Diagnostic sur coupe congelée">
+                    description = <"Diagnostic sur coupe congelée peropératoire fourni pendant la chirurgie.">
+                >
+                ["id0.19"] = <
+                    text = <"Examen microscopique">
+                    description = <"Description histologique de l'architecture tissulaire, des caractéristiques cellulaires, de l'inflammation, de la nécrose, etc.">
+                >
+                ["id0.20"] = <
+                    text = <"Type et grade histologiques">
+                    description = <"Type tumoral spécifique, sous-type et grade histologique (ex. : bien différencié, peu différencié).">
+                >
+                ["id0.21"] = <
+                    text = <"Immunohistochimie">
+                    description = <"Résultats des colorations immunohistochimiques (ex. : ER, PR, HER2, Ki-67, CK, marqueurs CD).">
+                >
+                ["id0.22"] = <
+                    text = <"Colorations spéciales">
+                    description = <"Résultats des colorations histochimiques spéciales (ex. : PAS, bleu alcian, trichrome de Masson, rouge Congo).">
+                >
+                ["id0.23"] = <
+                    text = <"Pathologie moléculaire">
+                    description = <"Résultats des tests moléculaires incluant les mutations génétiques, MSI, PD-L1, FISH, PCR, séquençage de nouvelle génération.">
+                >
+                ["id0.24"] = <
+                    text = <"Cytogénétique">
+                    description = <"Analyse chromosomique et résultats de caryotypage (particulièrement pour les malignités hématologiques).">
+                >
+                ["id0.25"] = <
+                    text = <"Évaluation des marges">
+                    description = <"Évaluation des marges chirurgicales pour la présence ou l'absence de tumeur, distance à la marge la plus proche.">
+                >
+                ["id0.26"] = <
+                    text = <"Évaluation des ganglions lymphatiques">
+                    description = <"Nombre de ganglions lymphatiques examinés, nombre positif pour maladie métastatique, extension extranodale.">
+                >
+                ["id0.27"] = <
+                    text = <"Invasion lymphovasculaire">
+                    description = <"Présence ou absence de tumeur dans les canaux lymphatiques ou vasculaires.">
+                >
+                ["id0.28"] = <
+                    text = <"Invasion périneurale">
+                    description = <"Présence ou absence d'invasion tumorale des gaines nerveuses.">
+                >
+                ["id0.29"] = <
+                    text = <"Stadification TNM">
+                    description = <"Stadification TNM pathologique (pTNM) selon la classification AJCC/UICC.">
+                >
+                ["id0.30"] = <
+                    text = <"Rapport synoptique (protocole CAP)">
+                    description = <"Rapport synoptique standardisé selon les protocoles du Collège des pathologistes américains (CAP).">
+                >
+                ["id0.31"] = <
+                    text = <"Diagnostic final">
+                    description = <"Diagnostic pathologique définitif avec toutes les informations diagnostiques pertinentes.">
+                >
+                ["id0.32"] = <
+                    text = <"Commentaires supplémentaires">
+                    description = <"Commentaires supplémentaires du pathologiste, corrélation avec les résultats cliniques/radiologiques, comparaison avec la pathologie antérieure.">
+                >
+                ["id0.33"] = <
+                    text = <"Recommandations">
+                    description = <"Recommandations pour tests supplémentaires, échantillonnage tissulaire additionnel, corrélation clinique ou suivi.">
+                >
+                ["id0.34"] = <
+                    text = <"Consultation / Deuxième avis">
+                    description = <"Documentation de consultation avec d'autres pathologistes ou experts en sous-spécialité.">
+                >
+            >
+        >
+    >

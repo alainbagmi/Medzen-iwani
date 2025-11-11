@@ -1,0 +1,6 @@
+{
+  "query": "query GetSpecialtyWithProviders($specialtyCode: String!) { specialtiesCollection(filter: {specialty_code: {eq: $specialtyCode}}) { edges { node { id specialty_code specialty_name description is_active } } } }",
+  "variables": {
+    "specialtyCode": "CARDIOLOGY"
+  }
+}

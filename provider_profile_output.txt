@@ -1,0 +1,205 @@
+============================================================
+COMPREHENSIVE MEDICAL PROVIDER PROFILE
+============================================================
+
+Provider ID: ae6a139c-51fd-4d7c-877d-4bf19834a07d
+Provider Profile ID: 56381b30-d867-4619-ab9e-8c5c59473d5c
+
+--- 1. USER INFORMATION ---
+{
+  "id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+  "firebase_uid": "firebase_dummy_123",
+  "email": "dr.dummy@example.com",
+  "full_name": "Dummy  Doctor",
+  "first_name": "Dummy",
+  "last_name": "Doctor",
+  "phone_number": "+237600000000",
+  "date_of_birth": "1980-01-01",
+  "gender": "male",
+  "country": "CM",
+  "preferred_language": "English",
+  "timezone": "UTC",
+  "account_status": "active",
+  "avatar_url": "https://example.com/avatar.png",
+  "unique_patient_id": "UPI-DUMMY-0001",
+  "is_active": true,
+  "is_verified": true,
+  "email_verified": true,
+  "phone_verified": false,
+  "created_at": "2025-11-05T12:33:58.330766+00:00",
+  "updated_at": "2025-11-05T12:44:40.119147+00:00"
+}
+
+--- 2. USER PROFILE (Role-based data) ---
+{
+  "id": "6c4ddc7f-ba11-44f8-96c6-1098191d4bc3",
+  "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+  "role": "doctor",
+  "display_name": "Dr Dummy Doctor",
+  "bio": "Dummy bio",
+  "profile_completion_percentage": 0,
+  "verification_status": "pending",
+  "verified_at": null,
+  "verified_by": null,
+  "address": "123 Dummy St",
+  "city": "Douala",
+  "state": "Littoral",
+  "country": "CM",
+  "postal_code": "00000",
+  "region_code": "LT",
+  "emergency_contact_name": "John Doe",
+  "emergency_contact_phone": "+237611111111",
+  "emergency_contact_relationship": "friend",
+  "insurance_provider": "Dummy Insurance",
+  "insurance_policy_number": "POL-DUMMY-0001",
+  "blood_type": "O+",
+  "height_cm": 175.00,
+  "weight_kg": 75.00,
+  "created_at": "2025-11-05T12:35:06.185522+00:00",
+  "updated_at": "2025-11-05T12:46:14.490282+00:00"
+}
+
+--- 3. MEDICAL PROVIDER PROFILE (Professional details) ---
+{
+  "id": "56381b30-d867-4619-ab9e-8c5c59473d5c",
+  "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+  "provider_number": "PR-DR-ae6a139c",
+  "unique_identifier": "PROV-UID-DUMMY-0001",
+  "professional_role": "doctor",
+  "medical_license_number": "MD-45",
+  "professional_registration_number": "REG-DUMMY-0001",
+  "license_issuing_authority": "Cameroon Medical Council",
+  "license_expiry_date": "2025-11-05",
+  "primary_specialization": "general_medicine",
+  "primary_specialty_id": null,
+  "secondary_specializations": [],
+  "sub_specialties": [],
+  "areas_of_expertise": [],
+  "is_specialist": false,
+  "medical_school": "Dummy Medical School",
+  "graduation_year": 2005,
+  "qualifications": [
+    "MD"
+  ],
+  "years_of_experience": 5,
+  "practice_type": "clinic",
+  "consultation_fee": 20000,
+  "consultation_fee_range": "[15000,25000]",
+  "consultation_duration_minutes": 30,
+  "languages_spoken": [
+    "en",
+    "fr"
+  ],
+  "telemedicine_setup_complete": false,
+  "video_consultation_enabled": false,
+  "total_consultations": 0,
+  "patient_satisfaction_avg": 4.00,
+  "application_status": "approved",
+  "approved_at": "2025-11-05T12:49:00.7334+00:00",
+  "created_at": "2025-11-05T12:38:39.591572+00:00",
+  "updated_at": "2025-11-05T20:26:33.249006+00:00"
+}
+
+--- 4. PROVIDER SPECIALTIES (Many-to-many relationship) ---
+[]
+
+--- 5. AVAILABLE SPECIALTIES (Sample - first 10) ---
+[
+  {
+    "id": "8bcff747-06c2-45e2-8ad3-fd8e62452037",
+    "specialty_code": "FAM_MED",
+    "specialty_name": "Médecine Familiale / Family Medicine",
+    "description": "Soins de santé complets pour tous les âges / Comprehensive healthcare for all ages"
+  },
+  {
+    "id": "ea005c70-8ae8-4511-99e1-f74e24d6a9bc",
+    "specialty_code": "GEN_PRAC",
+    "specialty_name": "Médecine Générale / General Practice",
+    "description": "Soins primaires et prévention / Primary care and prevention"
+  },
+  {
+    "id": "29eb0555-27af-48ee-85b6-576250aef06c",
+    "specialty_code": "INT_MED",
+    "specialty_name": "Médecine Interne / Internal Medicine",
+    "description": "Diagnostic et traitement des maladies adultes / Diagnosis and treatment of adult diseases"
+  },
+  {
+    "id": "2e0ed6b6-e0be-40c0-b983-49ae2542b5fb",
+    "specialty_code": "PEDIATRICS",
+    "specialty_name": "Pédiatrie / Pediatrics",
+    "description": "Soins médicaux pour enfants / Medical care for children"
+  },
+  {
+    "id": "5a1bbf3f-d5da-415d-b03c-34820c09d2d4",
+    "specialty_code": "GEN_SURG",
+    "specialty_name": "Chirurgie Générale / General Surgery",
+    "description": "Chirurgie abdominale et trauma / Abdominal and trauma surgery"
+  },
+  {
+    "id": "d3395e33-9f7f-4e8a-895b-19b56080bdc5",
+    "specialty_code": "ORTHO_SURG",
+    "specialty_name": "Chirurgie Orthopédique / Orthopedic Surgery",
+    "description": "Chirurgie des os et articulations / Bone and joint surgery"
+  },
+  {
+    "id": "aa80615d-2d52-41d4-b8eb-addd5c761fcd",
+    "specialty_code": "OBGYN",
+    "specialty_name": "Obstétrique et Gynécologie / Obstetrics & Gynecology",
+    "description": "Santé reproductive et accouchement / Reproductive health and childbirth"
+  },
+  {
+    "id": "18cd23e4-4a6a-4ece-ac5b-9cd15f37a2e5",
+    "specialty_code": "NEUROSURG",
+    "specialty_name": "Neurochirurgie / Neurosurgery",
+    "description": "Chirurgie du cerveau et colonne vertébrale / Brain and spine surgery"
+  },
+  {
+    "id": "3ae02b8f-e690-418b-ab2e-0d942ceaf2cd",
+    "specialty_code": "ENT",
+    "specialty_name": "ORL (Oto-Rhino-Laryngologie) / ENT",
+    "description": "Oreille, nez et gorge / Ear, nose and throat"
+  },
+  {
+    "id": "97247525-f7dd-42a4-8e8a-6430c7c71788",
+    "specialty_code": "OPHTHALMOLOGY",
+    "specialty_name": "Ophtalmologie / Ophthalmology",
+    "description": "Maladies des yeux / Eye diseases and surgery"
+  }
+]
+
+--- 6. PROFESSIONAL ROLE VALUE ---
+Current professional_role in database: 'doctor'
+
+Expected professional_role values (from user requirement):
+  - Dentist
+  - Doctor of Osteopathic Medicine
+  - Emergency Medical Technician
+  - Licensed Clinical Social Worker
+  - Medical Doctor
+  - Medical Technologist
+  - Nurse Practitioner
+  - Occupational Therapist
+  - Optometrist
+  - Pharmacist
+  - Physical Therapist
+  - Physician Assistant
+  - Psychologist
+  - Registered Nurse
+  - Respiratory Therapist
+
+⚠️  NOTE: Current value 'doctor' does not match the expected list.
+    The professional_role field should be updated to use one of the
+    standardized provider type values listed above.
+
+============================================================
+SUMMARY
+============================================================
+
+✅ User data: Retrieved successfully
+✅ User profile: Retrieved successfully
+✅ Medical provider profile: Retrieved successfully
+⏹️  Provider specialties: Empty (no secondary specialties assigned)
+✅ Specialties table: Has data (100+ specialties available)
+⚠️  Professional role mismatch: Needs to be updated to standardized value
+
+============================================================

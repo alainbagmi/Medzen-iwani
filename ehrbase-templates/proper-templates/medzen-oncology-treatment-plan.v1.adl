@@ -1,0 +1,447 @@
+-- MedZen Oncology Treatment Plan Template
+-- Cancer diagnosis, staging, and treatment planning
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_oncology_treatment_plan.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.care_plan.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record comprehensive oncology care planning including cancer diagnosis, staging, treatment modalities (surgery, chemotherapy, radiation), and multidisciplinary team recommendations.">
+            use = <"Used by oncologists and multidisciplinary tumor boards to document cancer diagnosis, staging, treatment planning, and follow-up care. Supports treatment protocols for various cancer types and facilitates coordinated cancer care across specialties.">
+            keywords = <"oncology", "cancer", "tumor", "chemotherapy", "radiation", "staging", "treatment plan", "MDT">
+            misuse = <"Not for recording individual chemotherapy administration sessions (use medication administration template). Not for radiation therapy delivery records (use procedure template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer la planification complète des soins oncologiques incluant le diagnostic de cancer, la stadification, les modalités de traitement et les recommandations de l'équipe multidisciplinaire.">
+            use = <"Utilisé par les oncologues et les comités de tumeurs multidisciplinaires pour documenter le diagnostic de cancer, la stadification, la planification du traitement et les soins de suivi.">
+            keywords = <"oncologie", "cancer", "tumeur", "chimiothérapie", "radiothérapie", "stadification", "plan de traitement">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Oncology Treatment Plan
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- persistent
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Care Plan ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Oncology Treatment Plan"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Cancer Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Breast cancer
+                                            at0.2,    -- Lung cancer
+                                            at0.3,    -- Colorectal cancer
+                                            at0.4,    -- Prostate cancer
+                                            at0.5,    -- Cervical cancer
+                                            at0.6,    -- Liver cancer
+                                            at0.7,    -- Gastric cancer
+                                            at0.8,    -- Esophageal cancer
+                                            at0.9,    -- Lymphoma
+                                            at0.10,   -- Leukemia
+                                            at0.11]   -- Other
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Treatment Intent
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.12,   -- Curative
+                                            at0.13,   -- Palliative
+                                            at0.14]   -- Adjuvant/Neoadjuvant
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Cancer Diagnosis Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1}
+
+            -- Primary cancer diagnosis using official archetype
+            use_archetype EVALUATION[id0.110, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1}
+
+            -- Histopathology Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pathology
+
+            -- Histopathology/cytology results
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Tumor markers (if applicable)
+            use_archetype OBSERVATION[id0.220, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Cancer Staging Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Staging
+
+            -- TNM staging or other staging system
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.tnm_stage.v1] occurrences matches {0..1}
+
+            -- Imaging Studies Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Imaging
+
+            -- CT/MRI/PET scan results
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Performance Status Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Performance Status
+
+            -- ECOG or Karnofsky performance status
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.ecog_performance_status.v0] occurrences matches {0..1}
+
+            -- Comorbidities Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}
+
+            -- Concurrent medical conditions affecting treatment
+            use_archetype EVALUATION[id0.610, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Multidisciplinary Team Discussion Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- MDT Discussion
+
+            -- MDT meeting recommendations
+            use_archetype EVALUATION[id0.710, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Treatment Plan Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Treatment Plan
+
+            -- Overall treatment strategy and goals
+            use_archetype INSTRUCTION[id0.810, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {1}
+
+            -- Surgical Treatment Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Surgery
+
+            -- Surgical procedure request
+            use_archetype INSTRUCTION[id0.910, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Chemotherapy Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Chemotherapy
+
+            -- Chemotherapy regimen details
+            use_archetype INSTRUCTION[id1.010, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Chemotherapy protocol information
+            use_archetype EVALUATION[id1.020, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Radiation Therapy Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Radiation Therapy
+
+            -- Radiation therapy request
+            use_archetype INSTRUCTION[id1.110, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Radiation plan details
+            use_archetype EVALUATION[id1.120, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Immunotherapy/Targeted Therapy Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Immunotherapy
+
+            -- Immunotherapy or targeted therapy medications
+            use_archetype INSTRUCTION[id1.210, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Supportive Care Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Supportive Care
+
+            -- Supportive medications (pain management, antiemetics, etc.)
+            use_archetype INSTRUCTION[id1.310, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Palliative care referral (if applicable)
+            use_archetype INSTRUCTION[id1.320, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up Plan Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Follow-up
+
+            -- Monitoring and surveillance plan
+            use_archetype INSTRUCTION[id1.410, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up schedule
+            use_archetype EVALUATION[id1.420, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Patient Education Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Patient Education
+
+            -- Treatment counseling and informed consent discussion
+            use_archetype EVALUATION[id1.510, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Oncology Treatment Plan">
+                description = <"A comprehensive plan for cancer diagnosis, staging, and treatment.">
+            >
+            ["id0.1"] = <
+                text = <"Care Plan ID">
+                description = <"Unique identifier for this oncology treatment plan.">
+            >
+            ["id0.3"] = <
+                text = <"Cancer Type">
+                description = <"Primary type of cancer being treated.">
+            >
+            ["id0.5"] = <
+                text = <"Treatment Intent">
+                description = <"Overall goal of cancer treatment.">
+            >
+            ["id0.100"] = <
+                text = <"Cancer Diagnosis">
+                description = <"Primary cancer diagnosis information.">
+            >
+            ["id0.110"] = <
+                text = <"Primary Cancer Diagnosis">
+                description = <"Cancer diagnosis using official problem_diagnosis.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Pathology">
+                description = <"Histopathology and tumor marker results.">
+            >
+            ["id0.210"] = <
+                text = <"Histopathology Results">
+                description = <"Histopathology/cytology using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.220"] = <
+                text = <"Tumor Markers">
+                description = <"Tumor marker results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Staging">
+                description = <"Cancer staging information.">
+            >
+            ["id0.310"] = <
+                text = <"TNM Stage">
+                description = <"TNM staging using tnm_stage.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Imaging">
+                description = <"Imaging studies for staging and treatment planning.">
+            >
+            ["id0.410"] = <
+                text = <"Imaging Results">
+                description = <"CT/MRI/PET scan results using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Performance Status">
+                description = <"Patient functional status assessment.">
+            >
+            ["id0.510"] = <
+                text = <"ECOG Performance Status">
+                description = <"Performance status using ecog_performance_status.v0 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Comorbidities">
+                description = <"Concurrent medical conditions.">
+            >
+            ["id0.610"] = <
+                text = <"Comorbid Condition">
+                description = <"Concurrent condition using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"MDT Discussion">
+                description = <"Multidisciplinary team meeting recommendations.">
+            >
+            ["id0.710"] = <
+                text = <"MDT Recommendations">
+                description = <"Team recommendations using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Treatment Plan">
+                description = <"Overall treatment strategy.">
+            >
+            ["id0.810"] = <
+                text = <"Treatment Strategy">
+                description = <"Overall care plan using care_plan.v0 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Surgery">
+                description = <"Surgical treatment component.">
+            >
+            ["id0.910"] = <
+                text = <"Surgical Request">
+                description = <"Surgery request using service_request.v1 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Chemotherapy">
+                description = <"Chemotherapy treatment plan.">
+            >
+            ["id1.010"] = <
+                text = <"Chemotherapy Regimen">
+                description = <"Chemotherapy orders using medication_order.v3 archetype.">
+            >
+            ["id1.020"] = <
+                text = <"Chemotherapy Protocol">
+                description = <"Protocol details using clinical_synopsis.v1 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Radiation Therapy">
+                description = <"Radiation treatment plan.">
+            >
+            ["id1.110"] = <
+                text = <"Radiation Request">
+                description = <"Radiation therapy request using service_request.v1 archetype.">
+            >
+            ["id1.120"] = <
+                text = <"Radiation Plan">
+                description = <"Radiation details using clinical_synopsis.v1 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Immunotherapy">
+                description = <"Immunotherapy and targeted therapy plan.">
+            >
+            ["id1.210"] = <
+                text = <"Immunotherapy Medication">
+                description = <"Immunotherapy orders using medication_order.v3 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Supportive Care">
+                description = <"Supportive and palliative care measures.">
+            >
+            ["id1.310"] = <
+                text = <"Supportive Medication">
+                description = <"Supportive medications using medication_order.v3 archetype.">
+            >
+            ["id1.320"] = <
+                text = <"Palliative Care Referral">
+                description = <"Palliative care request using service_request.v1 archetype.">
+            >
+            ["id1.400"] = <
+                text = <"Follow-up">
+                description = <"Follow-up and surveillance plan.">
+            >
+            ["id1.410"] = <
+                text = <"Monitoring Request">
+                description = <"Surveillance tests using service_request.v1 archetype.">
+            >
+            ["id1.420"] = <
+                text = <"Follow-up Schedule">
+                description = <"Follow-up recommendations using recommendation.v2 archetype.">
+            >
+            ["id1.500"] = <
+                text = <"Patient Education">
+                description = <"Treatment counseling and education.">
+            >
+            ["id1.510"] = <
+                text = <"Treatment Counseling">
+                description = <"Patient education using recommendation.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"persistent">
+                description = <"Persistent category for care plan.">
+            >
+            ["at0.1"] = <
+                text = <"Breast cancer">
+                description = <"Cancer of the breast tissue.">
+            >
+            ["at0.2"] = <
+                text = <"Lung cancer">
+                description = <"Cancer of the lung.">
+            >
+            ["at0.3"] = <
+                text = <"Colorectal cancer">
+                description = <"Cancer of the colon or rectum.">
+            >
+            ["at0.4"] = <
+                text = <"Prostate cancer">
+                description = <"Cancer of the prostate gland.">
+            >
+            ["at0.5"] = <
+                text = <"Cervical cancer">
+                description = <"Cancer of the cervix.">
+            >
+            ["at0.6"] = <
+                text = <"Liver cancer">
+                description = <"Cancer of the liver.">
+            >
+            ["at0.7"] = <
+                text = <"Gastric cancer">
+                description = <"Cancer of the stomach.">
+            >
+            ["at0.8"] = <
+                text = <"Esophageal cancer">
+                description = <"Cancer of the esophagus.">
+            >
+            ["at0.9"] = <
+                text = <"Lymphoma">
+                description = <"Cancer of the lymphatic system.">
+            >
+            ["at0.10"] = <
+                text = <"Leukemia">
+                description = <"Cancer of blood-forming tissues.">
+            >
+            ["at0.11"] = <
+                text = <"Other">
+                description = <"Other type of cancer.">
+            >
+            ["at0.12"] = <
+                text = <"Curative">
+                description = <"Treatment aimed at cure.">
+            >
+            ["at0.13"] = <
+                text = <"Palliative">
+                description = <"Treatment aimed at symptom control and quality of life.">
+            >
+            ["at0.14"] = <
+                text = <"Adjuvant/Neoadjuvant">
+                description = <"Treatment before or after primary therapy to improve outcomes.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Plan de Traitement Oncologique">
+                description = <"Un plan complet pour le diagnostic, la stadification et le traitement du cancer.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant du Plan">
+                description = <"Identifiant unique pour ce plan de traitement oncologique.">
+            >
+            ["id0.110"] = <
+                text = <"Diagnostic de Cancer Principal">
+                description = <"Diagnostic de cancer utilisant l'archétype officiel problem_diagnosis.v1.">
+            >
+        >
+    >

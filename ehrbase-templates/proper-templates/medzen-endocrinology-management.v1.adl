@@ -1,0 +1,718 @@
+-- MedZen Endocrinology Management Template
+-- Diabetes, thyroid disorders, metabolic syndrome
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_endocrinology_management.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record endocrinology clinical encounters including diabetes management (Type 1, Type 2, gestational), thyroid disorder assessment and treatment, metabolic syndrome evaluation, obesity management, osteoporosis screening, and other hormonal and metabolic conditions. Supports comprehensive diabetes care including glycemic control monitoring, complication screening, insulin regimen management, and patient education.">
+            use = <"Used by endocrinologists and primary care providers to document diabetes care (HbA1c monitoring, insulin adjustment, hypoglycemia management, diabetic complications screening), thyroid disorders (hypothyroidism, hyperthyroidism, thyroid nodules, goiter), metabolic syndrome components (obesity, dyslipidemia, hypertension, insulin resistance), osteoporosis evaluation (DEXA scan results, fracture risk), adrenal disorders (Addison's disease, Cushing's syndrome), pituitary disorders, hypogonadism, PCOS, and growth hormone deficiency. Includes laboratory test tracking, medication management, and multidisciplinary care coordination.">
+            keywords = <"endocrinology", "diabetes", "HbA1c", "thyroid", "TSH", "metabolic syndrome", "insulin", "hypoglycemia", "thyroid", "osteoporosis", "obesity", "PCOS", "adrenal", "pituitary">
+            misuse = <"Not for gestational diabetes during antenatal care (use antenatal template). Not for acute diabetic emergencies like DKA or HHS requiring ICU care (use emergency or ICU template). Not for surgical procedures related to endocrine organs (use surgical template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer les rencontres cliniques d'endocrinologie incluant la gestion du diabète, les troubles thyroïdiens, le syndrome métabolique et l'obésité.">
+            use = <"Utilisé par les endocrinologues pour documenter les soins du diabète, les troubles thyroïdiens, le syndrome métabolique et d'autres conditions hormonales.">
+            keywords = <"endocrinologie", "diabète", "HbA1c", "thyroïde", "syndrome métabolique", "insuline", "obésité">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Endocrinology Management
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {{"MedZen Endocrine"}}
+                                        type matches {{"Endocrine Encounter"}}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,     -- Diabetes management
+                                            at0.2,     -- Thyroid disorder evaluation
+                                            at0.3,     -- Metabolic syndrome assessment
+                                            at0.4,     -- Obesity management
+                                            at0.5,     -- Osteoporosis screening
+                                            at0.6,     -- Adrenal disorder evaluation
+                                            at0.7,     -- Pituitary disorder management
+                                            at0.8,     -- Hypogonadism evaluation
+                                            at0.9,     -- PCOS management
+                                            at0.10]    -- General endocrine consultation
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Diabetes Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.11,    -- Type 1 diabetes
+                                            at0.12,    -- Type 2 diabetes
+                                            at0.13,    -- Gestational diabetes
+                                            at0.14,    -- Pre-diabetes (impaired glucose tolerance)
+                                            at0.15,    -- MODY (Maturity-Onset Diabetes of the Young)
+                                            at0.16,    -- Secondary diabetes (drug-induced, pancreatitis)
+                                            at0.17]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Diabetes Duration (years)
+                                value matches {
+                                    DV_QUANTITY[id0.8] matches {
+                                        units matches {{"a"}}
+                                        magnitude matches {|>=0.0|}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Thyroid Disorder Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.18,    -- Hypothyroidism (primary)
+                                            at0.19,    -- Hypothyroidism (secondary/central)
+                                            at0.20,    -- Hyperthyroidism (Graves' disease)
+                                            at0.21,    -- Hyperthyroidism (toxic nodular goiter)
+                                            at0.22,    -- Thyroiditis (Hashimoto's)
+                                            at0.23,    -- Thyroid nodules
+                                            at0.24,    -- Goiter
+                                            at0.25,    -- Post-thyroidectomy
+                                            at0.26]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Chief Complaint Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Chief Complaint
+
+            -- Presenting symptoms
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1}
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}    -- Vital Signs
+
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.211, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.212, openEHR-EHR-OBSERVATION.body_weight.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.213, openEHR-EHR-OBSERVATION.height.v0] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.214, openEHR-EHR-OBSERVATION.body_mass_index.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.215, openEHR-EHR-OBSERVATION.waist_circumference.v1] occurrences matches {0..1}
+
+            -- Problem/Diagnosis List Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1}    -- Problems/Diagnoses
+
+            -- Endocrine diagnoses
+            use_archetype EVALUATION[id0.310, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Diabetes Management Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Diabetes Management
+
+            -- Glycemic Control Assessment
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Blood glucose monitoring (SMBG results)
+            use_archetype OBSERVATION[id0.420, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Hypoglycemia assessment
+            use_archetype OBSERVATION[id0.430, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Insulin Regimen Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Insulin Therapy
+
+            -- Insulin medications
+            use_archetype INSTRUCTION[id0.510, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Insulin pump settings
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Oral Hypoglycemic Agents Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Oral Diabetes Medications
+
+            -- Oral diabetes medications (metformin, sulfonylureas, DPP-4i, GLP-1 agonists, SGLT2 inhibitors)
+            use_archetype INSTRUCTION[id0.610, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Diabetic Complications Screening Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Diabetic Complications
+
+            -- Diabetic retinopathy screening
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Diabetic nephropathy assessment (microalbuminuria, eGFR)
+            use_archetype OBSERVATION[id0.720, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Diabetic neuropathy examination
+            use_archetype OBSERVATION[id0.730, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Diabetic foot assessment
+            use_archetype OBSERVATION[id0.740, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Cardiovascular risk assessment
+            use_archetype EVALUATION[id0.750, openEHR-EHR-EVALUATION.health_risk.v1] occurrences matches {0..1}
+
+            -- Thyroid Function Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Thyroid Assessment
+
+            -- Thyroid function tests (TSH, Free T4, Free T3, thyroid antibodies)
+            use_archetype OBSERVATION[id0.810, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Thyroid physical examination (palpation, nodules, goiter)
+            use_archetype OBSERVATION[id0.820, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Thyroid imaging (ultrasound, scan)
+            use_archetype OBSERVATION[id0.830, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Thyroid Medications Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Thyroid Medications
+
+            -- Thyroid hormone replacement (levothyroxine) or antithyroid drugs
+            use_archetype INSTRUCTION[id0.910, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Metabolic Syndrome Assessment Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Metabolic Syndrome
+
+            -- Metabolic syndrome criteria assessment
+            use_archetype OBSERVATION[id1.010, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Lipid profile
+            use_archetype OBSERVATION[id1.020, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Insulin resistance assessment (HOMA-IR, fasting insulin)
+            use_archetype OBSERVATION[id1.030, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Obesity Management Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Obesity Management
+
+            -- Weight management plan
+            use_archetype INSTRUCTION[id1.110, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Dietary counseling
+            use_archetype EVALUATION[id1.120, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Osteoporosis Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Bone Health
+
+            -- DEXA scan results
+            use_archetype OBSERVATION[id1.210, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Fracture risk assessment (FRAX score)
+            use_archetype EVALUATION[id1.220, openEHR-EHR-EVALUATION.health_risk.v1] occurrences matches {0..1}
+
+            -- Calcium, Vitamin D, PTH levels
+            use_archetype OBSERVATION[id1.230, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Bone health medications (bisphosphonates, calcium, vitamin D)
+            use_archetype INSTRUCTION[id1.240, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Adrenal Function Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Adrenal Assessment
+
+            -- Adrenal function tests (cortisol, ACTH, aldosterone, renin)
+            use_archetype OBSERVATION[id1.310, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Adrenal imaging (CT, MRI)
+            use_archetype OBSERVATION[id1.320, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Pituitary Function Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pituitary Assessment
+
+            -- Pituitary hormone tests (GH, IGF-1, prolactin, LH, FSH)
+            use_archetype OBSERVATION[id1.410, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Pituitary imaging (MRI)
+            use_archetype OBSERVATION[id1.420, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Reproductive Hormones Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Reproductive Endocrinology
+
+            -- Sex hormone levels (testosterone, estrogen, progesterone, LH, FSH)
+            use_archetype OBSERVATION[id1.510, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- PCOS assessment (ultrasound, hormone profile, menstrual history)
+            use_archetype OBSERVATION[id1.520, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Hypogonadism evaluation
+            use_archetype OBSERVATION[id1.530, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Patient Education Section
+            use_archetype SECTION[id1.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Patient Education
+
+            -- Diabetes education (self-monitoring, hypoglycemia recognition, sick day rules)
+            use_archetype EVALUATION[id1.610, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Recommendations Section
+            use_archetype SECTION[id1.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Recommendations
+
+            -- Follow-up recommendations
+            use_archetype EVALUATION[id1.710, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Laboratory test orders
+            use_archetype INSTRUCTION[id1.720, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Specialist referrals
+            use_archetype INSTRUCTION[id1.730, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Clinical Synopsis Section
+            use_archetype SECTION[id1.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Synopsis
+
+            -- Overall clinical summary
+            use_archetype EVALUATION[id1.810, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Endocrinology Management">
+                description = <"A clinical encounter documenting endocrinology care including diabetes, thyroid disorders, and metabolic conditions.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter ID">
+                description = <"Unique identifier for this endocrinology encounter.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"Type of endocrinology encounter.">
+            >
+            ["id0.5"] = <
+                text = <"Diabetes Type">
+                description = <"Classification of diabetes mellitus type.">
+            >
+            ["id0.7"] = <
+                text = <"Diabetes Duration">
+                description = <"Number of years since diabetes diagnosis.">
+            >
+            ["id0.9"] = <
+                text = <"Thyroid Disorder Type">
+                description = <"Classification of thyroid disorder.">
+            >
+            ["id0.100"] = <
+                text = <"Chief Complaint">
+                description = <"Primary reason for endocrinology visit.">
+            >
+            ["id0.110"] = <
+                text = <"Presenting Symptoms">
+                description = <"Current symptoms using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Vital Signs">
+                description = <"Vital signs including weight, BMI, and waist circumference.">
+            >
+            ["id0.210"] = <
+                text = <"Blood Pressure">
+                description = <"Blood pressure measurement using blood_pressure.v2 archetype.">
+            >
+            ["id0.212"] = <
+                text = <"Body Weight">
+                description = <"Body weight using body_weight.v2 archetype.">
+            >
+            ["id0.214"] = <
+                text = <"BMI">
+                description = <"Body mass index using body_mass_index.v2 archetype.">
+            >
+            ["id0.215"] = <
+                text = <"Waist Circumference">
+                description = <"Waist circumference for metabolic syndrome assessment using waist_circumference.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Problems/Diagnoses">
+                description = <"Endocrine diagnoses and medical problems.">
+            >
+            ["id0.310"] = <
+                text = <"Endocrine Diagnosis">
+                description = <"Endocrine disorders using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Diabetes Management">
+                description = <"Comprehensive diabetes care including glycemic control and complications screening.">
+            >
+            ["id0.410"] = <
+                text = <"Glycemic Control Tests">
+                description = <"HbA1c, fasting glucose, OGTT using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.420"] = <
+                text = <"Blood Glucose Monitoring">
+                description = <"Self-monitoring blood glucose (SMBG) results and patterns using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.430"] = <
+                text = <"Hypoglycemia Assessment">
+                description = <"Frequency, severity, and awareness of hypoglycemic episodes.">
+            >
+            ["id0.500"] = <
+                text = <"Insulin Therapy">
+                description = <"Insulin regimen and pump management.">
+            >
+            ["id0.510"] = <
+                text = <"Insulin Medications">
+                description = <"Basal and bolus insulin using medication_order.v3 archetype.">
+            >
+            ["id0.520"] = <
+                text = <"Insulin Pump Settings">
+                description = <"Insulin pump basal rates, bolus settings, insulin-to-carb ratios.">
+            >
+            ["id0.600"] = <
+                text = <"Oral Diabetes Medications">
+                description = <"Non-insulin diabetes medications.">
+            >
+            ["id0.610"] = <
+                text = <"Oral Hypoglycemic Agents">
+                description = <"Metformin, sulfonylureas, DPP-4 inhibitors, GLP-1 agonists, SGLT2 inhibitors using medication_order.v3 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Diabetic Complications">
+                description = <"Screening and monitoring for diabetes complications.">
+            >
+            ["id0.710"] = <
+                text = <"Retinopathy Screening">
+                description = <"Diabetic retinopathy screening results using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.720"] = <
+                text = <"Nephropathy Assessment">
+                description = <"Microalbuminuria, urine albumin-creatinine ratio, eGFR using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.730"] = <
+                text = <"Neuropathy Examination">
+                description = <"Monofilament test, vibration sense, reflexes using exam.v1 archetype.">
+            >
+            ["id0.740"] = <
+                text = <"Foot Assessment">
+                description = <"Diabetic foot examination (pulses, ulcers, deformities) using exam.v1 archetype.">
+            >
+            ["id0.750"] = <
+                text = <"Cardiovascular Risk">
+                description = <"Cardiovascular risk assessment using health_risk.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Thyroid Assessment">
+                description = <"Thyroid function evaluation and imaging.">
+            >
+            ["id0.810"] = <
+                text = <"Thyroid Function Tests">
+                description = <"TSH, Free T4, Free T3, TPO antibodies, TgAb, TSH receptor antibodies using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.820"] = <
+                text = <"Thyroid Examination">
+                description = <"Thyroid palpation, nodules, goiter assessment using exam.v1 archetype.">
+            >
+            ["id0.830"] = <
+                text = <"Thyroid Imaging">
+                description = <"Thyroid ultrasound, nuclear scan using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Thyroid Medications">
+                description = <"Thyroid hormone replacement and antithyroid medications.">
+            >
+            ["id0.910"] = <
+                text = <"Thyroid Drugs">
+                description = <"Levothyroxine, liothyronine, methimazole, propylthiouracil using medication_order.v3 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Metabolic Syndrome">
+                description = <"Assessment of metabolic syndrome components.">
+            >
+            ["id1.010"] = <
+                text = <"Metabolic Syndrome Criteria">
+                description = <"Assessment of 5 criteria: waist circumference, triglycerides, HDL, blood pressure, fasting glucose.">
+            >
+            ["id1.020"] = <
+                text = <"Lipid Profile">
+                description = <"Total cholesterol, LDL, HDL, triglycerides using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.030"] = <
+                text = <"Insulin Resistance">
+                description = <"HOMA-IR, fasting insulin using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Obesity Management">
+                description = <"Weight management and lifestyle interventions.">
+            >
+            ["id1.110"] = <
+                text = <"Weight Management Plan">
+                description = <"Structured weight loss plan using care_plan.v0 archetype.">
+            >
+            ["id1.120"] = <
+                text = <"Dietary Counseling">
+                description = <"Nutritional recommendations using recommendation.v2 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Bone Health">
+                description = <"Osteoporosis screening and management.">
+            >
+            ["id1.210"] = <
+                text = <"DEXA Scan">
+                description = <"Bone mineral density results using imaging_exam_result.v0 archetype.">
+            >
+            ["id1.220"] = <
+                text = <"Fracture Risk">
+                description = <"FRAX score or fracture risk assessment using health_risk.v1 archetype.">
+            >
+            ["id1.230"] = <
+                text = <"Bone Markers">
+                description = <"Calcium, vitamin D, PTH levels using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.240"] = <
+                text = <"Bone Medications">
+                description = <"Bisphosphonates, calcium, vitamin D using medication_order.v3 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Adrenal Assessment">
+                description = <"Adrenal function evaluation.">
+            >
+            ["id1.310"] = <
+                text = <"Adrenal Function Tests">
+                description = <"Cortisol, ACTH, aldosterone, renin using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.320"] = <
+                text = <"Adrenal Imaging">
+                description = <"Adrenal CT or MRI using imaging_exam_result.v0 archetype.">
+            >
+            ["id1.400"] = <
+                text = <"Pituitary Assessment">
+                description = <"Pituitary function evaluation.">
+            >
+            ["id1.410"] = <
+                text = <"Pituitary Hormone Tests">
+                description = <"Growth hormone, IGF-1, prolactin, LH, FSH, ACTH, TSH using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.420"] = <
+                text = <"Pituitary Imaging">
+                description = <"Pituitary MRI using imaging_exam_result.v0 archetype.">
+            >
+            ["id1.500"] = <
+                text = <"Reproductive Endocrinology">
+                description = <"Sex hormone evaluation and reproductive disorders.">
+            >
+            ["id1.510"] = <
+                text = <"Sex Hormone Levels">
+                description = <"Testosterone, estrogen, progesterone, LH, FSH, DHEA, SHBG using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.520"] = <
+                text = <"PCOS Assessment">
+                description = <"Polycystic ovary syndrome evaluation including menstrual history, hirsutism, ultrasound.">
+            >
+            ["id1.530"] = <
+                text = <"Hypogonadism Evaluation">
+                description = <"Clinical assessment of hypogonadism using exam.v1 archetype.">
+            >
+            ["id1.600"] = <
+                text = <"Patient Education">
+                description = <"Diabetes and endocrine patient education.">
+            >
+            ["id1.610"] = <
+                text = <"Education Provided">
+                description = <"Self-monitoring, hypoglycemia recognition, sick day rules, medication adherence using recommendation.v2 archetype.">
+            >
+            ["id1.700"] = <
+                text = <"Recommendations">
+                description = <"Follow-up and management recommendations.">
+            >
+            ["id1.710"] = <
+                text = <"Follow-up Recommendations">
+                description = <"Clinical follow-up recommendations using recommendation.v2 archetype.">
+            >
+            ["id1.720"] = <
+                text = <"Laboratory Orders">
+                description = <"Laboratory test orders using service_request.v1 archetype.">
+            >
+            ["id1.730"] = <
+                text = <"Specialist Referrals">
+                description = <"Referrals to ophthalmology, nephrology, podiatry, nutrition using service_request.v1 archetype.">
+            >
+            ["id1.800"] = <
+                text = <"Clinical Synopsis">
+                description = <"Summary of endocrinology encounter.">
+            >
+            ["id1.810"] = <
+                text = <"Clinical Summary">
+                description = <"Overall encounter summary using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for endocrinology encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Diabetes management">
+                description = <"Diabetes care and glycemic control management.">
+            >
+            ["at0.2"] = <
+                text = <"Thyroid disorder evaluation">
+                description = <"Thyroid function assessment and management.">
+            >
+            ["at0.3"] = <
+                text = <"Metabolic syndrome assessment">
+                description = <"Evaluation of metabolic syndrome components.">
+            >
+            ["at0.4"] = <
+                text = <"Obesity management">
+                description = <"Weight management and bariatric consultation.">
+            >
+            ["at0.5"] = <
+                text = <"Osteoporosis screening">
+                description = <"Bone health and osteoporosis evaluation.">
+            >
+            ["at0.6"] = <
+                text = <"Adrenal disorder evaluation">
+                description = <"Adrenal function assessment (Addison's, Cushing's, adrenal insufficiency).">
+            >
+            ["at0.7"] = <
+                text = <"Pituitary disorder management">
+                description = <"Pituitary hormone disorders (acromegaly, prolactinoma, hypopituitarism).">
+            >
+            ["at0.8"] = <
+                text = <"Hypogonadism evaluation">
+                description = <"Testosterone deficiency or hypogonadism assessment.">
+            >
+            ["at0.9"] = <
+                text = <"PCOS management">
+                description = <"Polycystic ovary syndrome management.">
+            >
+            ["at0.10"] = <
+                text = <"General endocrine consultation">
+                description = <"General endocrinology consultation.">
+            >
+            ["at0.11"] = <
+                text = <"Type 1 diabetes">
+                description = <"Type 1 diabetes mellitus (autoimmune, insulin-dependent).">
+            >
+            ["at0.12"] = <
+                text = <"Type 2 diabetes">
+                description = <"Type 2 diabetes mellitus (insulin resistance, progressive).">
+            >
+            ["at0.13"] = <
+                text = <"Gestational diabetes">
+                description = <"Diabetes diagnosed during pregnancy.">
+            >
+            ["at0.14"] = <
+                text = <"Pre-diabetes">
+                description = <"Impaired fasting glucose or impaired glucose tolerance.">
+            >
+            ["at0.15"] = <
+                text = <"MODY">
+                description = <"Maturity-onset diabetes of the young (monogenic diabetes).">
+            >
+            ["at0.16"] = <
+                text = <"Secondary diabetes">
+                description = <"Diabetes secondary to drugs, pancreatitis, or other causes.">
+            >
+            ["at0.17"] = <
+                text = <"Not applicable">
+                description = <"No diabetes diagnosis.">
+            >
+            ["at0.18"] = <
+                text = <"Hypothyroidism (primary)">
+                description = <"Primary hypothyroidism (thyroid gland dysfunction).">
+            >
+            ["at0.19"] = <
+                text = <"Hypothyroidism (secondary)">
+                description = <"Secondary or central hypothyroidism (pituitary or hypothalamic dysfunction).">
+            >
+            ["at0.20"] = <
+                text = <"Hyperthyroidism (Graves)">
+                description = <"Graves' disease (autoimmune hyperthyroidism).">
+            >
+            ["at0.21"] = <
+                text = <"Hyperthyroidism (toxic nodular)">
+                description = <"Toxic multinodular goiter or toxic adenoma.">
+            >
+            ["at0.22"] = <
+                text = <"Thyroiditis">
+                description = <"Hashimoto's thyroiditis or subacute thyroiditis.">
+            >
+            ["at0.23"] = <
+                text = <"Thyroid nodules">
+                description = <"Thyroid nodules requiring evaluation or surveillance.">
+            >
+            ["at0.24"] = <
+                text = <"Goiter">
+                description = <"Enlarged thyroid gland (simple or multinodular goiter).">
+            >
+            ["at0.25"] = <
+                text = <"Post-thyroidectomy">
+                description = <"Status post thyroid surgery, requiring hormone replacement.">
+            >
+            ["at0.26"] = <
+                text = <"Not applicable">
+                description = <"No thyroid disorder.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Gestion Endocrinologique">
+                description = <"Une rencontre clinique documentant les soins endocrinologiques incluant le diabète, les troubles thyroïdiens et les conditions métaboliques.">
+            >
+            ["id0.3"] = <
+                text = <"Type de Rencontre">
+                description = <"Type de rencontre endocrinologique.">
+            >
+            ["id0.5"] = <
+                text = <"Type de Diabète">
+                description = <"Classification du type de diabète sucré.">
+            >
+            ["id0.400"] = <
+                text = <"Gestion du Diabète">
+                description = <"Soins complets du diabète incluant le contrôle glycémique et le dépistage des complications.">
+            >
+            ["id0.800"] = <
+                text = <"Évaluation Thyroïdienne">
+                description = <"Évaluation de la fonction thyroïdienne et imagerie.">
+            >
+            ["id1.000"] = <
+                text = <"Syndrome Métabolique">
+                description = <"Évaluation des composantes du syndrome métabolique.">
+            >
+            ["id1.100"] = <
+                text = <"Gestion de l'Obésité">
+                description = <"Gestion du poids et interventions sur le mode de vie.">
+            >
+        >
+    >

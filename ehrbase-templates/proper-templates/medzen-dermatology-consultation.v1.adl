@@ -1,0 +1,790 @@
+archetype (adl_version=1.5.1)
+    openEHR-EHR-COMPOSITION.medzen_dermatology_consultation.v1
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Health">
+                ["organisation"] = <"MedZen">
+                ["email"] = <"info@medzenhealth.app">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-02-11">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"published">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive dermatology consultation including skin examination, lesion documentation, dermatoscopy findings, and treatment planning for various dermatological conditions.">
+            use = <"Use for documenting dermatology consultations covering:
+- Skin lesion documentation and morphology
+- Eczema, psoriasis, acne, dermatitis
+- Skin infections (bacterial, viral, fungal)
+- Skin cancer screening and diagnosis
+- Tele-dermatology with image capture
+- Dermatological procedures (biopsy, excision, cryotherapy, laser treatment)
+- Phototherapy documentation
+- Allergy and patch testing
+- Cosmetic dermatology
+- Pediatric dermatology">
+            keywords = <"dermatology", "skin", "lesion", "rash", "eczema", "psoriasis", "acne", "melanoma", "dermatoscopy", "biopsy", "cryotherapy", "laser", "phototherapy", "tele-dermatology">
+            copyright = <"© MedZen Health 2025">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Pour enregistrer une consultation dermatologique complète comprenant l'examen cutané, la documentation des lésions, les résultats de dermatoscopie et la planification du traitement pour diverses affections dermatologiques.">
+            use = <"Utiliser pour documenter les consultations dermatologiques couvrant:
+- Documentation des lésions cutanées et morphologie
+- Eczéma, psoriasis, acné, dermatite
+- Infections cutanées (bactériennes, virales, fongiques)
+- Dépistage et diagnostic du cancer de la peau
+- Télé-dermatologie avec capture d'images
+- Procédures dermatologiques (biopsie, excision, cryothérapie, traitement au laser)
+- Documentation de la photothérapie
+- Tests d'allergie et patch tests
+- Dermatologie esthétique
+- Dermatologie pédiatrique">
+            keywords = <"dermatologie", "peau", "lésion", "éruption", "eczéma", "psoriasis", "acné", "mélanome", "dermatoscopie", "biopsie", "cryothérapie", "laser", "photothérapie", "télé-dermatologie">
+            copyright = <"© MedZen Health 2025">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Dermatology Consultation
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0.1]}  -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Primary Dermatological Condition
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.19,    -- Atopic dermatitis / Eczema
+                                            at0.20,    -- Psoriasis
+                                            at0.21,    -- Acne vulgaris
+                                            at0.22,    -- Acne rosacea
+                                            at0.23,    -- Contact dermatitis
+                                            at0.24,    -- Seborrheic dermatitis
+                                            at0.25,    -- Urticaria (hives)
+                                            at0.26,    -- Fungal infection (dermatophytosis)
+                                            at0.27,    -- Bacterial skin infection
+                                            at0.28,    -- Viral skin infection
+                                            at0.29,    -- Basal cell carcinoma
+                                            at0.30,    -- Squamous cell carcinoma
+                                            at0.31,    -- Melanoma
+                                            at0.32,    -- Vitiligo
+                                            at0.33,    -- Alopecia
+                                            at0.34,    -- Hidradenitis suppurativa
+                                            at0.35,    -- Skin manifestation of systemic disease
+                                            at0.36,    -- Drug eruption
+                                            at0.37,    -- Other dermatological condition
+                                            at0.38]    -- No specific diagnosis yet
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Phototype (Fitzpatrick Scale)
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.39,    -- Type I (Very fair, always burns)
+                                            at0.40,    -- Type II (Fair, usually burns)
+                                            at0.41,    -- Type III (Medium, sometimes burns)
+                                            at0.42,    -- Type IV (Olive, rarely burns)
+                                            at0.43,    -- Type V (Brown, very rarely burns)
+                                            at0.44]    -- Type VI (Black, never burns)
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Tele-dermatology Consultation
+                                value matches {
+                                    DV_BOOLEAN[id0.10] matches {
+                                        value matches {True, False}
+                                    }
+                                }
+                            }
+                            allow_archetype CLUSTER[id0.11] occurrences matches {0..*} matches {    -- Encounter Identifiers
+                                include
+                                    archetype_id/value matches {/openEHR-EHR-CLUSTER\.identifier\.v0/}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            allow_archetype SECTION[id0.12] occurrences matches {1} matches {    -- Chief Complaint and History
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.13] occurrences matches {0..1} matches {    -- Dermatological History
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.story\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.14] occurrences matches {0..1} matches {    -- Family History of Skin Conditions
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.family_history\.v2/}
+                }
+            }
+            allow_archetype SECTION[id0.15] occurrences matches {0..1} matches {    -- Environmental and Occupational Exposure
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.occupation_summary\.v1|openEHR-EHR-EVALUATION\.exposure\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.16] occurrences matches {0..1} matches {    -- Medication History
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.medication_summary\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.17] occurrences matches {0..1} matches {    -- Allergy and Sensitivity History
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.adverse_reaction_risk\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.18] occurrences matches {1} matches {    -- Skin Examination
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.19] occurrences matches {0..1} matches {    -- Lesion Documentation
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.lesion\.v0|openEHR-EHR-CLUSTER\.anatomical_location\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.20] occurrences matches {0..1} matches {    -- Body Surface Area Assessment
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.body_surface_area\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.21] occurrences matches {0..1} matches {    -- Dermatoscopy Findings
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.22] occurrences matches {0..1} matches {    -- Clinical Photography
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-CLUSTER\.multimedia\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.23] occurrences matches {0..1} matches {    -- Wood's Lamp Examination
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.24] occurrences matches {0..1} matches {    -- Patch Testing
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.25] occurrences matches {0..1} matches {    -- Skin Biopsy Procedure
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-ACTION\.procedure\.v1|openEHR-EHR-CLUSTER\.specimen\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.26] occurrences matches {0..1} matches {    -- Laboratory Tests
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.laboratory_test_result\.v1|openEHR-EHR-INSTRUCTION\.service_request\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.27] occurrences matches {0..1} matches {    -- Mycology / KOH Preparation
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.laboratory_test_result\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.28] occurrences matches {1} matches {    -- Problem / Diagnosis List
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.problem_list\.v0/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.problem_diagnosis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.29] occurrences matches {0..1} matches {    -- Severity Scoring
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-OBSERVATION\.exam\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.30] occurrences matches {0..1} matches {    -- Medication Management
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.medication_order\.v3|openEHR-EHR-ACTION\.medication\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.31] occurrences matches {0..1} matches {    -- Dermatological Procedures
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-ACTION\.procedure\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.32] occurrences matches {0..1} matches {    -- Phototherapy Documentation
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-ACTION\.procedure\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.33] occurrences matches {0..1} matches {    -- Patient Education and Skin Care Advice
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.therapeutic_good_use\.v0/}
+                }
+            }
+            allow_archetype SECTION[id0.34] occurrences matches {1} matches {    -- Treatment Plan
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+            allow_archetype SECTION[id0.35] occurrences matches {1} matches {    -- Follow-up and Recommendations
+                include
+                    archetype_id/value matches {/openEHR-EHR-SECTION\.adhoc\.v1/}
+                allow_archetype ENTRY matches {
+                    include
+                        archetype_id/value matches {/openEHR-EHR-INSTRUCTION\.service_request\.v1|openEHR-EHR-EVALUATION\.clinical_synopsis\.v1/}
+                }
+            }
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Dermatology Consultation">
+                    description = <"A comprehensive dermatology consultation encounter for evaluation and management of skin, hair, and nail conditions.">
+                >
+                ["at0.1"] = <
+                    text = <"event">
+                    description = <"Point-in-time dermatology consultation event.">
+                >
+                ["id0.5"] = <
+                    text = <"Primary Dermatological Condition">
+                    description = <"The main dermatological condition being evaluated or managed.">
+                >
+                ["at0.19"] = <
+                    text = <"Atopic dermatitis / Eczema">
+                    description = <"Chronic inflammatory skin condition with itching and rash.">
+                >
+                ["at0.20"] = <
+                    text = <"Psoriasis">
+                    description = <"Chronic autoimmune condition causing skin cell buildup and scaling.">
+                >
+                ["at0.21"] = <
+                    text = <"Acne vulgaris">
+                    description = <"Common acne affecting face, chest, and back.">
+                >
+                ["at0.22"] = <
+                    text = <"Acne rosacea">
+                    description = <"Chronic facial redness with flushing and visible blood vessels.">
+                >
+                ["at0.23"] = <
+                    text = <"Contact dermatitis">
+                    description = <"Allergic or irritant reaction to contact substances.">
+                >
+                ["at0.24"] = <
+                    text = <"Seborrheic dermatitis">
+                    description = <"Inflammatory skin condition affecting oily areas.">
+                >
+                ["at0.25"] = <
+                    text = <"Urticaria (hives)">
+                    description = <"Raised, itchy welts on the skin.">
+                >
+                ["at0.26"] = <
+                    text = <"Fungal infection (dermatophytosis)">
+                    description = <"Fungal skin infection including tinea, ringworm.">
+                >
+                ["at0.27"] = <
+                    text = <"Bacterial skin infection">
+                    description = <"Bacterial infection of the skin including cellulitis, impetigo.">
+                >
+                ["at0.28"] = <
+                    text = <"Viral skin infection">
+                    description = <"Viral skin infection including herpes, warts, molluscum.">
+                >
+                ["at0.29"] = <
+                    text = <"Basal cell carcinoma">
+                    description = <"Most common type of skin cancer, typically on sun-exposed areas.">
+                >
+                ["at0.30"] = <
+                    text = <"Squamous cell carcinoma">
+                    description = <"Second most common skin cancer, often on sun-damaged skin.">
+                >
+                ["at0.31"] = <
+                    text = <"Melanoma">
+                    description = <"Most dangerous type of skin cancer arising from melanocytes.">
+                >
+                ["at0.32"] = <
+                    text = <"Vitiligo">
+                    description = <"Loss of skin pigment resulting in white patches.">
+                >
+                ["at0.33"] = <
+                    text = <"Alopecia">
+                    description = <"Hair loss in patches or complete baldness.">
+                >
+                ["at0.34"] = <
+                    text = <"Hidradenitis suppurativa">
+                    description = <"Chronic inflammatory skin condition with painful lumps.">
+                >
+                ["at0.35"] = <
+                    text = <"Skin manifestation of systemic disease">
+                    description = <"Skin changes related to underlying systemic condition.">
+                >
+                ["at0.36"] = <
+                    text = <"Drug eruption">
+                    description = <"Skin reaction to medication.">
+                >
+                ["at0.37"] = <
+                    text = <"Other dermatological condition">
+                    description = <"Other skin, hair, or nail condition not listed.">
+                >
+                ["at0.38"] = <
+                    text = <"No specific diagnosis yet">
+                    description = <"Evaluation in progress, diagnosis pending.">
+                >
+                ["id0.7"] = <
+                    text = <"Phototype (Fitzpatrick Scale)">
+                    description = <"Classification of skin type based on response to sun exposure.">
+                >
+                ["at0.39"] = <
+                    text = <"Type I (Very fair, always burns)">
+                    description = <"Very fair skin, freckles, red or blonde hair, always burns, never tans.">
+                >
+                ["at0.40"] = <
+                    text = <"Type II (Fair, usually burns)">
+                    description = <"Fair skin, blonde or light brown hair, usually burns, tans minimally.">
+                >
+                ["at0.41"] = <
+                    text = <"Type III (Medium, sometimes burns)">
+                    description = <"Medium skin, brown hair, sometimes burns, tans gradually.">
+                >
+                ["at0.42"] = <
+                    text = <"Type IV (Olive, rarely burns)">
+                    description = <"Olive skin, dark brown hair, rarely burns, tans easily.">
+                >
+                ["at0.43"] = <
+                    text = <"Type V (Brown, very rarely burns)">
+                    description = <"Brown skin, dark hair and eyes, very rarely burns, tans very easily.">
+                >
+                ["at0.44"] = <
+                    text = <"Type VI (Black, never burns)">
+                    description = <"Black skin, never burns, deeply pigmented.">
+                >
+                ["id0.9"] = <
+                    text = <"Tele-dermatology Consultation">
+                    description = <"Indicates whether this consultation was conducted remotely via tele-dermatology.">
+                >
+                ["id0.11"] = <
+                    text = <"Encounter Identifiers">
+                    description = <"Identifiers associated with this dermatology encounter.">
+                >
+                ["id0.12"] = <
+                    text = <"Chief Complaint and History">
+                    description = <"Patient's presenting complaint and history of present illness.">
+                >
+                ["id0.13"] = <
+                    text = <"Dermatological History">
+                    description = <"Past dermatological conditions, treatments, and outcomes.">
+                >
+                ["id0.14"] = <
+                    text = <"Family History of Skin Conditions">
+                    description = <"Family history of skin cancer, psoriasis, atopy, or other hereditary skin conditions.">
+                >
+                ["id0.15"] = <
+                    text = <"Environmental and Occupational Exposure">
+                    description = <"Sun exposure history, occupational exposures, contact with chemicals or irritants.">
+                >
+                ["id0.16"] = <
+                    text = <"Medication History">
+                    description = <"Current and past medications, including topical and systemic agents.">
+                >
+                ["id0.17"] = <
+                    text = <"Allergy and Sensitivity History">
+                    description = <"Known allergies to medications, cosmetics, fragrances, metals, or other substances.">
+                >
+                ["id0.18"] = <
+                    text = <"Skin Examination">
+                    description = <"Comprehensive examination of skin, hair, nails, and mucous membranes.">
+                >
+                ["id0.19"] = <
+                    text = <"Lesion Documentation">
+                    description = <"Detailed documentation of specific skin lesions including morphology, size, color, location, distribution.">
+                >
+                ["id0.20"] = <
+                    text = <"Body Surface Area Assessment">
+                    description = <"Calculation of body surface area affected, particularly for conditions like psoriasis or burns.">
+                >
+                ["id0.21"] = <
+                    text = <"Dermatoscopy Findings">
+                    description = <"Findings from dermatoscopic examination of skin lesions.">
+                >
+                ["id0.22"] = <
+                    text = <"Clinical Photography">
+                    description = <"Clinical photographs of skin lesions for documentation and tele-dermatology.">
+                >
+                ["id0.23"] = <
+                    text = <"Wood's Lamp Examination">
+                    description = <"Findings from examination under ultraviolet light (Wood's lamp).">
+                >
+                ["id0.24"] = <
+                    text = <"Patch Testing">
+                    description = <"Results of patch testing for contact allergens.">
+                >
+                ["id0.25"] = <
+                    text = <"Skin Biopsy Procedure">
+                    description = <"Details of skin biopsy performed (punch, shave, excisional).">
+                >
+                ["id0.26"] = <
+                    text = <"Laboratory Tests">
+                    description = <"Laboratory investigations such as complete blood count, autoimmune markers, vitamin levels.">
+                >
+                ["id0.27"] = <
+                    text = <"Mycology / KOH Preparation">
+                    description = <"Potassium hydroxide preparation for fungal elements, fungal culture.">
+                >
+                ["id0.28"] = <
+                    text = <"Problem / Diagnosis List">
+                    description = <"List of dermatological diagnoses.">
+                >
+                ["id0.29"] = <
+                    text = <"Severity Scoring">
+                    description = <"Disease severity scores such as PASI (Psoriasis Area Severity Index), SCORAD (Atopic Dermatitis), DLQI (Dermatology Life Quality Index).">
+                >
+                ["id0.30"] = <
+                    text = <"Medication Management">
+                    description = <"Topical and systemic medications for dermatological conditions.">
+                >
+                ["id0.31"] = <
+                    text = <"Dermatological Procedures">
+                    description = <"Procedures performed such as excision, cryotherapy, laser treatment, chemical peels.">
+                >
+                ["id0.32"] = <
+                    text = <"Phototherapy Documentation">
+                    description = <"Narrowband UVB, PUVA, or other phototherapy treatments.">
+                >
+                ["id0.33"] = <
+                    text = <"Patient Education and Skin Care Advice">
+                    description = <"Education about skin care routines, sun protection, trigger avoidance.">
+                >
+                ["id0.34"] = <
+                    text = <"Treatment Plan">
+                    description = <"Overall treatment plan and strategy for managing the dermatological condition.">
+                >
+                ["id0.35"] = <
+                    text = <"Follow-up and Recommendations">
+                    description = <"Follow-up schedule, referrals, and ongoing recommendations.">
+                >
+            >
+        >
+        ["fr"] = <
+            items = <
+                ["id1.1"] = <
+                    text = <"Consultation dermatologique">
+                    description = <"Une consultation dermatologique complète pour l'évaluation et la gestion des affections cutanées, capillaires et unguéales.">
+                >
+                ["at0.1"] = <
+                    text = <"événement">
+                    description = <"Événement de consultation dermatologique ponctuelle.">
+                >
+                ["id0.5"] = <
+                    text = <"Affection dermatologique principale">
+                    description = <"L'affection dermatologique principale évaluée ou gérée.">
+                >
+                ["at0.19"] = <
+                    text = <"Dermatite atopique / Eczéma">
+                    description = <"Affection cutanée inflammatoire chronique avec démangeaisons et éruption.">
+                >
+                ["at0.20"] = <
+                    text = <"Psoriasis">
+                    description = <"Affection auto-immune chronique causant l'accumulation de cellules cutanées et des squames.">
+                >
+                ["at0.21"] = <
+                    text = <"Acné vulgaire">
+                    description = <"Acné commune affectant le visage, la poitrine et le dos.">
+                >
+                ["at0.22"] = <
+                    text = <"Rosacée">
+                    description = <"Rougeur faciale chronique avec bouffées vasomotrices et vaisseaux sanguins visibles.">
+                >
+                ["at0.23"] = <
+                    text = <"Dermatite de contact">
+                    description = <"Réaction allergique ou irritante aux substances de contact.">
+                >
+                ["at0.24"] = <
+                    text = <"Dermatite séborrhéique">
+                    description = <"Affection cutanée inflammatoire affectant les zones grasses.">
+                >
+                ["at0.25"] = <
+                    text = <"Urticaire">
+                    description = <"Plaques surélevées et prurigineuses sur la peau.">
+                >
+                ["at0.26"] = <
+                    text = <"Infection fongique (dermatophytose)">
+                    description = <"Infection cutanée fongique incluant les teignes.">
+                >
+                ["at0.27"] = <
+                    text = <"Infection cutanée bactérienne">
+                    description = <"Infection bactérienne de la peau incluant la cellulite, l'impétigo.">
+                >
+                ["at0.28"] = <
+                    text = <"Infection cutanée virale">
+                    description = <"Infection virale de la peau incluant l'herpès, les verrues, le molluscum.">
+                >
+                ["at0.29"] = <
+                    text = <"Carcinome basocellulaire">
+                    description = <"Type le plus courant de cancer de la peau, généralement sur les zones exposées au soleil.">
+                >
+                ["at0.30"] = <
+                    text = <"Carcinome épidermoïde">
+                    description = <"Deuxième cancer de la peau le plus fréquent, souvent sur la peau endommagée par le soleil.">
+                >
+                ["at0.31"] = <
+                    text = <"Mélanome">
+                    description = <"Type de cancer de la peau le plus dangereux, issu des mélanocytes.">
+                >
+                ["at0.32"] = <
+                    text = <"Vitiligo">
+                    description = <"Perte de pigment cutané résultant en taches blanches.">
+                >
+                ["at0.33"] = <
+                    text = <"Alopécie">
+                    description = <"Perte de cheveux par plaques ou calvitie complète.">
+                >
+                ["at0.34"] = <
+                    text = <"Hidrosadénite suppurée">
+                    description = <"Affection cutanée inflammatoire chronique avec nodules douloureux.">
+                >
+                ["at0.35"] = <
+                    text = <"Manifestation cutanée de maladie systémique">
+                    description = <"Changements cutanés liés à une affection systémique sous-jacente.">
+                >
+                ["at0.36"] = <
+                    text = <"Éruption médicamenteuse">
+                    description = <"Réaction cutanée à un médicament.">
+                >
+                ["at0.37"] = <
+                    text = <"Autre affection dermatologique">
+                    description = <"Autre affection cutanée, capillaire ou unguéale non répertoriée.">
+                >
+                ["at0.38"] = <
+                    text = <"Aucun diagnostic spécifique pour l'instant">
+                    description = <"Évaluation en cours, diagnostic en attente.">
+                >
+                ["id0.7"] = <
+                    text = <"Phototype (Échelle de Fitzpatrick)">
+                    description = <"Classification du type de peau basée sur la réponse à l'exposition au soleil.">
+                >
+                ["at0.39"] = <
+                    text = <"Type I (Très claire, brûle toujours)">
+                    description = <"Peau très claire, taches de rousseur, cheveux roux ou blonds, brûle toujours, ne bronze jamais.">
+                >
+                ["at0.40"] = <
+                    text = <"Type II (Claire, brûle généralement)">
+                    description = <"Peau claire, cheveux blonds ou châtain clair, brûle généralement, bronze minimalement.">
+                >
+                ["at0.41"] = <
+                    text = <"Type III (Moyenne, brûle parfois)">
+                    description = <"Peau moyenne, cheveux bruns, brûle parfois, bronze graduellement.">
+                >
+                ["at0.42"] = <
+                    text = <"Type IV (Olive, brûle rarement)">
+                    description = <"Peau olive, cheveux brun foncé, brûle rarement, bronze facilement.">
+                >
+                ["at0.43"] = <
+                    text = <"Type V (Brune, brûle très rarement)">
+                    description = <"Peau brune, cheveux et yeux foncés, brûle très rarement, bronze très facilement.">
+                >
+                ["at0.44"] = <
+                    text = <"Type VI (Noire, ne brûle jamais)">
+                    description = <"Peau noire, ne brûle jamais, profondément pigmentée.">
+                >
+                ["id0.9"] = <
+                    text = <"Consultation de télé-dermatologie">
+                    description = <"Indique si cette consultation a été menée à distance via la télé-dermatologie.">
+                >
+                ["id0.11"] = <
+                    text = <"Identifiants de la rencontre">
+                    description = <"Identifiants associés à cette consultation dermatologique.">
+                >
+                ["id0.12"] = <
+                    text = <"Motif de consultation et histoire">
+                    description = <"Plainte principale du patient et histoire de la maladie actuelle.">
+                >
+                ["id0.13"] = <
+                    text = <"Histoire dermatologique">
+                    description = <"Affections dermatologiques antérieures, traitements et résultats.">
+                >
+                ["id0.14"] = <
+                    text = <"Antécédents familiaux d'affections cutanées">
+                    description = <"Antécédents familiaux de cancer de la peau, de psoriasis, d'atopie ou d'autres affections cutanées héréditaires.">
+                >
+                ["id0.15"] = <
+                    text = <"Exposition environnementale et professionnelle">
+                    description = <"Historique d'exposition au soleil, expositions professionnelles, contact avec des produits chimiques ou irritants.">
+                >
+                ["id0.16"] = <
+                    text = <"Histoire médicamenteuse">
+                    description = <"Médicaments actuels et antérieurs, incluant les agents topiques et systémiques.">
+                >
+                ["id0.17"] = <
+                    text = <"Histoire d'allergies et sensibilités">
+                    description = <"Allergies connues aux médicaments, cosmétiques, parfums, métaux ou autres substances.">
+                >
+                ["id0.18"] = <
+                    text = <"Examen cutané">
+                    description = <"Examen complet de la peau, des cheveux, des ongles et des muqueuses.">
+                >
+                ["id0.19"] = <
+                    text = <"Documentation des lésions">
+                    description = <"Documentation détaillée des lésions cutanées spécifiques incluant la morphologie, la taille, la couleur, la localisation, la distribution.">
+                >
+                ["id0.20"] = <
+                    text = <"Évaluation de la surface corporelle">
+                    description = <"Calcul de la surface corporelle affectée, particulièrement pour des affections comme le psoriasis ou les brûlures.">
+                >
+                ["id0.21"] = <
+                    text = <"Résultats de dermatoscopie">
+                    description = <"Résultats de l'examen dermatoscopique des lésions cutanées.">
+                >
+                ["id0.22"] = <
+                    text = <"Photographie clinique">
+                    description = <"Photographies cliniques des lésions cutanées pour documentation et télé-dermatologie.">
+                >
+                ["id0.23"] = <
+                    text = <"Examen à la lampe de Wood">
+                    description = <"Résultats de l'examen sous lumière ultraviolette (lampe de Wood).">
+                >
+                ["id0.24"] = <
+                    text = <"Tests épicutanés">
+                    description = <"Résultats des tests épicutanés pour les allergènes de contact.">
+                >
+                ["id0.25"] = <
+                    text = <"Procédure de biopsie cutanée">
+                    description = <"Détails de la biopsie cutanée effectuée (punch, rasage, excisionnelle).">
+                >
+                ["id0.26"] = <
+                    text = <"Examens de laboratoire">
+                    description = <"Investigations en laboratoire telles que numération globulaire complète, marqueurs auto-immuns, niveaux de vitamines.">
+                >
+                ["id0.27"] = <
+                    text = <"Mycologie / Préparation KOH">
+                    description = <"Préparation à l'hydroxyde de potassium pour les éléments fongiques, culture fongique.">
+                >
+                ["id0.28"] = <
+                    text = <"Liste des problèmes / diagnostics">
+                    description = <"Liste des diagnostics dermatologiques.">
+                >
+                ["id0.29"] = <
+                    text = <"Évaluation de la sévérité">
+                    description = <"Scores de sévérité de la maladie tels que PASI (Indice de Sévérité de la Surface du Psoriasis), SCORAD (Dermatite Atopique), DLQI (Indice de Qualité de Vie Dermatologique).">
+                >
+                ["id0.30"] = <
+                    text = <"Gestion médicamenteuse">
+                    description = <"Médicaments topiques et systémiques pour les affections dermatologiques.">
+                >
+                ["id0.31"] = <
+                    text = <"Procédures dermatologiques">
+                    description = <"Procédures effectuées telles que l'excision, la cryothérapie, le traitement au laser, les peelings chimiques.">
+                >
+                ["id0.32"] = <
+                    text = <"Documentation de la photothérapie">
+                    description = <"Traitements UVB à bande étroite, PUVA ou autres traitements de photothérapie.">
+                >
+                ["id0.33"] = <
+                    text = <"Éducation du patient et conseils de soins de la peau">
+                    description = <"Éducation sur les routines de soins de la peau, la protection solaire, l'évitement des déclencheurs.">
+                >
+                ["id0.34"] = <
+                    text = <"Plan de traitement">
+                    description = <"Plan et stratégie de traitement globaux pour la gestion de l'affection dermatologique.">
+                >
+                ["id0.35"] = <
+                    text = <"Suivi et recommandations">
+                    description = <"Calendrier de suivi, références et recommandations continues.">
+                >
+            >
+        >
+    >

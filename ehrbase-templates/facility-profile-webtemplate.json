@@ -1,0 +1,648 @@
+{
+  "templateId": "medzen.facility.profile.v1",
+  "version": "1.0.0",
+  "defaultLanguage": "en",
+  "languages": ["en", "fr"],
+  "tree": {
+    "id": "facility_profile",
+    "name": "Healthcare Facility Profile",
+    "localizedName": "Healthcare Facility Profile",
+    "rmType": "COMPOSITION",
+    "nodeId": "openEHR-EHR-COMPOSITION.report.v1",
+    "min": 1,
+    "max": 1,
+    "localizedNames": {
+      "en": "Healthcare Facility Profile",
+      "fr": "Profil de l'Établissement de Santé"
+    },
+    "localizedDescriptions": {
+      "en": "Comprehensive profile for healthcare facilities including services and infrastructure",
+      "fr": "Profil complet des établissements de santé, y compris les services et l'infrastructure"
+    },
+    "children": [
+      {
+        "id": "category",
+        "name": "category",
+        "rmType": "DV_CODED_TEXT",
+        "min": 1,
+        "max": 1,
+        "inputs": [
+          {
+            "suffix": "code",
+            "type": "CODED_TEXT",
+            "list": [
+              {
+                "value": "433",
+                "label": "event",
+                "localizedLabels": {
+                  "en": "event"
+                }
+              }
+            ],
+            "terminology": "openehr"
+          }
+        ]
+      },
+      {
+        "id": "context",
+        "rmType": "EVENT_CONTEXT",
+        "min": 1,
+        "max": 1,
+        "children": [
+          {
+            "id": "start_time",
+            "name": "start_time",
+            "rmType": "DV_DATE_TIME",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "setting",
+            "name": "setting",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "TEXT",
+                "defaultValue": "238",
+                "terminology": "openehr"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "facility_identification",
+        "name": "Facility Identification",
+        "localizedName": "Facility Identification",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.facility_info.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Facility Identification",
+          "fr": "Identification de l'Établissement"
+        },
+        "children": [
+          {
+            "id": "facility_id",
+            "name": "Facility ID",
+            "rmType": "DV_IDENTIFIER",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "facility_name",
+            "name": "Facility Name",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "facility_type",
+            "name": "Facility Type",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "hospital", "label": "Hospital"},
+                  {"value": "clinic", "label": "Clinic"},
+                  {"value": "pharmacy", "label": "Pharmacy"},
+                  {"value": "laboratory", "label": "Laboratory"},
+                  {"value": "diagnostic_center", "label": "Diagnostic Center"},
+                  {"value": "urgent_care", "label": "Urgent Care"},
+                  {"value": "community_health", "label": "Community Health Center"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "parent_organization",
+            "name": "Parent Organization",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "cnps_affiliation",
+            "name": "CNPS Affiliation",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "government_accreditation",
+            "name": "Government Accreditation",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "operating_license_number",
+            "name": "Operating License Number",
+            "rmType": "DV_IDENTIFIER",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "facility_location",
+        "name": "Facility Location",
+        "localizedName": "Facility Location",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.location.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Facility Location",
+          "fr": "Emplacement de l'Établissement"
+        },
+        "children": [
+          {
+            "id": "street_address",
+            "name": "Street Address",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "city",
+            "name": "City",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "region",
+            "name": "Region/State",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "country",
+            "name": "Country",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "postal_code",
+            "name": "Postal Code",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "gps_coordinates",
+            "name": "GPS Coordinates",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "landmark",
+            "name": "Landmark",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "contact_information",
+        "name": "Contact Information",
+        "localizedName": "Contact Information",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.contact.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Contact Information",
+          "fr": "Coordonnées"
+        },
+        "children": [
+          {
+            "id": "primary_phone",
+            "name": "Primary Phone",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "emergency_phone",
+            "name": "Emergency Phone",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "email",
+            "name": "Email",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "website",
+            "name": "Website",
+            "rmType": "DV_URI",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "operating_hours",
+        "name": "Operating Hours",
+        "localizedName": "Operating Hours",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.operating_hours.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Operating Hours",
+          "fr": "Heures d'Ouverture"
+        },
+        "children": [
+          {
+            "id": "operates_24_7",
+            "name": "24/7 Operation",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "emergency_services_available",
+            "name": "Emergency Services Available",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "regular_hours",
+            "name": "Regular Hours",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "medical_services",
+        "name": "Medical Services",
+        "localizedName": "Medical Services",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.services.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Medical Services",
+          "fr": "Services Médicaux"
+        },
+        "children": [
+          {
+            "id": "services_offered",
+            "name": "Services Offered",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT",
+                "list": [
+                  {"value": "emergency", "label": "Emergency"},
+                  {"value": "pediatrics", "label": "Pediatrics"},
+                  {"value": "surgery", "label": "Surgery"},
+                  {"value": "icu", "label": "ICU"},
+                  {"value": "maternity", "label": "Maternity"},
+                  {"value": "pharmacy", "label": "Pharmacy"},
+                  {"value": "laboratory", "label": "Laboratory"},
+                  {"value": "radiology", "label": "Radiology"},
+                  {"value": "physical_therapy", "label": "Physical Therapy"},
+                  {"value": "mental_health", "label": "Mental Health"},
+                  {"value": "dental", "label": "Dental"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "specialties_available",
+            "name": "Specialties Available",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "infrastructure_capacity",
+        "name": "Infrastructure Capacity",
+        "localizedName": "Infrastructure Capacity",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.infrastructure.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Infrastructure Capacity",
+          "fr": "Capacité d'Infrastructure"
+        },
+        "children": [
+          {
+            "id": "total_beds",
+            "name": "Total Beds",
+            "rmType": "DV_COUNT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "INTEGER",
+                "validation": {
+                  "range": {
+                    "min": 0,
+                    "max": 10000
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "icu_beds",
+            "name": "ICU Beds",
+            "rmType": "DV_COUNT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "INTEGER",
+                "validation": {
+                  "range": {
+                    "min": 0,
+                    "max": 1000
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "operating_rooms",
+            "name": "Operating Rooms",
+            "rmType": "DV_COUNT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "INTEGER",
+                "validation": {
+                  "range": {
+                    "min": 0,
+                    "max": 100
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "ventilators",
+            "name": "Ventilators",
+            "rmType": "DV_COUNT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "INTEGER",
+                "validation": {
+                  "range": {
+                    "min": 0,
+                    "max": 500
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "blood_bank_available",
+            "name": "Blood Bank Available",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "ambulance_services",
+            "name": "Ambulance Services",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "imaging_equipment",
+            "name": "Imaging Equipment",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT",
+                "list": [
+                  {"value": "xray", "label": "X-Ray"},
+                  {"value": "ct", "label": "CT Scan"},
+                  {"value": "mri", "label": "MRI"},
+                  {"value": "ultrasound", "label": "Ultrasound"},
+                  {"value": "mammography", "label": "Mammography"}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "verification_status",
+        "name": "Verification Status",
+        "localizedName": "Verification Status",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.verification.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Verification Status",
+          "fr": "Statut de Vérification"
+        },
+        "children": [
+          {
+            "id": "accreditation_status",
+            "name": "Accreditation Status",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "pending", "label": "Pending"},
+                  {"value": "verified", "label": "Verified"},
+                  {"value": "expired", "label": "Expired"},
+                  {"value": "suspended", "label": "Suspended"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "verification_date",
+            "name": "Verification Date",
+            "rmType": "DV_DATE_TIME",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "approved_by_admin_id",
+            "name": "Approved By (Admin ID)",
+            "rmType": "DV_IDENTIFIER",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

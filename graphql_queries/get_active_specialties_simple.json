@@ -1,0 +1,3 @@
+{
+  "query": "query GetActiveSpecialties { specialtiesCollection(filter: {is_active: {eq: true}}, orderBy: {specialty_name: AscNullsLast}) { edges { node { specialty_code specialty_name description } } } }"
+}

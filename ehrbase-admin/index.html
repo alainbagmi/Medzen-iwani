@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EHRbase Dashboard - MedZen Iwani</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Login Page */
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        .login-box h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .login-box p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .login-btn:hover { opacity: 0.9; }
+        .error-box {
+            background: #fee;
+            color: #c00;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        /* Dashboard */
+        .dashboard-page {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            display: none;
+        }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .header h1 { color: #667eea; font-size: 32px; margin-bottom: 10px; }
+        .header p { color: #666; font-size: 16px; }
+        .logout-btn {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 10px 20px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .logout-btn:hover { background: #d32f2f; }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            font-size: 36px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        .stat-card p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        /* Refresh Controls */
+        .refresh-controls {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .refresh-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .refresh-status {
+            font-size: 14px;
+            color: #666;
+        }
+        .refresh-status strong {
+            color: #667eea;
+        }
+        .refresh-timer {
+            font-size: 14px;
+            color: #999;
+        }
+        .last-update {
+            font-size: 13px;
+            color: #999;
+        }
+        .refresh-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .refresh-btn:hover { opacity: 0.9; }
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .auto-refresh-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+        .auto-refresh-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Tabs */
+        .tabs {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .tab-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 20px;
+            background: white;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: #f8f9ff;
+        }
+        .tab-btn:hover:not(.active) { background: #fafafa; }
+        .tab-content {
+            padding: 30px;
+            display: none;
+            min-height: 400px;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+        .tab-content.active { display: block; }
+
+        /* Cards */
+        .card {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+        .card h3 { color: #333; font-size: 18px; margin-bottom: 10px; }
+        .card h4 { color: #667eea; font-size: 16px; margin: 15px 0 8px 0; }
+        .card p { color: #666; font-size: 14px; margin: 5px 0; }
+        .card ul { margin-left: 20px; color: #666; }
+
+        /* Table Styles */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .data-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .data-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .data-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+            color: #333;
+            vertical-align: top;
+        }
+        .data-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+        .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .table-section {
+            margin-bottom: 20px;
+        }
+        .table-section h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        .ehr-id-cell {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        /* Loading & Empty States */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .loading.active::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
+        .error-message {
+            background: #fee;
+            color: #c00;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        /* Pulse animation for refreshing */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .refreshing {
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .data-table {
+                font-size: 12px;
+            }
+            .data-table th,
+            .data-table td {
+                padding: 10px;
+            }
+            .refresh-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+
+        /* Search Box */
+        .search-box {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .search-stats {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Accordion Record Container */
+        .record-container {
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .record-container:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Record Header (Collapsed View) */
+        .record-header {
+            padding: 20px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+            transition: background 0.3s;
+            user-select: none;
+        }
+        .record-header:hover {
+            background: linear-gradient(135deg, #f0f2ff 0%, #e8ebff 100%);
+        }
+        .record-header.expanded {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .record-summary {
+            flex: 1;
+        }
+        .record-number {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+        .record-header.expanded .record-number {
+            color: white;
+        }
+        .record-info {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .record-header.expanded .record-info {
+            color: rgba(255,255,255,0.9);
+        }
+        .record-info-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .expand-icon {
+            font-size: 24px;
+            transition: transform 0.3s;
+            color: #667eea;
+        }
+        .record-header.expanded .expand-icon {
+            transform: rotate(180deg);
+            color: white;
+        }
+
+        /* Record Details (Expanded View) */
+        .record-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .record-details.expanded {
+            max-height: 10000px;
+            transition: max-height 0.5s ease-in;
+        }
+        .record-details-inner {
+            padding: 25px;
+        }
+
+        /* Hide class for search filtering */
+        .hidden {
+            display: none !important;
+        }
+
+        /* No results message */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+            background: white;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-page">
+        <div class="login-box">
+            <h1>🏥 EHRbase Dashboard</h1>
+            <p>MedZen Iwani - Medical Records</p>
+            <div id="errorBox" class="error-box"></div>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="username" autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" autocomplete="current-password">
+            </div>
+            <button class="login-btn" id="loginBtn">Login</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" class="dashboard-page">
+        <div class="header">
+            <h1>🏥 EHRbase Dashboard</h1>
+            <p>MedZen Iwani - OpenEHR Medical Records System</p>
+            <button class="logout-btn" id="logoutBtn">Logout</button>
+
+            <div class="stats-bar">
+                <div class="stat-card"><h3 id="statTemplates">-</h3><p>Templates</p></div>
+                <div class="stat-card"><h3 id="statEHRs">-</h3><p>EHRs</p></div>
+                <div class="stat-card"><h3 id="statCompositions">-</h3><p>Compositions</p></div>
+                <div class="stat-card"><h3 id="statStatus">⏳</h3><p>Status</p></div>
+            </div>
+        </div>
+
+        <!-- Refresh Controls -->
+        <div class="refresh-controls">
+            <div class="refresh-info">
+                <div class="refresh-status">
+                    <strong>Status:</strong> <span id="refreshStatus">Ready</span>
+                </div>
+                <div class="refresh-timer">
+                    Next refresh in: <strong id="refreshTimer">60s</strong>
+                </div>
+                <div class="last-update">
+                    Last updated: <strong id="lastUpdate">Never</strong>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <label class="auto-refresh-toggle">
+                    <input type="checkbox" id="autoRefreshToggle" checked>
+                    Auto-refresh (15s)
+                </label>
+                <button class="refresh-btn" id="manualRefreshBtn">🔄 Refresh Now</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('overview')">Overview</button>
+                <button class="tab-btn" onclick="switchTab('templates')">Templates</button>
+                <button class="tab-btn" onclick="switchTab('compositions')">Compositions</button>
+                <button class="tab-btn" onclick="switchTab('archetypes')">Archetypes</button>
+                <button class="tab-btn" onclick="switchTab('medical')">Medical Records</button>
+            </div>
+
+            <div id="overviewTab" class="tab-content active">
+                <h2>System Overview</h2>
+                <div id="overviewContent" class="loading active">Loading overview data</div>
+            </div>
+
+            <div id="templatesTab" class="tab-content">
+                <h2>OpenEHR Templates (All from EHRbase Server)</h2>
+                <div id="templatesContent" class="loading">Loading templates</div>
+            </div>
+
+            <div id="compositionsTab" class="tab-content">
+                <h2>Compositions</h2>
+                <div id="compositionsContent" class="loading">Loading compositions</div>
+            </div>
+
+            <div id="archetypesTab" class="tab-content">
+                <h2>Archetypes (Extracted from Templates)</h2>
+                <div id="archetypesContent" class="loading">Loading archetypes</div>
+            </div>
+
+            <div id="medicalTab" class="tab-content">
+                <h2>Medical Records - Detailed Overview</h2>
+                <div id="medicalContent" class="loading">Loading medical records</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const AUTH = 'Basic ' + btoa('ehrbase-user:ehrbase-password');
+        const API_BASE = '/ehrbase';
+        const VERSION = 'v8.0-COMPLETE-' + new Date().toISOString();
+
+        // 5-Minute Inactivity Timeout
+        let inactivityTimer;
+        const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                console.log('⏱ Session timeout due to inactivity');
+                alert('Your session has expired due to inactivity. Please log in again.');
+                logout();
+            }, INACTIVITY_TIMEOUT);
+        }
+
+        // Track user activity
+        function setupActivityTracking() {
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(event => {
+                document.addEventListener(event, resetInactivityTimer, true);
+            });
+            resetInactivityTimer(); // Start the timer
+        }
+        const REFRESH_INTERVAL = 60000; // 60 seconds auto-refresh
+
+        // State
+        let autoRefreshEnabled = true;
+        let refreshTimer = null;
+        let countdownTimer = null;
+        let secondsUntilRefresh = 15;
+        let isRefreshing = false;
+
+        console.log('✅ Dashboard loaded - Version:', VERSION);
+
+        // API Helper
+        async function apiGet(endpoint) {
+            console.log('API GET:', API_BASE + endpoint);
+            try {
+                const response = await fetch(API_BASE + endpoint, {
+                    headers: { 'Authorization': AUTH }
+                });
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                const data = await response.json();
+                console.log('✅ API Response received');
+                return data;
+            } catch (error) {
+                console.error('❌ API Error:', error);
+                throw error;
+            }
+        }
+
+        // Update refresh status
+        function updateRefreshStatus(status, isLoading = false) {
+            document.getElementById('refreshStatus').textContent = status;
+            if (isLoading) {
+                document.getElementById('statStatus').textContent = '⏳';
+                document.getElementById('statStatus').classList.add('refreshing');
+            } else {
+                document.getElementById('statStatus').classList.remove('refreshing');
+            }
+        }
+
+        // Update last update time
+        function updateLastUpdateTime() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
+        }
+
+        // Countdown timer
+        function startCountdown() {
+            secondsUntilRefresh = 15;
+            updateCountdownDisplay();
+
+            if (countdownTimer) clearInterval(countdownTimer);
+
+            countdownTimer = setInterval(() => {
+                secondsUntilRefresh--;
+                updateCountdownDisplay();
+
+                if (secondsUntilRefresh <= 0) {
+                    clearInterval(countdownTimer);
+                }
+            }, 1000);
+        }
+
+        function updateCountdownDisplay() {
+            if (autoRefreshEnabled) {
+                document.getElementById('refreshTimer').textContent = `${secondsUntilRefresh}s`;
+            } else {
+                document.getElementById('refreshTimer').textContent = 'Disabled';
+            }
+        }
+
+        // Login
+        function doLogin() {
+            console.log('Login attempt...');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (username === 'admin' && password === 'MedZenAdmin2025!') {
+                console.log('✅ Login successful');
+                document.getElementById('errorBox').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('dashboardPage').style.display = 'block';
+                loadAllData();
+                startAutoRefresh();
+                setupActivityTracking();
+            } else {
+                console.log('❌ Login failed');
+                document.getElementById('errorBox').textContent = '❌ Invalid username or password';
+                document.getElementById('errorBox').style.display = 'block';
+            }
+        }
+
+        // Logout
+        function doLogout() {
+            stopAutoRefresh();
+            clearTimeout(inactivityTimer);
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('dashboardPage').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        // Tab Switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Load All Data
+        async function loadAllData(isManual = false) {
+            if (isRefreshing) {
+                console.log('⚠️ Already refreshing, skipping...');
+                return;
+            }
+
+            isRefreshing = true;
+            const refreshType = isManual ? 'Manual refresh' : 'Auto-refresh';
+            console.log(`🔄 ${refreshType} started...`);
+
+            updateRefreshStatus('Loading data...', true);
+            document.getElementById('manualRefreshBtn').disabled = true;
+
+            try {
+                await Promise.all([
+                    loadTemplates(),
+                    loadEHRs(),
+                    loadCompositions(),
+                    loadArchetypes(),
+                    loadOverview()
+                ]);
+
+                document.getElementById('statStatus').textContent = '✅';
+                updateRefreshStatus('Connected');
+                updateLastUpdateTime();
+                console.log('✅ All data loaded successfully');
+            } catch (error) {
+                console.error('❌ Error loading data:', error);
+                document.getElementById('statStatus').textContent = '❌';
+                updateRefreshStatus('Error - ' + error.message);
+            } finally {
+                isRefreshing = false;
+                document.getElementById('manualRefreshBtn').disabled = false;
+                if (autoRefreshEnabled) {
+                    startCountdown();
+                }
+            }
+        }
+
+        // Load Templates
+        async function loadTemplates() {
+            console.log('📋 Loading templates...');
+            try {
+                const templates = await apiGet('/rest/openehr/v1/definition/template/adl1.4');
+                console.log(`✅ Found ${templates.length} templates`);
+
+                document.getElementById('statTemplates').textContent = templates.length;
+
+                if (templates.length === 0) {
+                    document.getElementById('templatesContent').innerHTML =
+                        '<div class="empty-state"><h3>No templates found</h3></div>';
+                    return;
+                }
+
+                // Build accordion HTML with search
+                let html = `
+                    <div class="search-box">
+                        <input type="text" id="templateSearch" placeholder="🔍 Search templates by ID, concept, or archetype..." />
+                        <div class="search-stats">
+                            Showing <span id="templateVisibleCount">${templates.length}</span> of <span id="templateTotalCount">${templates.length}</span> templates
+                        </div>
+                    </div>
+                    <div id="templateNoResults" class="no-results hidden">
+                        No templates found matching your search.
+                    </div>
+                    <div id="templatesList">
+                `;
+
+                templates.forEach((template, index) => {
+                    const templateId = template.template_id || 'N/A';
+                    const concept = template.concept || 'N/A';
+                    const archetypeId = template.archetype_id || 'N/A';
+                    const created = template.created_timestamp ? new Date(template.created_timestamp).toLocaleString() : 'N/A';
+
+                    const searchText = `${templateId} ${concept} ${archetypeId}`.toLowerCase();
+
+                    html += `
+                        <div class="record-container" data-search="${searchText}">
+                            <div class="record-header" onclick="toggleTemplate(${index})">
+                                <div class="record-summary">
+                                    <div class="record-number">📄 Template #${index + 1}</div>
+                                    <div class="record-info">
+                                        <div class="record-info-item">
+                                            <strong>ID:</strong> ${templateId.substring(0, 40)}${templateId.length > 40 ? '...' : ''}
+                                        </div>
+                                        <div class="record-info-item">
+                                            <strong>Concept:</strong> ${concept.substring(0, 50)}${concept.length > 50 ? '...' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="expand-icon">▼</div>
+                            </div>
+                            <div class="record-details" id="template-${index}">
+                                <div class="record-details-inner">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 30%;">Property</th>
+                                                <th style="width: 70%;">Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Template ID</strong></td>
+                                                <td>${templateId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Concept</strong></td>
+                                                <td>${concept}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Archetype ID</strong></td>
+                                                <td>${archetypeId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Created</strong></td>
+                                                <td>${created}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Template Type</strong></td>
+                                                <td>OpenEHR ADL 1.4</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                document.getElementById('templatesContent').innerHTML = html;
+
+                // Add search listener
+                document.getElementById('templateSearch').addEventListener('input', function(e) {
+                    filterTemplates(e.target.value);
+                });
+
+                console.log('✅ Templates rendered in accordion format');
+            } catch (error) {
+                console.error('❌ Error loading templates:', error);
+                document.getElementById('templatesContent').innerHTML =
+                    `<div class="error-message">Error loading templates: ${error.message}</div>`;
+            }
+        }
+
+        function toggleTemplate(index) {
+            const details = document.getElementById(`template-${index}`);
+            const header = details.previousElementSibling;
+
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                header.classList.remove('expanded');
+            } else {
+                details.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+        }
+
+        function filterTemplates(searchTerm) {
+            const containers = document.querySelectorAll('#templatesList .record-container');
+            const noResults = document.getElementById('templateNoResults');
+            const searchLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+
+            containers.forEach(container => {
+                const searchText = container.getAttribute('data-search');
+                if (searchText.includes(searchLower)) {
+                    container.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    container.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('templateVisibleCount').textContent = visibleCount;
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+        async function loadEHRs() {
+            console.log('🏥 Loading EHRs...');
+            try {
+                const data = await apiGet('/rest/openehr/v1/query/aql?q=' +
+                    encodeURIComponent('SELECT e/ehr_id/value, e/time_created/value FROM EHR e'));
+                const rows = data.rows || [];
+                console.log(`✅ Found ${rows.length} EHRs`);
+
+                document.getElementById('statEHRs').textContent = rows.length;
+
+                if (rows.length === 0) {
+                    document.getElementById('medicalContent').innerHTML =
+                        '<div class="empty-state"><h3>No EHRs found</h3></div>';
+                    return;
+                }
+
+                // Collect all EHR data
+                const ehrData = [];
+                for (const row of rows) {
+                    const ehrId = row[0];
+                    const timeCreated = row[1];
+                    try {
+                        const ehr = await apiGet(`/rest/openehr/v1/ehr/${ehrId}`);
+                        ehrData.push({ ehrId, timeCreated, ehr });
+                    } catch (error) {
+                        console.error(`Error loading EHR ${ehrId}:`, error);
+                    }
+                }
+
+                // Build accordion HTML with search box
+                let html = `
+                    <div class="search-box">
+                        <input type="text" id="ehrSearch" placeholder="🔍 Search medical records by EHR ID, Subject ID, or date..." />
+                        <div class="search-stats">
+                            Showing <span id="visibleCount">${ehrData.length}</span> of <span id="totalCount">${ehrData.length}</span> records
+                        </div>
+                    </div>
+                    <div id="noResults" class="no-results hidden">
+                        No records found matching your search.
+                    </div>
+                    <div id="recordsList">
+                `;
+
+                ehrData.forEach(({ ehrId, timeCreated, ehr }, index) => {
+                    const created = new Date(timeCreated);
+                    const subjectId = ehr.ehr_status?.subject?.external_ref?.id?.value || 'N/A';
+                    const subjectNamespace = ehr.ehr_status?.subject?.external_ref?.namespace || 'N/A';
+
+                    // Create searchable text for filtering
+                    const searchText = `${ehrId} ${subjectId} ${subjectNamespace} ${created.toLocaleDateString()} ${created.toLocaleTimeString()}`.toLowerCase();
+
+                    html += `
+                        <div class="record-container" data-search="${searchText}">
+                            <div class="record-header" onclick="toggleRecord(${index})">
+                                <div class="record-summary">
+                                    <div class="record-number">📋 Medical Record #${index + 1}</div>
+                                    <div class="record-info">
+                                        <div class="record-info-item">
+                                            <strong>EHR ID:</strong> ${ehrId.substring(0, 20)}...
+                                        </div>
+                                        <div class="record-info-item">
+                                            <strong>Subject:</strong> ${subjectId.substring(0, 20)}${subjectId.length > 20 ? '...' : ''}
+                                        </div>
+                                        <div class="record-info-item">
+                                            <strong>Created:</strong> ${created.toLocaleDateString()} ${created.toLocaleTimeString()}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="expand-icon">▼</div>
+                            </div>
+                            <div class="record-details" id="record-${index}">
+                                <div class="record-details-inner">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 30%;">Category</th>
+                                                <th style="width: 70%;">Information</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- EHR ID -->
+                                            <tr style="background: #f8f9ff;">
+                                                <td colspan="2" style="font-weight: 700; font-size: 16px; color: #667eea; padding: 15px;">
+                                                    🆔 EHR ID: ${ehrId}
+                                                </td>
+                                            </tr>
+
+                                            <!-- WHO Section -->
+                                            <tr style="background: #e3f2fd;">
+                                                <td colspan="2" style="font-weight: 600; color: #1976d2; padding: 12px;">
+                                                    🏥 WHO - Patient & Provider Information
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>System ID</strong></td>
+                                                <td>${ehr.system_id?.value || 'N/A'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Subject ID</strong></td>
+                                                <td>${subjectId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Subject Namespace</strong></td>
+                                                <td>${subjectNamespace}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Subject Reference Type</strong></td>
+                                                <td>${ehr.ehr_status?.subject?.external_ref?.id?._type || 'N/A'}</td>
+                                            </tr>
+
+                                            <!-- WHAT Section -->
+                                            <tr style="background: #f3e5f5;">
+                                                <td colspan="2" style="font-weight: 600; color: #7b1fa2; padding: 12px;">
+                                                    📊 WHAT - Content & Data
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Record Type</strong></td>
+                                                <td>Electronic Health Record (OpenEHR)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Is Queryable</strong></td>
+                                                <td>${ehr.ehr_status?.is_queryable ? '✅ Yes' : '❌ No'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Is Modifiable</strong></td>
+                                                <td>${ehr.ehr_status?.is_modifiable ? '✅ Yes' : '❌ No'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Data Format</strong></td>
+                                                <td>OpenEHR JSON</td>
+                                            </tr>
+
+                                            <!-- WHEN Section -->
+                                            <tr style="background: #fff3e0;">
+                                                <td colspan="2" style="font-weight: 600; color: #e65100; padding: 12px;">
+                                                    ⏰ WHEN - Temporal Information
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Created Date</strong></td>
+                                                <td>${created.toLocaleDateString()}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Created Time</strong></td>
+                                                <td>${created.toLocaleTimeString()}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Full Timestamp</strong></td>
+                                                <td>${created.toLocaleString()}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Status Version UID</strong></td>
+                                                <td>${ehr.ehr_status?.uid?.value || 'N/A'}</td>
+                                            </tr>
+
+                                            <!-- WHERE Section -->
+                                            <tr style="background: #e8f5e9;">
+                                                <td colspan="2" style="font-weight: 600; color: #2e7d32; padding: 12px;">
+                                                    📍 WHERE - System & Location
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>EHRbase System</strong></td>
+                                                <td>${ehr.system_id?.value || 'N/A'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>API Endpoint</strong></td>
+                                                <td>${window.location.origin}/ehrbase</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Storage Type</strong></td>
+                                                <td>PostgreSQL Database</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Server Location</strong></td>
+                                                <td>K3s Cluster (3 pods load-balanced)</td>
+                                            </tr>
+
+                                            <!-- HOW Section -->
+                                            <tr style="background: #fce4ec;">
+                                                <td colspan="2" style="font-weight: 600; color: #c2185b; padding: 12px;">
+                                                    🔧 HOW - Method & Process
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Creation Method</strong></td>
+                                                <td>OpenEHR REST API</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Standard Version</strong></td>
+                                                <td>OpenEHR Specification v1.0.4</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Authentication</strong></td>
+                                                <td>Basic Authentication (ehrbase-user)</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Proxy Type</strong></td>
+                                                <td>Nginx Reverse Proxy</td>
+                                            </tr>
+
+                                            <!-- WHY Section -->
+                                            <tr style="background: #ede7f6;">
+                                                <td colspan="2" style="font-weight: 600; color: #5e35b1; padding: 12px;">
+                                                    🎯 WHY - Purpose & Context
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Purpose</strong></td>
+                                                <td>Electronic Health Record Management</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Use Case</strong></td>
+                                                <td>Clinical data storage, retrieval, and exchange</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Compliance Standard</strong></td>
+                                                <td>OpenEHR International Standard</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Interoperability</strong></td>
+                                                <td>Standard-based EHR exchange for healthcare interoperability</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+
+                document.getElementById('medicalContent').innerHTML = html;
+
+                // Add search event listener
+                document.getElementById('ehrSearch').addEventListener('input', function(e) {
+                    filterRecords(e.target.value);
+                });
+
+                console.log('✅ EHRs rendered in accordion format');
+            } catch (error) {
+                console.error('❌ Error loading EHRs:', error);
+                document.getElementById('medicalContent').innerHTML =
+                    `<div class="error-message">Error loading EHRs: ${error.message}</div>`;
+            }
+        }
+
+        // Toggle record expansion
+        function toggleRecord(index) {
+            const details = document.getElementById(`record-${index}`);
+            const header = details.previousElementSibling;
+
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                header.classList.remove('expanded');
+            } else {
+                details.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+        }
+
+        // Filter records based on search
+        function filterRecords(searchTerm) {
+            const containers = document.querySelectorAll('.record-container');
+            const noResults = document.getElementById('noResults');
+            const searchLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+
+            containers.forEach(container => {
+                const searchText = container.getAttribute('data-search');
+                if (searchText.includes(searchLower)) {
+                    container.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    container.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('visibleCount').textContent = visibleCount;
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+        async function loadCompositions() {
+            console.log('📄 Loading compositions...');
+            try {
+                const data = await apiGet('/rest/openehr/v1/query/aql?q=' +
+                    encodeURIComponent('SELECT c/uid/value, c/archetype_details/archetype_id/value, c/context/start_time/value FROM COMPOSITION c'));
+                const rows = data.rows || [];
+                console.log(`✅ Found ${rows.length} compositions`);
+
+                document.getElementById('statCompositions').textContent = rows.length;
+
+                if (rows.length === 0) {
+                    document.getElementById('compositionsContent').innerHTML =
+                        '<div class="empty-state"><h3>No compositions found</h3><p>Compositions will appear here when clinical data is created</p></div>';
+                    return;
+                }
+
+                // Build accordion HTML with search
+                let html = `
+                    <div class="search-box">
+                        <input type="text" id="compositionSearch" placeholder="🔍 Search compositions by UID, archetype, or date..." />
+                        <div class="search-stats">
+                            Showing <span id="compositionVisibleCount">${rows.length}</span> of <span id="compositionTotalCount">${rows.length}</span> compositions
+                        </div>
+                    </div>
+                    <div id="compositionNoResults" class="no-results hidden">
+                        No compositions found matching your search.
+                    </div>
+                    <div id="compositionsList">
+                `;
+
+                rows.forEach((row, index) => {
+                    const uid = row[0] || 'N/A';
+                    const archetypeId = row[1] || 'N/A';
+                    const startTime = row[2];
+                    const startTimeFormatted = startTime ? new Date(startTime).toLocaleString() : 'N/A';
+
+                    const searchText = `${uid} ${archetypeId} ${startTimeFormatted}`.toLowerCase();
+
+                    html += `
+                        <div class="record-container" data-search="${searchText}">
+                            <div class="record-header" onclick="toggleComposition(${index})">
+                                <div class="record-summary">
+                                    <div class="record-number">📄 Composition #${index + 1}</div>
+                                    <div class="record-info">
+                                        <div class="record-info-item">
+                                            <strong>UID:</strong> ${uid.substring(0, 30)}...
+                                        </div>
+                                        <div class="record-info-item">
+                                            <strong>Archetype:</strong> ${archetypeId.substring(0, 40)}${archetypeId.length > 40 ? '...' : ''}
+                                        </div>
+                                        <div class="record-info-item">
+                                            <strong>Start Time:</strong> ${startTimeFormatted}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="expand-icon">▼</div>
+                            </div>
+                            <div class="record-details" id="composition-${index}">
+                                <div class="record-details-inner">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 30%;">Property</th>
+                                                <th style="width: 70%;">Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>UID</strong></td>
+                                                <td>${uid}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Archetype ID</strong></td>
+                                                <td>${archetypeId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Start Time</strong></td>
+                                                <td>${startTimeFormatted}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Composition Type</strong></td>
+                                                <td>OpenEHR Clinical Document</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Format</strong></td>
+                                                <td>OpenEHR COMPOSITION</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                document.getElementById('compositionsContent').innerHTML = html;
+
+                // Add search listener
+                document.getElementById('compositionSearch').addEventListener('input', function(e) {
+                    filterCompositions(e.target.value);
+                });
+
+                console.log('✅ Compositions rendered in accordion format');
+            } catch (error) {
+                console.error('❌ Error loading compositions:', error);
+                document.getElementById('compositionsContent').innerHTML =
+                    `<div class="error-message">Error loading compositions: ${error.message}</div>`;
+            }
+        }
+
+        function toggleComposition(index) {
+            const details = document.getElementById(`composition-${index}`);
+            const header = details.previousElementSibling;
+
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                header.classList.remove('expanded');
+            } else {
+                details.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+        }
+
+        function filterCompositions(searchTerm) {
+            const containers = document.querySelectorAll('#compositionsList .record-container');
+            const noResults = document.getElementById('compositionNoResults');
+            const searchLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+
+            containers.forEach(container => {
+                const searchText = container.getAttribute('data-search');
+                if (searchText.includes(searchLower)) {
+                    container.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    container.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('compositionVisibleCount').textContent = visibleCount;
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        // Load Archetypes
+        async function loadArchetypes() {
+            console.log('🔷 Loading archetypes...');
+            try {
+                const templates = await apiGet('/rest/openehr/v1/definition/template/adl1.4');
+
+                // Extract unique archetypes
+                const archetypeMap = new Map();
+                templates.forEach(template => {
+                    const archId = template.archetype_id;
+                    if (archId) {
+                        if (!archetypeMap.has(archId)) {
+                            archetypeMap.set(archId, []);
+                        }
+                        archetypeMap.get(archId).push(template.template_id);
+                    }
+                });
+
+                console.log(`✅ Found ${archetypeMap.size} unique archetypes`);
+
+                if (archetypeMap.size === 0) {
+                    document.getElementById('archetypesContent').innerHTML =
+                        '<div class="empty-state"><h3>No archetypes found</h3></div>';
+                    return;
+                }
+
+                // Build accordion HTML with search
+                let html = `
+                    <div class="search-box">
+                        <input type="text" id="archetypeSearch" placeholder="🔍 Search archetypes by ID or template..." />
+                        <div class="search-stats">
+                            Showing <span id="archetypeVisibleCount">${archetypeMap.size}</span> of <span id="archetypeTotalCount">${archetypeMap.size}</span> archetypes
+                        </div>
+                    </div>
+                    <div id="archetypeNoResults" class="no-results hidden">
+                        No archetypes found matching your search.
+                    </div>
+                    <div id="archetypesList">
+                `;
+
+                let index = 0;
+                archetypeMap.forEach((templateIds, archetypeId) => {
+                    const searchText = `${archetypeId} ${templateIds.join(' ')}`.toLowerCase();
+
+                    html += `
+                        <div class="record-container" data-search="${searchText}">
+                            <div class="record-header" onclick="toggleArchetype(${index})">
+                                <div class="record-summary">
+                                    <div class="record-number">🔷 Archetype #${index + 1}</div>
+                                    <div class="record-info">
+                                        <div class="record-info-item">
+                                            <strong>ID:</strong> ${archetypeId.substring(0, 50)}${archetypeId.length > 50 ? '...' : ''}
+                                        </div>
+                                        <div class="record-info-item">
+                                            <strong>Used in:</strong> ${templateIds.length} template${templateIds.length !== 1 ? 's' : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="expand-icon">▼</div>
+                            </div>
+                            <div class="record-details" id="archetype-${index}">
+                                <div class="record-details-inner">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 30%;">Property</th>
+                                                <th style="width: 70%;">Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Archetype ID</strong></td>
+                                                <td>${archetypeId}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Template Count</strong></td>
+                                                <td>${templateIds.length}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Templates Using This Archetype</strong></td>
+                                                <td>
+                                                    <ul style="margin: 0; padding-left: 20px;">
+                                                        ${templateIds.map(tid => `<li>${tid}</li>`).join('')}
+                                                    </ul>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Archetype Type</strong></td>
+                                                <td>OpenEHR Archetype</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    index++;
+                });
+
+                html += `</div>`;
+                document.getElementById('archetypesContent').innerHTML = html;
+
+                // Add search listener
+                document.getElementById('archetypeSearch').addEventListener('input', function(e) {
+                    filterArchetypes(e.target.value);
+                });
+
+                console.log('✅ Archetypes rendered in accordion format');
+            } catch (error) {
+                console.error('❌ Error loading archetypes:', error);
+                document.getElementById('archetypesContent').innerHTML =
+                    `<div class="error-message">Error loading archetypes: ${error.message}</div>`;
+            }
+        }
+
+        function toggleArchetype(index) {
+            const details = document.getElementById(`archetype-${index}`);
+            const header = details.previousElementSibling;
+
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                header.classList.remove('expanded');
+            } else {
+                details.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+        }
+
+        function filterArchetypes(searchTerm) {
+            const containers = document.querySelectorAll('#archetypesList .record-container');
+            const noResults = document.getElementById('archetypeNoResults');
+            const searchLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+
+            containers.forEach(container => {
+                const searchText = container.getAttribute('data-search');
+                if (searchText.includes(searchLower)) {
+                    container.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    container.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('archetypeVisibleCount').textContent = visibleCount;
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        // Load Overview
+        async function loadOverview() {
+            console.log('📊 Loading overview...');
+            try {
+                const templates = await apiGet('/rest/openehr/v1/definition/template/adl1.4');
+                const compositionsData = await apiGet('/rest/openehr/v1/query/aql?q=' +
+                    encodeURIComponent('SELECT c/uid/value FROM COMPOSITION c'));
+                const compositionsCount = compositionsData.rows ? compositionsData.rows.length : 0;
+
+                const currentTime = new Date().toLocaleString();
+
+                // Build accordion HTML with search
+                let html = `
+                    <div class="search-box">
+                        <input type="text" id="overviewSearch" placeholder="🔍 Search overview sections..." />
+                        <div class="search-stats">
+                            Showing <span id="overviewVisibleCount">4</span> of <span id="overviewTotalCount">4</span> sections
+                        </div>
+                    </div>
+                    <div id="overviewNoResults" class="no-results hidden">
+                        No overview sections found matching your search.
+                    </div>
+                    <div id="overviewList">
+                `;
+
+                // Overview sections
+                const sections = [
+                    {
+                        title: 'System Information',
+                        emoji: '🖥️',
+                        data: [
+                            { label: 'Server Name', value: 'EHRbase OpenEHR Server' },
+                            { label: 'API Version', value: 'v1.0.4' },
+                            { label: 'Deployment Type', value: 'Kubernetes (K3s Cluster)' },
+                            { label: 'Total Pods', value: '3 pods' },
+                            { label: 'Dashboard Version', value: 'v8.0-COMPLETE' },
+                            { label: 'Last Updated', value: currentTime }
+                        ]
+                    },
+                    {
+                        title: 'Data Statistics',
+                        emoji: '📊',
+                        data: [
+                            { label: 'Total Templates', value: templates.length },
+                            { label: 'Total Compositions', value: compositionsCount },
+                            { label: 'Total Medical Records', value: '2 EHRs' },
+                            { label: 'Unique Archetypes', value: new Set(templates.map(t => t.archetype_id)).size }
+                        ]
+                    },
+                    {
+                        title: 'Auto-Refresh Settings',
+                        emoji: '🔄',
+                        data: [
+                            { label: 'Refresh Interval', value: '60 seconds' },
+                            { label: 'Current Status', value: autoRefreshEnabled ? 'Enabled' : 'Disabled' },
+                            { label: 'Countdown Timer', value: 'Active' },
+                            { label: 'Manual Refresh', value: 'Available' }
+                        ]
+                    },
+                    {
+                        title: 'Recent Templates',
+                        emoji: '📋',
+                        data: templates.slice(0, 10).map((t, i) => ({
+                            label: `Template ${i + 1}`,
+                            value: t.template_id
+                        }))
+                    }
+                ];
+
+                sections.forEach((section, index) => {
+                    const searchText = `${section.title} ${section.data.map(d => `${d.label} ${d.value}`).join(' ')}`.toLowerCase();
+
+                    html += `
+                        <div class="record-container" data-search="${searchText}">
+                            <div class="record-header" onclick="toggleOverview(${index})">
+                                <div class="record-summary">
+                                    <div class="record-number">${section.emoji} ${section.title}</div>
+                                    <div class="record-info">
+                                        <div class="record-info-item">
+                                            <strong>Items:</strong> ${section.data.length}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="expand-icon">▼</div>
+                            </div>
+                            <div class="record-details" id="overview-${index}">
+                                <div class="record-details-inner">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 40%;">Property</th>
+                                                <th style="width: 60%;">Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                    `;
+
+                    section.data.forEach(item => {
+                        html += `
+                            <tr>
+                                <td><strong>${item.label}</strong></td>
+                                <td>${item.value}</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                document.getElementById('overviewContent').innerHTML = html;
+
+                // Add search listener
+                document.getElementById('overviewSearch').addEventListener('input', function(e) {
+                    filterOverview(e.target.value);
+                });
+
+                console.log('✅ Overview rendered in accordion format');
+            } catch (error) {
+                console.error('❌ Error loading overview:', error);
+                document.getElementById('overviewContent').innerHTML =
+                    `<div class="error-message">Error loading overview: ${error.message}</div>`;
+            }
+        }
+
+        function toggleOverview(index) {
+            const details = document.getElementById(`overview-${index}`);
+            const header = details.previousElementSibling;
+
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                header.classList.remove('expanded');
+            } else {
+                details.classList.add('expanded');
+                header.classList.add('expanded');
+            }
+        }
+
+        function filterOverview(searchTerm) {
+            const containers = document.querySelectorAll('#overviewList .record-container');
+            const noResults = document.getElementById('overviewNoResults');
+            const searchLower = searchTerm.toLowerCase().trim();
+            let visibleCount = 0;
+
+            containers.forEach(container => {
+                const searchText = container.getAttribute('data-search');
+                if (searchText.includes(searchLower)) {
+                    container.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    container.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('overviewVisibleCount').textContent = visibleCount;
+
+            if (visibleCount === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+        }
+
+        // Auto Refresh Control
+        function startAutoRefresh() {
+            if (refreshTimer) clearInterval(refreshTimer);
+            if (autoRefreshEnabled) {
+                refreshTimer = setInterval(() => {
+                    console.log('🔄 Auto-refresh triggered (15s interval)...');
+                    loadAllData();
+                }, REFRESH_INTERVAL);
+                startCountdown();
+                console.log('✅ Auto-refresh enabled (60 seconds)');
+            }
+        }
+
+        function stopAutoRefresh() {
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+                refreshTimer = null;
+            }
+            if (countdownTimer) {
+                clearInterval(countdownTimer);
+                countdownTimer = null;
+            }
+            console.log('⏸️ Auto-refresh stopped');
+        }
+
+        // Manual Refresh
+        function manualRefresh() {
+            console.log('🔄 Manual refresh triggered');
+            loadAllData(true);
+        }
+
+        // Toggle Auto Refresh
+        function toggleAutoRefresh() {
+            autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
+            if (autoRefreshEnabled) {
+                console.log('✅ Auto-refresh enabled');
+                startAutoRefresh();
+                updateRefreshStatus('Connected');
+            } else {
+                console.log('⏸️ Auto-refresh disabled');
+                stopAutoRefresh();
+                updateRefreshStatus('Auto-refresh disabled');
+                document.getElementById('refreshTimer').textContent = 'Disabled';
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('loginBtn').addEventListener('click', doLogin);
+        document.getElementById('logoutBtn').addEventListener('click', doLogout);
+        document.getElementById('manualRefreshBtn').addEventListener('click', manualRefresh);
+        document.getElementById('autoRefreshToggle').addEventListener('change', toggleAutoRefresh);
+        document.getElementById('username').addEventListener('keypress', e => {
+            if (e.key === 'Enter') doLogin();
+        });
+        document.getElementById('password').addEventListener('keypress', e => {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        console.log('✅ Event listeners registered');
+        console.log('Dashboard ready - Version:', VERSION);
+        console.log('Auto-refresh interval: 60 seconds');
+    </script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+-- MedZen Medication List Template
+-- Persistent medication list for patient medication management
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_medication_list.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.medication_list.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To maintain a persistent list of medications that a patient is currently taking, has taken in the past, or is planned to take.">
+            use = <"Used to track all medications across the MedZen platform, including prescriptions from consultations, over-the-counter medications, and traditional medicines. Supports medication reconciliation, drug interaction checking, and adherence monitoring.">
+            keywords = <"medication", "prescription", "drug", "pharmacy", "adherence", "medication list">
+            misuse = <"Not for recording individual medication orders (use medication_order archetype within consultation templates). Not for recording medication administration events (use medication_action archetype).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Maintenir une liste persistante des médicaments qu'un patient prend actuellement, a pris dans le passé ou prévoit de prendre.">
+            use = <"Utilisé pour suivre tous les médicaments sur la plateforme MedZen, y compris les prescriptions des consultations, les médicaments en vente libre et les médecines traditionnelles.">
+            keywords = <"médicament", "ordonnance", "pharmacie", "observance", "liste de médicaments">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Medication List
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- persistent
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- List ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Medication List"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Last Updated
+                                value matches {
+                                    DV_DATE_TIME[id0.4]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Current Medications Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.medication_medical_devices_rcp.v1] occurrences matches {0..1}
+
+            -- Individual medication statements using official archetype
+            use_archetype EVALUATION[id0.110, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..*}
+
+            -- Exclusion statements (no known medications)
+            use_archetype EVALUATION[id0.120, openEHR-EHR-EVALUATION.exclusion_specific.v1] occurrences matches {0..*}
+
+            -- Absent/unknown information
+            use_archetype EVALUATION[id0.130, openEHR-EHR-EVALUATION.absence.v2] occurrences matches {0..*}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Medication List">
+                description = <"A persistent list of patient's medications.">
+            >
+            ["id0.1"] = <
+                text = <"List ID">
+                description = <"Unique identifier for this medication list.">
+            >
+            ["id0.3"] = <
+                text = <"Last Updated">
+                description = <"Date and time when this medication list was last updated.">
+            >
+            ["id0.100"] = <
+                text = <"Medications Section">
+                description = <"Section containing medication and medical device information.">
+            >
+            ["id0.110"] = <
+                text = <"Medication Summary">
+                description = <"Summary of a single medication using official medication_summary.v0 archetype.">
+            >
+            ["id0.120"] = <
+                text = <"Exclusion Statement">
+                description = <"Statement that patient is not taking specific medications using exclusion_specific.v1 archetype.">
+            >
+            ["id0.130"] = <
+                text = <"Absence Statement">
+                description = <"Statement that medication information is absent or unknown using absence.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"persistent">
+                description = <"Persistent list category.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Liste de Médicaments">
+                description = <"Une liste persistante des médicaments du patient.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Liste">
+                description = <"Identifiant unique pour cette liste de médicaments.">
+            >
+            ["id0.110"] = <
+                text = <"Résumé de Médicament">
+                description = <"Résumé d'un seul médicament utilisant l'archétype officiel medication_summary.v0.">
+            >
+        >
+    >

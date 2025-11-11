@@ -1,0 +1,208 @@
+{
+  "query_timestamp": "2025-11-06",
+  "total_providers_found": 1,
+  "provider_summary": {
+    "doctors": 1,
+    "nurses": 0,
+    "specialists": 0,
+    "general_providers": 0
+  },
+  "provider_details": {
+    "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+    "users_table": {
+      "id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+      "firebase_uid": "firebase_dummy_123",
+      "email": "dr.dummy@example.com",
+      "phone_number": "+237600000000",
+      "full_name": "Dummy  Doctor",
+      "first_name": "Dummy",
+      "middle_name": "",
+      "last_name": "Doctor",
+      "date_of_birth": "1980-01-01",
+      "gender": "male",
+      "country": "CM",
+      "preferred_language": "English",
+      "timezone": "UTC",
+      "account_status": "active",
+      "last_seen_at": "2025-11-05T12:44:40.119147+00:00",
+      "created_at": "2025-11-05T12:33:58.330766+00:00",
+      "updated_at": "2025-11-05T12:44:40.119147+00:00",
+      "avatar_url": "https://example.com/avatar.png",
+      "unique_patient_id": "UPI-DUMMY-0001",
+      "profile_picture_url": "https://c8.alamy.com/comp/D8F077/male-african-american-medical-doctor-with-tablet-computer-on-white-D8F077.jpg",
+      "is_active": true,
+      "is_verified": true,
+      "email_verified": true,
+      "phone_verified": false,
+      "terms_accepted": true,
+      "privacy_accepted": false,
+      "blood_donation": false
+    },
+    "user_profiles_table": {
+      "id": "6c4ddc7f-ba11-44f8-96c6-1098191d4bc3",
+      "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+      "role": "doctor",
+      "display_name": "Dr Dummy Doctor",
+      "bio": "Dummy bio",
+      "profile_completion_percentage": 0,
+      "verification_status": "pending",
+      "verified_at": null,
+      "verified_by": null,
+      "verification_documents": [],
+      "address": {
+        "street_address": "123 Dummy St",
+        "building_name": "Dummy Building",
+        "apartment_unit": "Unit 1",
+        "city": "Douala",
+        "state": "Littoral",
+        "country": "CM",
+        "postal_code": "00000",
+        "region_code": "LT",
+        "division_code": "DIV-01",
+        "subdivision_code": "SUB-01",
+        "community_code": "COM-01",
+        "neighborhood": "Dummy Neighborhood",
+        "landmark_description": "Near Dummy Park"
+      },
+      "emergency_contacts": {
+        "contact_1": {
+          "name": "John Doe",
+          "phone": "+237611111111",
+          "relationship": "friend"
+        },
+        "contact_2": {
+          "name": "Jane Doe",
+          "phone": "+237622222222",
+          "relationship": "colleague"
+        }
+      },
+      "insurance_info": {
+        "provider": "Dummy Insurance",
+        "policy_number": "POL-DUMMY-0001",
+        "insurance_number": "INS-DUMMY-0001",
+        "expiry": "2026-11-05"
+      },
+      "identification": {
+        "id_card_number": "ID-DUMMY-0001",
+        "national_id": "NID-DUMMY-0001",
+        "passport_number": "P-DUMMY-0001",
+        "id_card_issue_date": "2020-01-01",
+        "id_card_expiration_date": "2030-01-01"
+      },
+      "health_metrics": {
+        "blood_type": "O+",
+        "height_cm": 175.00,
+        "weight_kg": 75.00,
+        "allergies": [],
+        "chronic_conditions": [],
+        "current_medications": []
+      },
+      "personal_info": {
+        "religion": "none",
+        "ethnicity": "unspecified"
+      },
+      "created_at": "2025-11-05T12:35:06.185522+00:00",
+      "updated_at": "2025-11-05T12:46:14.490282+00:00"
+    },
+    "medical_provider_profiles_table": {
+      "id": "56381b30-d867-4619-ab9e-8c5c59473d5c",
+      "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+      "provider_number": "PR-DR-ae6a139c",
+      "unique_identifier": "PROV-UID-DUMMY-0001",
+      "professional_role": "doctor",
+      "application_status": "approved",
+      "approved_at": "2025-11-05T12:49:00.7334+00:00",
+      "licensing": {
+        "medical_license_number": "MD-45",
+        "professional_registration_number": "REG-DUMMY-0001",
+        "license_issuing_authority": "Cameroon Medical Council",
+        "license_expiry_date": "2025-11-05"
+      },
+      "specializations": {
+        "primary_specialization": "general_medicine",
+        "secondary_specializations": [],
+        "sub_specialties": [],
+        "areas_of_expertise": [],
+        "is_specialist": false
+      },
+      "education": {
+        "medical_school": "Dummy Medical School",
+        "graduation_year": 2005,
+        "qualifications": ["MD"],
+        "residency_programs": [],
+        "fellowship_programs": [],
+        "board_certifications": [],
+        "continuing_education_credits": 0
+      },
+      "experience": {
+        "years_of_experience": 5,
+        "previous_positions": [],
+        "hospital_affiliations": [],
+        "professional_memberships": [],
+        "awards": [],
+        "research_interests": []
+      },
+      "practice_settings": {
+        "practice_type": "clinic",
+        "consultation_fee": 20000,
+        "consultation_fee_range": "[15000,25000]",
+        "consultation_duration_minutes": 30,
+        "max_patients_per_day": 20,
+        "accepts_new_patients": true,
+        "accepts_emergency_calls": false,
+        "languages_spoken": ["en", "fr"],
+        "availability_status": "available"
+      },
+      "telemedicine": {
+        "telemedicine_setup_complete": false,
+        "video_consultation_enabled": false,
+        "audio_consultation_enabled": false,
+        "chat_consultation_enabled": false,
+        "ussd_consultation_enabled": false
+      },
+      "performance_metrics": {
+        "total_consultations": 0,
+        "patient_satisfaction_avg": 4.00,
+        "response_time_avg_minutes": 15,
+        "consultation_completion_rate": 0.95
+      },
+      "content_creator": {
+        "content_creator_status": false,
+        "total_posts_created": 0,
+        "total_followers": 0,
+        "content_engagement_score": 0.00
+      },
+      "compliance": {
+        "background_check_completed": false,
+        "background_check_date": null,
+        "malpractice_insurance_valid": false,
+        "malpractice_insurance_expiry": null
+      },
+      "avatar_url": "https://example.com/avatar.png",
+      "created_at": "2025-11-05T12:38:39.591572+00:00",
+      "updated_at": "2025-11-05T20:26:33.249006+00:00"
+    },
+    "provider_facilities": {
+      "note": "Table 'provider_facilities' not found in schema. Table may be named 'provider_specialties' instead.",
+      "error": "PGRST205 - Could not find the table 'public.provider_facilities' in the schema cache"
+    }
+  },
+  "graphql_query_equivalent": {
+    "description": "This data structure matches the GraphQL query provided",
+    "query_variables": {
+      "userId": "ae6a139c-51fd-4d7c-877d-4bf19834a07d"
+    },
+    "query_note": "The original GraphQL query requested data from: usersCollection, user_profilesCollection, medical_provider_profilesCollection, and provider_facilitiesCollection. All data except provider_facilities has been successfully retrieved."
+  },
+  "database_schema_notes": {
+    "available_tables": [
+      "users",
+      "user_profiles",
+      "medical_provider_profiles"
+    ],
+    "missing_or_renamed_tables": [
+      "provider_facilities (suggested alternative: provider_specialties)"
+    ],
+    "total_fields_exported": 150
+  }
+}

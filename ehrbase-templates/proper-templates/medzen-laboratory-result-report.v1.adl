@@ -1,0 +1,256 @@
+-- MedZen Laboratory Result Report Template
+-- Laboratory test results and findings report
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_laboratory_result_report.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.report-result.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record the findings and results from laboratory investigations including clinical chemistry, hematology, microbiology, and pathology tests.">
+            use = <"Used to report laboratory test results to requesting clinicians and for storage in the patient's medical record. Supports single test results, test panels, and complex reports with interpretation and clinical significance.">
+            keywords = <"laboratory", "test", "result", "pathology", "findings", "blood test", "chemistry", "hematology", "microbiology">
+            misuse = <"Not for recording laboratory test requests (use laboratory test request template). Not for imaging results (use imaging result template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer les résultats et conclusions des investigations de laboratoire incluant la chimie clinique, l'hématologie, la microbiologie et les tests de pathologie.">
+            use = <"Utilisé pour rapporter les résultats de tests de laboratoire aux cliniciens demandeurs et pour le stockage dans le dossier médical du patient.">
+            keywords = <"laboratoire", "test", "résultat", "pathologie", "résultats", "test sanguin">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Laboratory Result Report
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Report ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Laboratory Report"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Request ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.4] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Laboratory Request"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Report Status
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Preliminary
+                                            at0.2,    -- Final
+                                            at0.3,    -- Amended
+                                            at0.4,    -- Corrected
+                                            at0.5]    -- Cancelled
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Laboratory
+                                value matches {
+                                    DV_TEXT[id0.8]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Requesting Provider Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Requester Details
+
+            -- Specimen Details Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Specimen Information
+
+            -- Specimen details using official archetype
+            use_archetype CLUSTER[id0.210, openEHR-EHR-CLUSTER.specimen.v1] occurrences matches {0..*}
+
+            -- Laboratory Results Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Test Results
+
+            -- Individual laboratory test results using official archetype
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {1..*}
+
+            -- Clinical Chemistry Results (if applicable)
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Chemistry
+
+            -- Hematology Results (if applicable)
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Hematology
+
+            -- Microbiology Results (if applicable)
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Microbiology
+
+            -- Microbiology culture results
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Pathology/Histopathology Results (if applicable)
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pathology
+
+            -- Interpretation and Clinical Significance Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Interpretation
+
+            -- Clinical interpretation and recommendations
+            use_archetype EVALUATION[id0.810, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Reporting Laboratory Details
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Laboratory Details
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Laboratory Result Report">
+                description = <"A report containing findings from one or more laboratory investigations.">
+            >
+            ["id0.1"] = <
+                text = <"Report ID">
+                description = <"Unique identifier for this laboratory result report.">
+            >
+            ["id0.3"] = <
+                text = <"Request ID">
+                description = <"Reference to the original laboratory test request.">
+            >
+            ["id0.5"] = <
+                text = <"Report Status">
+                description = <"Status of the laboratory report.">
+            >
+            ["id0.7"] = <
+                text = <"Laboratory">
+                description = <"Name or identifier of the laboratory performing the tests.">
+            >
+            ["id0.100"] = <
+                text = <"Requester Details">
+                description = <"Information about the healthcare provider who requested the tests.">
+            >
+            ["id0.200"] = <
+                text = <"Specimen Information">
+                description = <"Details about specimens analyzed in this report.">
+            >
+            ["id0.210"] = <
+                text = <"Specimen Details">
+                description = <"Specimen information using official specimen.v1 cluster archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Test Results">
+                description = <"Section containing laboratory test results.">
+            >
+            ["id0.310"] = <
+                text = <"Laboratory Test Result">
+                description = <"Individual laboratory test result using official laboratory_test_result.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Clinical Chemistry">
+                description = <"Section for clinical chemistry test results (glucose, electrolytes, liver function, kidney function, lipids, etc.).">
+            >
+            ["id0.500"] = <
+                text = <"Hematology">
+                description = <"Section for hematology test results (complete blood count, coagulation studies, blood typing, etc.).">
+            >
+            ["id0.600"] = <
+                text = <"Microbiology">
+                description = <"Section for microbiology test results (cultures, sensitivity testing, gram stains, etc.).">
+            >
+            ["id0.610"] = <
+                text = <"Microbiology Culture Result">
+                description = <"Microbiology culture result using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Pathology">
+                description = <"Section for histopathology and cytology results.">
+            >
+            ["id0.800"] = <
+                text = <"Interpretation">
+                description = <"Clinical interpretation and significance of the laboratory results.">
+            >
+            ["id0.810"] = <
+                text = <"Clinical Interpretation">
+                description = <"Pathologist or laboratory specialist interpretation using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Laboratory Details">
+                description = <"Information about the reporting laboratory including accreditation and contact details.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for result report.">
+            >
+            ["at0.1"] = <
+                text = <"Preliminary">
+                description = <"Initial results, may be updated pending further analysis.">
+            >
+            ["at0.2"] = <
+                text = <"Final">
+                description = <"Finalized results, ready for clinical use.">
+            >
+            ["at0.3"] = <
+                text = <"Amended">
+                description = <"Results have been amended after initial reporting.">
+            >
+            ["at0.4"] = <
+                text = <"Corrected">
+                description = <"Results have been corrected due to error.">
+            >
+            ["at0.5"] = <
+                text = <"Cancelled">
+                description = <"Results have been cancelled, test invalid.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rapport de Résultats de Laboratoire">
+                description = <"Un rapport contenant les résultats d'une ou plusieurs investigations de laboratoire.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant du Rapport">
+                description = <"Identifiant unique pour ce rapport de résultats de laboratoire.">
+            >
+            ["id0.310"] = <
+                text = <"Résultat de Test de Laboratoire">
+                description = <"Résultat individuel de test de laboratoire utilisant l'archétype officiel laboratory_test_result.v1.">
+            >
+        >
+    >

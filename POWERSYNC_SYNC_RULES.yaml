@@ -1,0 +1,569 @@
+# PowerSync Sync Rules for MedZen-Iwani
+# Multi-Role Healthcare Application
+# Supports: Patient, Medical Provider, Facility Admin, System Admin
+
+bucket_definitions:
+  # =====================================================
+  # PATIENT BUCKET - Patient-specific data access
+  # =====================================================
+  patient_data:
+    # Identify patients - MUST be single table query
+    parameters: SELECT id as user_id FROM users WHERE firebase_uid = token_parameters.user_id()
+
+    data:
+      # 1. User's own profile data
+      - SELECT * FROM users WHERE id = bucket.user_id
+
+      # 2. Patient's profile
+      - SELECT * FROM patient_profiles WHERE user_id = bucket.user_id::text
+
+      # 3. Patient's electronic health records
+      - SELECT * FROM electronic_health_records WHERE patient_id = bucket.user_id::text
+
+      # 4. Patient's vital signs
+      - SELECT * FROM vital_signs WHERE patient_id = bucket.user_id::text
+
+      # 5. Patient's lab results
+      - SELECT * FROM lab_results WHERE patient_id = bucket.user_id::text
+
+      # 6. Patient's prescriptions
+      - SELECT * FROM prescriptions WHERE patient_id = bucket.user_id::text
+
+      # 7. Patient's immunizations
+      - SELECT * FROM immunizations WHERE patient_id = bucket.user_id::text
+
+      # 8. Patient's general medical records
+      - SELECT * FROM medical_records WHERE patient_id = bucket.user_id::text
+
+      # 9. Patient's allergies
+      - SELECT * FROM allergies WHERE patient_id = bucket.user_id::text
+
+      # 10. Patient's antenatal visits
+      - SELECT * FROM antenatal_visits WHERE patient_id = bucket.user_id::text
+
+      # 11. Patient's surgical procedures
+      - SELECT * FROM surgical_procedures WHERE patient_id = bucket.user_id::text
+
+      # 12. Patient's admissions/discharges
+      - SELECT * FROM admission_discharges WHERE patient_id = bucket.user_id::text
+
+      # 13. Patient's medication dispensing records
+      - SELECT * FROM medication_dispensing WHERE patient_id = bucket.user_id::text
+
+      # 14. Patient's clinical consultations
+      - SELECT * FROM clinical_consultations WHERE patient_id = bucket.user_id::text
+
+      # 15. Patient's oncology treatments
+      - SELECT * FROM oncology_treatments WHERE patient_id = bucket.user_id::text
+
+      # 16. Patient's infectious disease visits
+      - SELECT * FROM infectious_disease_visits WHERE patient_id = bucket.user_id::text
+
+      # 17. Patient's cardiology visits
+      - SELECT * FROM cardiology_visits WHERE patient_id = bucket.user_id::text
+
+      # 18. Patient's emergency visits
+      - SELECT * FROM emergency_visits WHERE patient_id = bucket.user_id::text
+
+      # 19. Patient's nephrology visits
+      - SELECT * FROM nephrology_visits WHERE patient_id = bucket.user_id::text
+
+      # 20. Patient's gastroenterology procedures
+      - SELECT * FROM gastroenterology_procedures WHERE patient_id = bucket.user_id::text
+
+      # 21. Patient's endocrinology visits
+      - SELECT * FROM endocrinology_visits WHERE patient_id = bucket.user_id::text
+
+      # 22. Patient's pulmonology visits
+      - SELECT * FROM pulmonology_visits WHERE patient_id = bucket.user_id::text
+
+      # 23. Patient's psychiatric assessments
+      - SELECT * FROM psychiatric_assessments WHERE patient_id = bucket.user_id::text
+
+      # 24. Patient's neurology exams
+      - SELECT * FROM neurology_exams WHERE patient_id = bucket.user_id::text
+
+      # 25. Patient's radiology reports
+      - SELECT * FROM radiology_reports WHERE patient_id = bucket.user_id::text
+
+      # 26. Patient's pathology reports
+      - SELECT * FROM pathology_reports WHERE patient_id = bucket.user_id::text
+
+      # 27. Patient's physiotherapy sessions
+      - SELECT * FROM physiotherapy_sessions WHERE patient_id = bucket.user_id::text
+
+      # 28. Patient's appointments
+      - SELECT * FROM appointments WHERE patient_id = bucket.user_id::text
+
+      # 29. Providers for patient's appointments (via subquery, not JOIN)
+      - SELECT * FROM medical_provider_profiles WHERE id IN (SELECT provider_id FROM appointments WHERE patient_id = bucket.user_id::text)
+
+      # 30. Users for patient's providers
+      - SELECT * FROM users WHERE id::text IN (SELECT user_id FROM medical_provider_profiles WHERE id IN (SELECT provider_id FROM appointments WHERE patient_id = bucket.user_id::text))
+
+      # 31. EHRbase sync queue entries for patient's data
+      - SELECT * FROM ehrbase_sync_queue WHERE record_id = bucket.user_id::text OR record_id IN (SELECT id::text FROM vital_signs WHERE patient_id = bucket.user_id::text) OR record_id IN (SELECT id::text FROM lab_results WHERE patient_id = bucket.user_id::text)
+
+      # === CHAT SYSTEM ===
+      # 32. Patient's video call sessions
+      - SELECT * FROM video_call_sessions WHERE patient_id = bucket.user_id::text
+
+      # 33. Patient's own conversations (via participants)
+      - SELECT * FROM conversations WHERE id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 34. Messages in patient's conversations
+      - SELECT * FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 35. Patient's participation records
+      - SELECT * FROM conversation_participants WHERE user_id = bucket.user_id
+
+      # 36. All participants in patient's conversations (to show names/avatars)
+      - SELECT * FROM conversation_participants WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 37. Message reactions in patient's conversations
+      - SELECT * FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id))
+
+      # === AI CHAT ===
+      # 38. Patient's AI conversations
+      - SELECT * FROM ai_conversations WHERE user_id = bucket.user_id::text
+
+      # 39. Messages in patient's AI conversations
+      - SELECT * FROM ai_messages WHERE conversation_id IN (SELECT id FROM ai_conversations WHERE user_id = bucket.user_id::text)
+
+      # 40. All AI assistants (read-only)
+      - SELECT * FROM ai_assistants WHERE is_active = TRUE
+
+  # =====================================================
+  # MEDICAL PROVIDER BUCKET - Provider-specific data access
+  # =====================================================
+  provider_data:
+    # Identify providers - single table query
+    parameters: SELECT id as user_id FROM users WHERE firebase_uid = token_parameters.user_id()
+
+    data:
+      # 1. Provider's own user profile
+      - SELECT * FROM users WHERE id = bucket.user_id
+
+      # 2. Provider's medical provider profile
+      - SELECT * FROM medical_provider_profiles WHERE user_id = bucket.user_id::text
+
+      # 3. Provider's appointments
+      - SELECT * FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text)
+
+      # 4. Patients with appointments with this provider
+      - SELECT * FROM users WHERE id::text IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 5. Patient profiles for provider's patients
+      - SELECT * FROM patient_profiles WHERE user_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 6. Electronic health records for provider's patients
+      - SELECT * FROM electronic_health_records WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 7. Vital signs for provider's patients
+      - SELECT * FROM vital_signs WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 8. Lab results for provider's patients
+      - SELECT * FROM lab_results WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 9. Prescriptions for provider's patients
+      - SELECT * FROM prescriptions WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 10. Immunizations for provider's patients
+      - SELECT * FROM immunizations WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 11. Medical records for provider's patients
+      - SELECT * FROM medical_records WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 12. Allergies for provider's patients
+      - SELECT * FROM allergies WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 13. Antenatal visits for provider's patients
+      - SELECT * FROM antenatal_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 14. Surgical procedures for provider's patients
+      - SELECT * FROM surgical_procedures WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 15. Admissions/discharges for provider's patients
+      - SELECT * FROM admission_discharges WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 16. Medication dispensing for provider's patients
+      - SELECT * FROM medication_dispensing WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 17. Clinical consultations for provider's patients
+      - SELECT * FROM clinical_consultations WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 18. Oncology treatments for provider's patients
+      - SELECT * FROM oncology_treatments WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 19. Infectious disease visits for provider's patients
+      - SELECT * FROM infectious_disease_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 20. Cardiology visits for provider's patients
+      - SELECT * FROM cardiology_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 21. Emergency visits for provider's patients
+      - SELECT * FROM emergency_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 22. Nephrology visits for provider's patients
+      - SELECT * FROM nephrology_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 23. Gastroenterology procedures for provider's patients
+      - SELECT * FROM gastroenterology_procedures WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 24. Endocrinology visits for provider's patients
+      - SELECT * FROM endocrinology_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 25. Pulmonology visits for provider's patients
+      - SELECT * FROM pulmonology_visits WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 26. Psychiatric assessments for provider's patients
+      - SELECT * FROM psychiatric_assessments WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 27. Neurology exams for provider's patients
+      - SELECT * FROM neurology_exams WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 28. Radiology reports for provider's patients
+      - SELECT * FROM radiology_reports WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 29. Pathology reports for provider's patients
+      - SELECT * FROM pathology_reports WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 30. Physiotherapy sessions for provider's patients
+      - SELECT * FROM physiotherapy_sessions WHERE patient_id IN (SELECT patient_id FROM appointments WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text))
+
+      # 31. Facilities where this provider works
+      - SELECT * FROM facility_providers WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text)
+
+      # 32. Provider's availability schedule
+      - SELECT * FROM provider_availability WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text)
+
+      # 33. Provider's schedule exceptions
+      - SELECT * FROM provider_schedule_exceptions WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text)
+
+      # === CHAT SYSTEM ===
+      # 34. Provider's video call sessions
+      - SELECT * FROM video_call_sessions WHERE provider_id IN (SELECT id FROM medical_provider_profiles WHERE user_id = bucket.user_id::text)
+
+      # 35. Provider's conversations
+      - SELECT * FROM conversations WHERE id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 36. Messages in provider's conversations
+      - SELECT * FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 37. All participants in provider's conversations (to show names/avatars)
+      - SELECT * FROM conversation_participants WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 38. Reactions in provider's conversations
+      - SELECT * FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id))
+
+      # === AI CHAT ===
+      # 39. All AI assistants (read-only, for provider reference)
+      - SELECT * FROM ai_assistants WHERE is_active = TRUE
+
+  # =====================================================
+  # FACILITY ADMIN BUCKET - Facility-wide data access
+  # =====================================================
+  facility_admin_data:
+    # Identify facility admins - single table query
+    parameters: SELECT id as user_id FROM users WHERE firebase_uid = token_parameters.user_id()
+
+    data:
+      # 1. Admin's own user profile
+      - SELECT * FROM users WHERE id = bucket.user_id
+
+      # 2. Admin's facility admin profile
+      - SELECT * FROM facility_admin_profiles WHERE user_id = bucket.user_id::text
+
+      # 3. All providers at admin's facility
+      - SELECT * FROM facility_providers WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text)
+
+      # 4. Provider profiles at facility
+      - SELECT * FROM medical_provider_profiles WHERE id IN (SELECT provider_id FROM facility_providers WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 5. User records for all providers at facility
+      - SELECT * FROM users WHERE id::text IN (SELECT user_id FROM medical_provider_profiles WHERE id IN (SELECT provider_id FROM facility_providers WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text)))
+
+      # 6. All appointments at admin's facility
+      - SELECT * FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text)
+
+      # 7. All patients with appointments at facility
+      - SELECT * FROM users WHERE id::text IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 8. Patient profiles for facility patients
+      - SELECT * FROM patient_profiles WHERE user_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 9. Electronic health records for facility patients
+      - SELECT * FROM electronic_health_records WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 10. Vital signs for facility patients
+      - SELECT * FROM vital_signs WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 11. Lab results for facility patients
+      - SELECT * FROM lab_results WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 12. Prescriptions for facility patients
+      - SELECT * FROM prescriptions WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 13. Immunizations for facility patients
+      - SELECT * FROM immunizations WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 14. Medical records for facility patients
+      - SELECT * FROM medical_records WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 15. Antenatal visits for facility patients
+      - SELECT * FROM antenatal_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 16. Surgical procedures for facility patients
+      - SELECT * FROM surgical_procedures WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 17. Admissions/discharges for facility patients
+      - SELECT * FROM admission_discharges WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 18. Medication dispensing for facility patients
+      - SELECT * FROM medication_dispensing WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 19. Clinical consultations for facility patients
+      - SELECT * FROM clinical_consultations WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 20. Oncology treatments for facility patients
+      - SELECT * FROM oncology_treatments WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 21. Infectious disease visits for facility patients
+      - SELECT * FROM infectious_disease_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 22. Cardiology visits for facility patients
+      - SELECT * FROM cardiology_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 23. Emergency visits for facility patients
+      - SELECT * FROM emergency_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 24. Nephrology visits for facility patients
+      - SELECT * FROM nephrology_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 25. Gastroenterology procedures for facility patients
+      - SELECT * FROM gastroenterology_procedures WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 26. Endocrinology visits for facility patients
+      - SELECT * FROM endocrinology_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 27. Pulmonology visits for facility patients
+      - SELECT * FROM pulmonology_visits WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 28. Psychiatric assessments for facility patients
+      - SELECT * FROM psychiatric_assessments WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 29. Neurology exams for facility patients
+      - SELECT * FROM neurology_exams WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 30. Radiology reports for facility patients
+      - SELECT * FROM radiology_reports WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 31. Pathology reports for facility patients
+      - SELECT * FROM pathology_reports WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 32. Physiotherapy sessions for facility patients
+      - SELECT * FROM physiotherapy_sessions WHERE patient_id IN (SELECT DISTINCT patient_id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 33. Pharmacy stock at facility
+      - SELECT * FROM pharmacy_stock WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text)
+
+      # 34. Facility departments
+      - SELECT * FROM facility_departments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text)
+
+      # 35. Facility reports
+      - SELECT * FROM facility_reports WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text)
+
+      # 36. Provider availability at facility
+      - SELECT * FROM provider_availability WHERE provider_id IN (SELECT provider_id FROM facility_providers WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # === CHAT SYSTEM ===
+      # 37. Video call sessions at facility
+      - SELECT * FROM video_call_sessions WHERE appointment_id IN (SELECT id FROM appointments WHERE facility_id IN (SELECT facility_id FROM facility_admin_profiles WHERE user_id = bucket.user_id::text))
+
+      # 38. Admin's conversations
+      - SELECT * FROM conversations WHERE id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 39. Messages in admin's conversations
+      - SELECT * FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 40. All participants in admin's conversations
+      - SELECT * FROM conversation_participants WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id)
+
+      # 41. Reactions in admin's conversations
+      - SELECT * FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE conversation_id IN (SELECT conversation_id FROM conversation_participants WHERE user_id = bucket.user_id))
+
+      # === AI CHAT ===
+      # 42. All AI assistants (read-only)
+      - SELECT * FROM ai_assistants WHERE is_active = TRUE
+
+  # =====================================================
+  # SYSTEM ADMIN BUCKET - Full system access
+  # =====================================================
+  system_admin_data:
+    # Identify system admins - single table query
+    parameters: SELECT id as user_id FROM users WHERE firebase_uid = token_parameters.user_id()
+
+    data:
+      # 1. Admin's own user profile
+      - SELECT * FROM users WHERE id = bucket.user_id
+
+      # 2. System admin profile
+      - SELECT * FROM system_admin_profiles WHERE user_id = bucket.user_id::text
+
+      # 3. ALL users in the system (filter to ensure bucket param is used)
+      - SELECT * FROM users WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 4. ALL patient profiles
+      - SELECT * FROM patient_profiles WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 5. ALL provider profiles
+      - SELECT * FROM medical_provider_profiles WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 6. ALL facility admin profiles
+      - SELECT * FROM facility_admin_profiles WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 7. ALL appointments
+      - SELECT * FROM appointments WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 8. ALL electronic health records
+      - SELECT * FROM electronic_health_records WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 9. ALL vital signs
+      - SELECT * FROM vital_signs WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 10. ALL lab results
+      - SELECT * FROM lab_results WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 11. ALL prescriptions
+      - SELECT * FROM prescriptions WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 12. ALL immunizations
+      - SELECT * FROM immunizations WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 13. ALL medical records
+      - SELECT * FROM medical_records WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 14. ALL allergies
+      - SELECT * FROM allergies WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 15. ALL antenatal visits
+      - SELECT * FROM antenatal_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 16. ALL surgical procedures
+      - SELECT * FROM surgical_procedures WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 17. ALL admissions/discharges
+      - SELECT * FROM admission_discharges WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 18. ALL medication dispensing
+      - SELECT * FROM medication_dispensing WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 19. ALL pharmacy stock
+      - SELECT * FROM pharmacy_stock WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 20. ALL clinical consultations
+      - SELECT * FROM clinical_consultations WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 21. ALL oncology treatments
+      - SELECT * FROM oncology_treatments WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 22. ALL infectious disease visits
+      - SELECT * FROM infectious_disease_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 23. ALL cardiology visits
+      - SELECT * FROM cardiology_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 24. ALL emergency visits
+      - SELECT * FROM emergency_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 25. ALL nephrology visits
+      - SELECT * FROM nephrology_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 26. ALL gastroenterology procedures
+      - SELECT * FROM gastroenterology_procedures WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 27. ALL endocrinology visits
+      - SELECT * FROM endocrinology_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 28. ALL pulmonology visits
+      - SELECT * FROM pulmonology_visits WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 29. ALL psychiatric assessments
+      - SELECT * FROM psychiatric_assessments WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 30. ALL neurology exams
+      - SELECT * FROM neurology_exams WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 31. ALL radiology reports
+      - SELECT * FROM radiology_reports WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 32. ALL pathology reports
+      - SELECT * FROM pathology_reports WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 33. ALL physiotherapy sessions
+      - SELECT * FROM physiotherapy_sessions WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 34. ALL facility providers
+      - SELECT * FROM facility_providers WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 16. ALL facility departments
+      - SELECT * FROM facility_departments WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 17. ALL facility reports
+      - SELECT * FROM facility_reports WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 18. ALL provider schedules
+      - SELECT * FROM provider_availability WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 19. ALL provider schedule exceptions
+      - SELECT * FROM provider_schedule_exceptions WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 20. ALL sync queue entries
+      - SELECT * FROM ehrbase_sync_queue WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 21. System admin statistics
+      - SELECT * FROM system_admin_appointment_stats WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 22. System admin clinical stats
+      - SELECT * FROM system_admin_clinical_stats WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 23. System admin facility stats
+      - SELECT * FROM system_admin_facility_stats WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 24. System-wide monitoring
+      - SELECT * FROM openehr_integration_health WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 25. User activity logs
+      - SELECT * FROM user_activity_logs WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 26. Email logs
+      - SELECT * FROM email_logs WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 27. Feedback
+      - SELECT * FROM feedback WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # === CHAT SYSTEM (System Admin sees ALL) ===
+      # 28. ALL video call sessions
+      - SELECT * FROM video_call_sessions WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 29. ALL conversations
+      - SELECT * FROM conversations WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 30. ALL messages
+      - SELECT * FROM messages WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 31. ALL conversation participants
+      - SELECT * FROM conversation_participants WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 32. ALL message reactions
+      - SELECT * FROM message_reactions WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # === AI CHAT (System Admin sees ALL) ===
+      # 33. ALL AI assistants
+      - SELECT * FROM ai_assistants WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 34. ALL AI conversations
+      - SELECT * FROM ai_conversations WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL
+
+      # 35. ALL AI messages
+      - SELECT * FROM ai_messages WHERE id IS NOT NULL OR bucket.user_id IS NOT NULL

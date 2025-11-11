@@ -1,0 +1,322 @@
+# =====================================================
+# Medical Providers GraphQL Query
+# =====================================================
+# Comprehensive query for fetching medical provider data
+# including user info, profile details, and provider type metadata
+#
+# Usage: Execute via Supabase GraphQL API or Dashboard
+# =====================================================
+
+query GetMedicalProviders($limit: Int = 10, $offset: Int = 0, $userId: UUID) {
+  # Main provider profiles query
+  medical_provider_profilesCollection(
+    first: $limit
+    offset: $offset
+    filter: { user_id: { eq: $userId } }
+    orderBy: { created_at: DescNullsLast }
+  ) {
+    edges {
+      node {
+        id
+        user_id
+        created_at
+        updated_at
+
+        # Professional Information
+        professional_role
+        medical_license_number
+        license_issuing_authority
+        license_expiry_date
+        professional_registration_number
+
+        # Specializations
+        primary_specialization
+        secondary_specializations
+        sub_specialties
+        areas_of_expertise
+
+        # Education & Training
+        medical_school
+        graduation_year
+        residency_programs
+        fellowship_programs
+        board_certifications
+        continuing_education_credits
+        years_of_experience
+        previous_positions
+
+        # Practice Details
+        practice_type
+        consultation_fee_range
+        languages_spoken
+        working_hours
+        max_patients_per_day
+        consultation_duration_minutes
+
+        # Telemedicine Settings
+        accepts_emergency_calls
+        telemedicine_setup_complete
+        video_consultation_enabled
+        audio_consultation_enabled
+        chat_consultation_enabled
+        ussd_consultation_enabled
+
+        # Performance Metrics
+        total_consultations
+        patient_satisfaction_avg
+        response_time_avg_minutes
+        consultation_completion_rate
+
+        # Professional Affiliations
+        hospital_affiliations
+        professional_memberships
+
+        # Content Creator Status
+        content_creator_status
+        total_posts_created
+        total_followers
+        content_engagement_score
+
+        # Verification Status
+        background_check_completed
+        malpractice_insurance_valid
+        application_status
+
+        # Additional Fields
+        is_specialist
+        unique_identifier
+        preferred_language
+        timezone
+        profile_picture_url
+        bio
+        notes
+
+        # Join with user data
+        users {
+          id
+          full_name
+          email
+          phone_number
+          date_of_birth
+          gender
+          country
+          preferred_language
+          timezone
+          account_status
+          avatar_url
+          created_at
+          updated_at
+          last_seen_at
+          unique_patient_id
+        }
+
+        # Join with provider type metadata
+        medical_provider_types(
+          filter: { provider_type_name: { eq: $professional_role } }
+        ) {
+          id
+          provider_type_name
+          provider_type_code
+          description
+          requires_medical_license
+          requires_board_certification
+          can_prescribe_medication
+          supervision_required
+          display_order
+          is_active
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+
+  # Get provider specialties count
+  provider_specialtiesCollection(
+    filter: { provider_id: { eq: $userId } }
+  ) {
+    edges {
+      node {
+        id
+        provider_id
+        specialty_id
+        is_primary
+        years_of_experience
+        certification_details
+
+        specialties {
+          id
+          specialty_name
+          specialty_code
+          category
+          description
+        }
+      }
+    }
+  }
+
+  # Get total providers count
+  medical_provider_profilesCollection {
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}
+
+# =====================================================
+# Query for All Active Providers (No Filter)
+# =====================================================
+
+query GetAllActiveProviders($limit: Int = 50, $offset: Int = 0) {
+  medical_provider_profilesCollection(
+    first: $limit
+    offset: $offset
+    filter: { application_status: { eq: "approved" } }
+    orderBy: { created_at: DescNullsLast }
+  ) {
+    edges {
+      node {
+        id
+        user_id
+        professional_role
+        primary_specialization
+        practice_type
+        years_of_experience
+        application_status
+
+        users {
+          full_name
+          email
+          phone_number
+          country
+        }
+
+        medical_provider_types(
+          filter: { provider_type_name: { eq: $professional_role } }
+        ) {
+          provider_type_code
+          description
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+  }
+}
+
+# =====================================================
+# Query by Provider Type
+# =====================================================
+
+query GetProvidersByType($providerType: String!, $limit: Int = 20) {
+  medical_provider_profilesCollection(
+    first: $limit
+    filter: {
+      professional_role: { eq: $providerType }
+      application_status: { eq: "approved" }
+    }
+    orderBy: { years_of_experience: DescNullsLast }
+  ) {
+    edges {
+      node {
+        id
+        user_id
+        professional_role
+        primary_specialization
+        years_of_experience
+        consultation_fee_range
+        languages_spoken
+        video_consultation_enabled
+        patient_satisfaction_avg
+
+        users {
+          full_name
+          email
+          phone_number
+          avatar_url
+        }
+      }
+    }
+  }
+}
+
+# =====================================================
+# Query by Specialization
+# =====================================================
+
+query GetProvidersBySpecialization($specialization: String!, $limit: Int = 20) {
+  medical_provider_profilesCollection(
+    first: $limit
+    filter: {
+      primary_specialization: { eq: $specialization }
+      application_status: { eq: "approved" }
+    }
+    orderBy: { patient_satisfaction_avg: DescNullsLast }
+  ) {
+    edges {
+      node {
+        id
+        user_id
+        professional_role
+        primary_specialization
+        years_of_experience
+        consultation_fee_range
+        patient_satisfaction_avg
+        total_consultations
+
+        users {
+          full_name
+          email
+          avatar_url
+        }
+      }
+    }
+  }
+}
+
+# =====================================================
+# Aggregate Query - Provider Statistics
+# =====================================================
+
+query GetProviderStatistics {
+  # Count by provider type
+  medical_provider_types_aggregateCollection {
+    edges {
+      node {
+        provider_type_name
+        provider_type_code
+        # Note: Aggregations may need to be done via separate queries
+      }
+    }
+  }
+
+  # Total active providers
+  medical_provider_profilesCollection(
+    filter: { application_status: { eq: "approved" } }
+  ) {
+    edges {
+      node {
+        id
+      }
+    }
+  }
+
+  # Pending applications
+  medical_provider_profilesCollection(
+    filter: { application_status: { eq: "pending" } }
+  ) {
+    edges {
+      node {
+        id
+      }
+    }
+  }
+}

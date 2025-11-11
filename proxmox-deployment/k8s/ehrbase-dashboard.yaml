@@ -1,0 +1,368 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ehrbase-dashboard
+  namespace: ehrbase
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>EHRbase Dashboard</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+            .login-page {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+            }
+            .login-box {
+                background: white;
+                padding: 40px;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                max-width: 400px;
+                width: 100%;
+            }
+            .login-box h1 {
+                color: #667eea;
+                font-size: 28px;
+                margin-bottom: 10px;
+                text-align: center;
+            }
+            .login-box p {
+                color: #666;
+                font-size: 14px;
+                margin-bottom: 30px;
+                text-align: center;
+            }
+            .form-group { margin-bottom: 20px; }
+            .form-group label {
+                display: block;
+                color: #333;
+                font-size: 14px;
+                font-weight: 500;
+                margin-bottom: 8px;
+            }
+            .form-group input {
+                width: 100%;
+                padding: 12px;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 14px;
+            }
+            .login-btn {
+                width: 100%;
+                padding: 12px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            .error-box {
+                background: #fee;
+                color: #c00;
+                padding: 12px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            .dashboard-page { max-width: 1400px; margin: 0 auto; }
+            .header {
+                background: white;
+                padding: 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                margin-bottom: 30px;
+                position: relative;
+            }
+            .header h1 { color: #667eea; font-size: 32px; margin-bottom: 10px; }
+            .header p { color: #666; font-size: 16px; }
+            .logout-btn {
+                position: absolute;
+                top: 30px;
+                right: 30px;
+                padding: 10px 20px;
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            .status-bar { display: flex; gap: 20px; margin-top: 20px; }
+            .status-item {
+                flex: 1;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                text-align: center;
+            }
+            .status-item h3 {
+                font-size: 32px;
+                margin-bottom: 8px;
+                color: #ffffff;
+                font-weight: 700;
+            }
+            .status-item p {
+                font-size: 15px;
+                color: #ffffff;
+                font-weight: 500;
+            }
+            .tabs {
+                background: white;
+                padding: 0;
+                border-radius: 15px;
+                box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }
+            .tab-buttons { display: flex; border-bottom: 2px solid #f0f0f0; }
+            .tab-btn {
+                flex: 1;
+                padding: 20px;
+                background: white;
+                border: none;
+                font-size: 16px;
+                font-weight: 600;
+                color: #666;
+                cursor: pointer;
+            }
+            .tab-btn.active { color: #667eea; }
+            .tab-content { padding: 30px; }
+            .card {
+                background: #f9f9f9;
+                padding: 20px;
+                border-radius: 10px;
+                margin-bottom: 15px;
+                border-left: 4px solid #667eea;
+            }
+            .card h3 { color: #333; font-size: 18px; margin-bottom: 10px; }
+            .card p { color: #666; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div id="login" class="login-page">
+            <div class="login-box">
+                <h1>🏥 EHRbase Dashboard</h1>
+                <p>Medical Records - MedZen Iwani</p>
+                <div id="err" style="display:none" class="error-box"></div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="u">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="p">
+                </div>
+                <button class="login-btn" onclick="login()">Login</button>
+            </div>
+        </div>
+
+        <div id="dash" style="display:none" class="dashboard-page">
+            <div class="header">
+                <h1>🏥 EHRbase Dashboard</h1>
+                <p>MedZen Iwani - OpenEHR Records</p>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+                <div class="status-bar">
+                    <div class="status-item"><h3 id="tc">-</h3><p>Templates</p></div>
+                    <div class="status-item"><h3 id="ec">-</h3><p>EHRs</p></div>
+                    <div class="status-item"><h3 id="st">⏳</h3><p>Status</p></div>
+                </div>
+            </div>
+            <div class="tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="tab(1)">Templates</button>
+                    <button class="tab-btn" onclick="tab(2)">EHRs</button>
+                </div>
+                <div id="t1" class="tab-content">Loading templates...</div>
+                <div id="t2" class="tab-content" style="display:none">Loading EHRs...</div>
+            </div>
+        </div>
+
+        <script>
+            function login() {
+                console.log('Login clicked');
+                const u = document.getElementById('u').value;
+                const p = document.getElementById('p').value;
+                console.log('User:', u, 'Pass length:', p.length);
+                
+                if (u === 'admin' && p === 'MedZenAdmin2025!') {
+                    console.log('SUCCESS - showing dashboard');
+                    document.getElementById('err').style.display = 'none';
+                    document.getElementById('login').style.display = 'none';
+                    document.getElementById('dash').style.display = 'block';
+                    load();
+                } else {
+                    console.log('FAIL - wrong credentials');
+                    const e = document.getElementById('err');
+                    e.textContent = '❌ Invalid username or password';
+                    e.style.display = 'block';
+                }
+            }
+
+            function logout() {
+                console.log('Logout clicked');
+                document.getElementById('login').style.display = 'flex';
+                document.getElementById('dash').style.display = 'none';
+                document.getElementById('u').value = '';
+                document.getElementById('p').value = '';
+            }
+
+            function tab(n) {
+                document.querySelectorAll('.tab-btn').forEach((b,i) => {
+                    b.className = i+1 === n ? 'tab-btn active' : 'tab-btn';
+                });
+                document.getElementById('t1').style.display = n === 1 ? 'block' : 'none';
+                document.getElementById('t2').style.display = n === 2 ? 'block' : 'none';
+            }
+
+            const AUTH = 'Basic ' + btoa('ehrbase-user:ehrbase-password');
+
+            async function get(url) {
+                const r = await fetch('/ehrbase' + url, { headers: { 'Authorization': AUTH } });
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                return await r.json();
+            }
+
+            async function loadT() {
+                try {
+                    const d = await get('/rest/openehr/v1/definition/template/adl1.4');
+                    const ts = d.templates || [];
+                    document.getElementById('tc').textContent = ts.length;
+                    document.getElementById('t1').innerHTML = ts.length === 0 
+                        ? '<p>No templates</p>'
+                        : ts.map(t => `<div class="card"><h3>${t.template_id}</h3><p>Created: ${new Date(t.created_timestamp).toLocaleString()}</p></div>`).join('');
+                } catch(e) {
+                    document.getElementById('t1').innerHTML = '<p>Error: ' + e.message + '</p>';
+                }
+            }
+
+            async function loadE() {
+                try {
+                    const r = await get('/rest/openehr/v1/query/aql?q=' + encodeURIComponent('SELECT e/ehr_id/value FROM EHR e'));
+                    const ids = (r.rows || []).map(x => x[0]);
+                    document.getElementById('ec').textContent = ids.length;
+                    
+                    if (ids.length === 0) {
+                        document.getElementById('t2').innerHTML = '<p>No EHRs</p>';
+                        return;
+                    }
+                    
+                    const ehrs = await Promise.all(ids.map(id => get('/rest/openehr/v1/ehr/' + id).catch(() => null)));
+                    const ok = ehrs.filter(x => x);
+                    document.getElementById('t2').innerHTML = ok.map(e => 
+                        `<div class="card"><h3>EHR: ${e.ehr_id.value}</h3><p>Created: ${new Date(e.time_created.value).toLocaleString()}</p></div>`
+                    ).join('');
+                } catch(e) {
+                    document.getElementById('t2').innerHTML = '<p>Error: ' + e.message + '</p>';
+                }
+            }
+
+            async function load() {
+                await Promise.all([loadT(), loadE()]);
+                document.getElementById('st').textContent = '✅';
+                setInterval(() => load(), 30000);
+            }
+
+            // Allow Enter key to login
+            document.getElementById('p').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') login();
+            });
+        </script>
+    </body>
+    </html>
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-proxy-config
+  namespace: ehrbase
+data:
+  nginx.conf: |
+    events { worker_connections 1024; }
+    http {
+        include /etc/nginx/mime.types;
+        default_type application/octet-stream;
+        server {
+            listen 80;
+            server_name _;
+            location / {
+                root /usr/share/nginx/html;
+                index index.html;
+                try_files $uri $uri/ /index.html;
+            }
+            location /ehrbase/ {
+                proxy_pass http://ehrbase:8080/ehrbase/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+                proxy_pass_request_headers on;
+            }
+        }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-ehrbase-proxy
+  namespace: ehrbase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-ehrbase-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-ehrbase-proxy
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: dashboard-html
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-proxy-config
+      - name: dashboard-html
+        configMap:
+          name: ehrbase-dashboard
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-ehrbase-proxy
+  namespace: ehrbase
+spec:
+  type: NodePort
+  selector:
+    app: nginx-ehrbase-proxy
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30082

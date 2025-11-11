@@ -1,0 +1,9 @@
+NSCameraUsageDescription = "allow usage ";
+NSPhotoLibraryUsageDescription = "allow usage ";
+NSBluetoothAlwaysUsageDescription = "allow usage ";
+NSFaceIDUsageDescription = "allow usage ";
+NSCalendarsUsageDescription = "allow usage ";
+NSContactsUsageDescription = "allow usage ";
+NSLocationWhenInUseUsageDescription = "allow usage ";
+NSMicrophoneUsageDescription = "allow usage ";
+PermissionGroupNotification = "allow usage ";

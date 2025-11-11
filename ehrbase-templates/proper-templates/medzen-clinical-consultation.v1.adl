@@ -1,0 +1,295 @@
+-- MedZen Clinical Consultation Template
+-- Comprehensive consultation/encounter template
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_clinical_consultation.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive clinical consultation including history, examination, problems, diagnoses, and care plan.">
+            use = <"Used for telemedicine consultations, specialist referrals, and standard clinical encounters across all medical specialties supported by MedZen platform.">
+            keywords = <"consultation", "encounter", "diagnosis", "examination", "care plan", "telemedicine">
+            misuse = <"Not for recording standalone vital signs (use vital signs encounter template). Not for detailed surgical procedures (use procedure templates).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une consultation clinique complète incluant l'histoire, l'examen, les problèmes, les diagnostics et le plan de soins.">
+            use = <"Utilisé pour les consultations de télémédecine, les références spécialisées et les rencontres cliniques standard dans toutes les spécialités médicales supportées par la plateforme MedZen.">
+            keywords = <"consultation", "rencontre", "diagnostic", "examen", "plan de soins", "télémédecine">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Clinical Consultation
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Consultation ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Consultation"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Specialty
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- General Medicine
+                                            at0.2,    -- Pediatrics
+                                            at0.3,    -- Obstetrics/Gynecology
+                                            at0.4,    -- Cardiology
+                                            at0.5,    -- Oncology
+                                            at0.6,    -- Dermatology
+                                            at0.7,    -- Psychiatry
+                                            at0.8,    -- Surgery
+                                            at0.9]    -- Other
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Consultation Mode
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.10,    -- Telemedicine (video)
+                                            at0.11,    -- Telemedicine (audio)
+                                            at0.12,    -- In-person
+                                            at0.13]    -- Home visit
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- History/Story Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- History
+
+            -- Presenting Complaint
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..*}
+
+            -- Vital Signs Section (optional in consultation)
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+
+            -- Examination Findings Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Examination
+
+            -- Physical examination findings
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Problem/Diagnosis List
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}
+
+            -- Individual problems/diagnoses using official archetype
+            use_archetype EVALUATION[id0.410, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Assessment Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Assessment
+
+            -- Clinical Synopsis/Summary
+            use_archetype EVALUATION[id0.510, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Care Plan Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Plan
+
+            -- Medication orders using official archetype
+            use_archetype INSTRUCTION[id0.610, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Service requests (lab tests, imaging, referrals)
+            use_archetype INSTRUCTION[id0.620, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up instructions
+            use_archetype INSTRUCTION[id0.630, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Patient education/advice
+            use_archetype EVALUATION[id0.640, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Clinical Consultation">
+                description = <"A comprehensive clinical consultation encounter.">
+            >
+            ["id0.1"] = <
+                text = <"Consultation ID">
+                description = <"Unique identifier for this consultation.">
+            >
+            ["id0.3"] = <
+                text = <"Specialty">
+                description = <"Medical specialty of the consultation.">
+            >
+            ["id0.5"] = <
+                text = <"Consultation Mode">
+                description = <"Mode of consultation delivery.">
+            >
+            ["id0.100"] = <
+                text = <"History">
+                description = <"Patient history and presenting complaint section.">
+            >
+            ["id0.110"] = <
+                text = <"Story/History">
+                description = <"Patient's narrative about their health concerns using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Vital Signs">
+                description = <"Vital signs measurements during consultation.">
+            >
+            ["id0.300"] = <
+                text = <"Examination Findings">
+                description = <"Physical examination findings section.">
+            >
+            ["id0.310"] = <
+                text = <"Physical Examination">
+                description = <"Structured physical examination using exam.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Problem/Diagnosis List">
+                description = <"List of identified problems and diagnoses.">
+            >
+            ["id0.410"] = <
+                text = <"Problem/Diagnosis">
+                description = <"Individual problem or diagnosis using official problem_diagnosis.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Assessment">
+                description = <"Clinical assessment and interpretation section.">
+            >
+            ["id0.510"] = <
+                text = <"Clinical Synopsis">
+                description = <"Summary clinical assessment using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Care Plan">
+                description = <"Treatment and follow-up plan section.">
+            >
+            ["id0.610"] = <
+                text = <"Medication Order">
+                description = <"Medication prescription using official medication_order.v3 archetype.">
+            >
+            ["id0.620"] = <
+                text = <"Service Request">
+                description = <"Request for laboratory, imaging, or specialist services using service_request.v1 archetype.">
+            >
+            ["id0.630"] = <
+                text = <"Care Plan Instructions">
+                description = <"Follow-up and care plan instructions using care_plan.v0 archetype.">
+            >
+            ["id0.640"] = <
+                text = <"Recommendation/Advice">
+                description = <"Patient education and recommendations using recommendation.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for encounter.">
+            >
+            ["at0.1"] = <
+                text = <"General Medicine">
+                description = <"General/family medicine consultation.">
+            >
+            ["at0.2"] = <
+                text = <"Pediatrics">
+                description = <"Child health consultation.">
+            >
+            ["at0.3"] = <
+                text = <"Obstetrics/Gynecology">
+                description = <"Women's health and maternity consultation.">
+            >
+            ["at0.4"] = <
+                text = <"Cardiology">
+                description = <"Heart and cardiovascular consultation.">
+            >
+            ["at0.5"] = <
+                text = <"Oncology">
+                description = <"Cancer care consultation.">
+            >
+            ["at0.6"] = <
+                text = <"Dermatology">
+                description = <"Skin condition consultation.">
+            >
+            ["at0.7"] = <
+                text = <"Psychiatry">
+                description = <"Mental health consultation.">
+            >
+            ["at0.8"] = <
+                text = <"Surgery">
+                description = <"Surgical consultation.">
+            >
+            ["at0.9"] = <
+                text = <"Other">
+                description = <"Other specialty consultation.">
+            >
+            ["at0.10"] = <
+                text = <"Telemedicine (video)">
+                description = <"Remote video consultation.">
+            >
+            ["at0.11"] = <
+                text = <"Telemedicine (audio)">
+                description = <"Remote audio-only consultation.">
+            >
+            ["at0.12"] = <
+                text = <"In-person">
+                description = <"Face-to-face consultation at facility.">
+            >
+            ["at0.13"] = <
+                text = <"Home visit">
+                description = <"Consultation at patient's home.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Consultation Clinique">
+                description = <"Une rencontre de consultation clinique complète.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Consultation">
+                description = <"Identifiant unique pour cette consultation.">
+            >
+            ["id0.410"] = <
+                text = <"Problème/Diagnostic">
+                description = <"Problème individuel ou diagnostic utilisant l'archétype officiel problem_diagnosis.v1.">
+            >
+        >
+    >

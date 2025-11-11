@@ -1,0 +1,428 @@
+-- MedZen Surgical Procedure Report Template
+-- Operative report for surgical procedures
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_surgical_procedure_report.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.report.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record comprehensive documentation of a surgical procedure including pre-operative assessment, intraoperative findings and events, and immediate post-operative status.">
+            use = <"Used for operative reports across all surgical specialties. Documents complete surgical episode including indications, technique, findings, complications, and immediate outcomes. Required for medicolegal documentation and continuity of care.">
+            keywords = <"surgery", "operation", "procedure", "operative report", "surgical", "anesthesia">
+            misuse = <"Not for recording post-operative follow-up visits (use encounter template). Not for pre-operative consultation (use consultation template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer la documentation complète d'une procédure chirurgicale incluant l'évaluation préopératoire, les constatations et événements peropératoires, et le statut postopératoire immédiat.">
+            use = <"Utilisé pour les rapports opératoires dans toutes les spécialités chirurgicales. Documente l'épisode chirurgical complet.">
+            keywords = <"chirurgie", "opération", "procédure", "rapport opératoire", "chirurgical", "anesthésie">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Surgical Procedure Report
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Procedure ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Surgical Procedure"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Date/Time of Procedure
+                                value matches {
+                                    DV_DATE_TIME[id0.4]
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Duration
+                                value matches {
+                                    DV_DURATION[id0.6]
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Urgency
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Elective
+                                            at0.2,    -- Urgent
+                                            at0.3]    -- Emergency
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Surgical Team Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Surgical Team
+
+            -- Pre-operative Diagnosis Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1}
+
+            -- Pre-operative diagnosis
+            use_archetype EVALUATION[id0.210, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Indication for Procedure Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Indication
+
+            -- Clinical indication for surgery
+            use_archetype EVALUATION[id0.310, openEHR-EHR-EVALUATION.reason_for_encounter.v1] occurrences matches {1}
+
+            -- Pre-operative Assessment Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pre-operative Assessment
+
+            -- Pre-operative vital signs
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.420, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+
+            -- ASA classification
+            use_archetype EVALUATION[id0.430, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+
+            -- Anesthesia Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Anesthesia
+
+            -- Type of anesthesia administered
+            use_archetype ACTION[id0.510, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Anesthesia details and monitoring
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Procedure Performed Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Procedure
+
+            -- Surgical procedure performed using official archetype
+            use_archetype ACTION[id0.610, openEHR-EHR-ACTION.procedure.v1] occurrences matches {1..*}
+
+            -- Operative Findings Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Operative Findings
+
+            -- Intraoperative findings and observations
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {1}
+
+            -- Surgical Technique Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Surgical Technique
+
+            -- Detailed description of surgical technique
+            use_archetype EVALUATION[id0.810, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {1}
+
+            -- Specimens Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Specimens
+
+            -- Specimens removed and sent for analysis
+            use_archetype CLUSTER[id0.910, openEHR-EHR-CLUSTER.specimen.v1] occurrences matches {0..*}
+
+            -- Implants and Devices Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Implants
+
+            -- Implants, prosthetics, or medical devices inserted
+            use_archetype CLUSTER[id1.010, openEHR-EHR-CLUSTER.device.v1] occurrences matches {0..*}
+
+            -- Intraoperative Events Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Intraoperative Events
+
+            -- Complications or significant events during surgery
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Blood loss
+            use_archetype OBSERVATION[id1.120, openEHR-EHR-OBSERVATION.fluid_balance.v1] occurrences matches {0..1}
+
+            -- Intraoperative medications and fluids
+            use_archetype ACTION[id1.130, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Post-operative Diagnosis Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {1}
+
+            -- Post-operative diagnosis (may differ from pre-operative)
+            use_archetype EVALUATION[id1.210, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Post-operative Status Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Post-operative Status
+
+            -- Patient condition at end of procedure
+            use_archetype EVALUATION[id1.310, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {1}
+
+            -- Post-operative vital signs
+            use_archetype OBSERVATION[id1.320, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id1.330, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+
+            -- Complications Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Complications
+
+            -- Intraoperative or immediate post-operative complications
+            use_archetype EVALUATION[id1.410, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Post-operative Orders Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Post-operative Orders
+
+            -- Post-operative medications
+            use_archetype INSTRUCTION[id1.510, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Post-operative care instructions
+            use_archetype INSTRUCTION[id1.520, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Follow-up arrangements
+            use_archetype INSTRUCTION[id1.530, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Discharge Disposition Section
+            use_archetype SECTION[id1.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Disposition
+
+            -- Patient destination after procedure
+            use_archetype EVALUATION[id1.610, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Surgical Procedure Report">
+                description = <"A comprehensive operative report for a surgical procedure.">
+            >
+            ["id0.1"] = <
+                text = <"Procedure ID">
+                description = <"Unique identifier for this surgical procedure.">
+            >
+            ["id0.3"] = <
+                text = <"Date/Time of Procedure">
+                description = <"Date and time the surgical procedure was performed.">
+            >
+            ["id0.5"] = <
+                text = <"Duration">
+                description = <"Total duration of the surgical procedure.">
+            >
+            ["id0.7"] = <
+                text = <"Urgency">
+                description = <"Urgency classification of the procedure.">
+            >
+            ["id0.100"] = <
+                text = <"Surgical Team">
+                description = <"Surgeons, assistants, anesthesiologists, and nursing staff.">
+            >
+            ["id0.200"] = <
+                text = <"Pre-operative Diagnosis">
+                description = <"Diagnosis before surgery.">
+            >
+            ["id0.210"] = <
+                text = <"Pre-operative Diagnosis">
+                description = <"Pre-operative diagnosis using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Indication">
+                description = <"Clinical indication for surgical procedure.">
+            >
+            ["id0.310"] = <
+                text = <"Surgical Indication">
+                description = <"Reason for surgery using reason_for_encounter.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Pre-operative Assessment">
+                description = <"Pre-operative patient assessment.">
+            >
+            ["id0.410"] = <
+                text = <"Pre-operative Blood Pressure">
+                description = <"Pre-operative BP using blood_pressure.v2 archetype.">
+            >
+            ["id0.420"] = <
+                text = <"Pre-operative Pulse">
+                description = <"Pre-operative heart rate using pulse.v2 archetype.">
+            >
+            ["id0.430"] = <
+                text = <"ASA Classification">
+                description = <"Anesthesia risk classification using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Anesthesia">
+                description = <"Anesthesia administration details.">
+            >
+            ["id0.510"] = <
+                text = <"Anesthesia Administered">
+                description = <"Anesthesia using medication.v1 archetype.">
+            >
+            ["id0.520"] = <
+                text = <"Anesthesia Monitoring">
+                description = <"Monitoring during anesthesia using exam.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Procedure">
+                description = <"Surgical procedure performed.">
+            >
+            ["id0.610"] = <
+                text = <"Surgical Procedure">
+                description = <"Procedure details using official procedure.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Operative Findings">
+                description = <"Intraoperative findings and observations.">
+            >
+            ["id0.710"] = <
+                text = <"Intraoperative Findings">
+                description = <"Findings using exam.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Surgical Technique">
+                description = <"Description of surgical technique employed.">
+            >
+            ["id0.810"] = <
+                text = <"Technique Description">
+                description = <"Surgical technique using clinical_synopsis.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Specimens">
+                description = <"Specimens removed during surgery.">
+            >
+            ["id0.910"] = <
+                text = <"Specimen">
+                description = <"Specimen details using specimen.v1 cluster archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Implants">
+                description = <"Implants and devices inserted.">
+            >
+            ["id1.010"] = <
+                text = <"Device/Implant">
+                description = <"Device details using device.v1 cluster archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Intraoperative Events">
+                description = <"Significant events during surgery.">
+            >
+            ["id1.110"] = <
+                text = <"Intraoperative Complication">
+                description = <"Complication using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.120"] = <
+                text = <"Blood Loss">
+                description = <"Estimated blood loss using fluid_balance.v1 archetype.">
+            >
+            ["id1.130"] = <
+                text = <"Intraoperative Medication">
+                description = <"Medications given during surgery using medication.v1 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Post-operative Diagnosis">
+                description = <"Diagnosis after surgery completion.">
+            >
+            ["id1.210"] = <
+                text = <"Post-operative Diagnosis">
+                description = <"Post-operative diagnosis using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Post-operative Status">
+                description = <"Patient status immediately after procedure.">
+            >
+            ["id1.310"] = <
+                text = <"Patient Condition">
+                description = <"Condition at end of surgery using clinical_synopsis.v1 archetype.">
+            >
+            ["id1.320"] = <
+                text = <"Post-operative Blood Pressure">
+                description = <"Post-operative BP using blood_pressure.v2 archetype.">
+            >
+            ["id1.330"] = <
+                text = <"Post-operative Pulse">
+                description = <"Post-operative heart rate using pulse.v2 archetype.">
+            >
+            ["id1.400"] = <
+                text = <"Complications">
+                description = <"Intraoperative or immediate post-operative complications.">
+            >
+            ["id1.410"] = <
+                text = <"Complication">
+                description = <"Complication using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.500"] = <
+                text = <"Post-operative Orders">
+                description = <"Post-operative care orders.">
+            >
+            ["id1.510"] = <
+                text = <"Post-operative Medication">
+                description = <"Medications using medication_order.v3 archetype.">
+            >
+            ["id1.520"] = <
+                text = <"Post-operative Care Plan">
+                description = <"Care instructions using care_plan.v0 archetype.">
+            >
+            ["id1.530"] = <
+                text = <"Follow-up Request">
+                description = <"Follow-up arrangements using service_request.v1 archetype.">
+            >
+            ["id1.600"] = <
+                text = <"Disposition">
+                description = <"Patient destination after surgery.">
+            >
+            ["id1.610"] = <
+                text = <"Disposition Plan">
+                description = <"Discharge/transfer plan using recommendation.v2 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for procedure report.">
+            >
+            ["at0.1"] = <
+                text = <"Elective">
+                description = <"Planned, scheduled surgical procedure.">
+            >
+            ["at0.2"] = <
+                text = <"Urgent">
+                description = <"Procedure required soon but not immediately.">
+            >
+            ["at0.3"] = <
+                text = <"Emergency">
+                description = <"Immediate surgical intervention required.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rapport de Procédure Chirurgicale">
+                description = <"Un rapport opératoire complet pour une procédure chirurgicale.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Procédure">
+                description = <"Identifiant unique pour cette procédure chirurgicale.">
+            >
+            ["id0.610"] = <
+                text = <"Procédure Chirurgicale">
+                description = <"Détails de la procédure utilisant l'archétype officiel procedure.v1.">
+            >
+        >
+    >

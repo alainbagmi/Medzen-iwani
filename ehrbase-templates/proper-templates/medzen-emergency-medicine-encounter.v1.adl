@@ -1,0 +1,634 @@
+-- MedZen Emergency Medicine Encounter Template
+-- Triage, trauma assessment, emergency procedures
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_emergency_medicine_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record emergency department encounters including triage assessment, trauma evaluation, emergency procedures, treatment interventions, and disposition decisions for patients presenting with acute medical conditions or injuries.">
+            use = <"Used in emergency department settings for documenting initial triage, comprehensive emergency assessment, trauma evaluation, emergency procedures, medication administration, diagnostic test results, treatment interventions, and final disposition (admission, discharge, transfer, or left without being seen). Supports emergency severity indexing (ESI levels 1-5) and trauma scoring systems.">
+            keywords = <"emergency", "triage", "trauma", "acute care", "emergency room", "ER", "ED", "resuscitation", "urgent", "ESI">
+            misuse = <"Not for routine outpatient consultations (use clinical consultation template). Not for scheduled surgical procedures (use surgical procedure template). Not for inpatient ward care (use admission/discharge template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer les rencontres aux urgences incluant le triage, l'évaluation des traumatismes, les procédures d'urgence et les décisions de disposition.">
+            use = <"Utilisé dans les services d'urgence pour documenter le triage initial, l'évaluation complète, les procédures et la disposition finale.">
+            keywords = <"urgence", "triage", "traumatisme", "soins aigus", "salle d'urgence", "réanimation">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Emergency Medicine Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Emergency Visit ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {{"MedZen"}}
+                                        type matches {{"Emergency Visit"}}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Walk-in emergency
+                                            at0.2,    -- Ambulance arrival
+                                            at0.3,    -- Trauma case
+                                            at0.4,    -- Medical emergency
+                                            at0.5,    -- Pediatric emergency
+                                            at0.6,    -- Obstetric emergency
+                                            at0.7,    -- Psychiatric emergency
+                                            at0.8,    -- Toxicological emergency
+                                            at0.9]    -- Transfer from another facility
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- ESI Level (Emergency Severity Index)
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.10,    -- ESI Level 1 (Resuscitation - Immediate)
+                                            at0.11,    -- ESI Level 2 (Emergent - <10 minutes)
+                                            at0.12,    -- ESI Level 3 (Urgent - <30 minutes)
+                                            at0.13,    -- ESI Level 4 (Less urgent - 1-2 hours)
+                                            at0.14]    -- ESI Level 5 (Non-urgent)
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Triage Category
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.15,    -- Red (Critical/Life-threatening)
+                                            at0.16,    -- Orange (Serious/Unstable)
+                                            at0.17,    -- Yellow (Moderate/Stable)
+                                            at0.18,    -- Green (Minor/Walking wounded)
+                                            at0.19]    -- Blue (Deceased/Expectant)
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Trauma Alert Level
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.20,    -- Full trauma alert
+                                            at0.21,    -- Modified trauma alert
+                                            at0.22,    -- Trauma consultation
+                                            at0.23]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.11] occurrences matches {0..1} matches {    -- Mode of Arrival
+                                value matches {
+                                    DV_CODED_TEXT[id0.12] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.24,    -- Walk-in
+                                            at0.25,    -- Private vehicle
+                                            at0.26,    -- Ambulance (BLS)
+                                            at0.27,    -- Ambulance (ALS)
+                                            at0.28,    -- Air ambulance/Helicopter
+                                            at0.29,    -- Police
+                                            at0.30]    -- Other
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Chief Complaint Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Chief Complaint
+
+            -- Primary presenting problem
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1}
+
+            -- Triage Assessment Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Triage Assessment
+
+            -- Initial vital signs at triage
+            use_archetype SECTION[id0.210, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {1}
+            use_archetype OBSERVATION[id0.211, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.212, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.213, openEHR-EHR-OBSERVATION.body_temperature.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.214, openEHR-EHR-OBSERVATION.respiration.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.215, openEHR-EHR-OBSERVATION.pulse_oximetry.v1] occurrences matches {0..1}
+
+            -- Pain assessment
+            use_archetype OBSERVATION[id0.220, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Trauma Assessment Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Trauma Assessment
+
+            -- Mechanism of injury
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Trauma scores (GCS, RTS, ISS)
+            use_archetype OBSERVATION[id0.320, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Injury documentation
+            use_archetype EVALUATION[id0.330, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- History and Examination Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- History & Examination
+
+            -- Present illness history
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1}
+
+            -- Past medical history
+            use_archetype EVALUATION[id0.420, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Physical examination findings
+            use_archetype OBSERVATION[id0.430, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Problem/Diagnosis List Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}    -- Problems/Diagnoses
+
+            -- Emergency diagnoses
+            use_archetype EVALUATION[id0.510, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Diagnostic Tests Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Diagnostic Tests
+
+            -- Laboratory test orders
+            use_archetype INSTRUCTION[id0.610, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Laboratory test results
+            use_archetype OBSERVATION[id0.620, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Imaging orders (X-ray, CT, ultrasound, MRI)
+            use_archetype INSTRUCTION[id0.630, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Imaging results
+            use_archetype OBSERVATION[id0.640, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- ECG findings
+            use_archetype OBSERVATION[id0.650, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Emergency Procedures Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Emergency Procedures
+
+            -- Procedures performed (intubation, CPR, cardioversion, chest tube, central line, etc.)
+            use_archetype ACTION[id0.710, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Resuscitation Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Resuscitation
+
+            -- Resuscitation procedures and outcomes
+            use_archetype ACTION[id0.810, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- CPR details and timeline
+            use_archetype OBSERVATION[id0.820, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Treatment Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Treatment & Interventions
+
+            -- Medications administered
+            use_archetype INSTRUCTION[id0.910, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- IV fluids
+            use_archetype INSTRUCTION[id0.920, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Blood products administered
+            use_archetype INSTRUCTION[id0.930, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Disposition Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Disposition
+
+            -- Disposition decision and recommendations
+            use_archetype EVALUATION[id1.010, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {1..*}
+
+            -- Discharge instructions or admission orders
+            use_archetype INSTRUCTION[id1.020, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Follow-up arrangements
+            use_archetype INSTRUCTION[id1.030, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Clinical Synopsis Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Synopsis
+
+            -- Overall clinical summary
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Emergency Medicine Encounter">
+                description = <"A clinical encounter documenting emergency department care including triage, assessment, procedures, and disposition.">
+            >
+            ["id0.1"] = <
+                text = <"Emergency Visit ID">
+                description = <"Unique identifier for this emergency department visit.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"Classification of the type of emergency encounter.">
+            >
+            ["id0.5"] = <
+                text = <"ESI Level">
+                description = <"Emergency Severity Index level (1-5) indicating urgency and expected resource needs.">
+            >
+            ["id0.7"] = <
+                text = <"Triage Category">
+                description = <"Color-coded triage category indicating urgency level.">
+            >
+            ["id0.9"] = <
+                text = <"Trauma Alert Level">
+                description = <"Level of trauma activation based on mechanism of injury and vital signs.">
+            >
+            ["id0.11"] = <
+                text = <"Mode of Arrival">
+                description = <"How the patient arrived at the emergency department.">
+            >
+            ["id0.100"] = <
+                text = <"Chief Complaint">
+                description = <"Primary reason for emergency department visit as stated by patient or accompanying person.">
+            >
+            ["id0.110"] = <
+                text = <"Chief Complaint Details">
+                description = <"Detailed documentation of presenting complaint using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Triage Assessment">
+                description = <"Initial triage evaluation including vital signs and severity assessment.">
+            >
+            ["id0.210"] = <
+                text = <"Triage Vital Signs">
+                description = <"Vital signs recorded during triage assessment.">
+            >
+            ["id0.211"] = <
+                text = <"Blood Pressure">
+                description = <"Blood pressure measurement at triage using blood_pressure.v2 archetype.">
+            >
+            ["id0.212"] = <
+                text = <"Pulse">
+                description = <"Pulse/heart rate measurement at triage using pulse.v2 archetype.">
+            >
+            ["id0.213"] = <
+                text = <"Body Temperature">
+                description = <"Body temperature at triage using body_temperature.v2 archetype.">
+            >
+            ["id0.214"] = <
+                text = <"Respiratory Rate">
+                description = <"Respiratory rate at triage using respiration.v2 archetype.">
+            >
+            ["id0.215"] = <
+                text = <"Oxygen Saturation">
+                description = <"SpO2 measurement using pulse_oximetry.v1 archetype.">
+            >
+            ["id0.220"] = <
+                text = <"Pain Assessment">
+                description = <"Pain severity and characteristics documented at triage.">
+            >
+            ["id0.300"] = <
+                text = <"Trauma Assessment">
+                description = <"Trauma-specific evaluation including mechanism of injury, trauma scores, and injury documentation.">
+            >
+            ["id0.310"] = <
+                text = <"Mechanism of Injury">
+                description = <"Description of how trauma occurred (e.g., motor vehicle collision, fall, assault, penetrating trauma).">
+            >
+            ["id0.320"] = <
+                text = <"Trauma Scores">
+                description = <"Glasgow Coma Scale (GCS), Revised Trauma Score (RTS), Injury Severity Score (ISS).">
+            >
+            ["id0.330"] = <
+                text = <"Injury Documentation">
+                description = <"Documented injuries using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"History & Examination">
+                description = <"Comprehensive history and physical examination findings.">
+            >
+            ["id0.410"] = <
+                text = <"History of Present Illness">
+                description = <"Detailed account of current complaint and symptom timeline.">
+            >
+            ["id0.420"] = <
+                text = <"Past Medical History">
+                description = <"Relevant past medical conditions, surgeries, and chronic diseases.">
+            >
+            ["id0.430"] = <
+                text = <"Physical Examination">
+                description = <"Systematic physical examination findings.">
+            >
+            ["id0.500"] = <
+                text = <"Problems/Diagnoses">
+                description = <"Emergency department diagnoses and clinical problems identified.">
+            >
+            ["id0.510"] = <
+                text = <"Emergency Diagnosis">
+                description = <"Primary and secondary diagnoses established during emergency evaluation.">
+            >
+            ["id0.600"] = <
+                text = <"Diagnostic Tests">
+                description = <"Laboratory tests, imaging studies, and other diagnostic procedures.">
+            >
+            ["id0.610"] = <
+                text = <"Laboratory Test Orders">
+                description = <"Tests ordered using service_request.v1 archetype.">
+            >
+            ["id0.620"] = <
+                text = <"Laboratory Results">
+                description = <"Laboratory test results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.630"] = <
+                text = <"Imaging Orders">
+                description = <"Imaging studies ordered (X-ray, CT scan, ultrasound, MRI).">
+            >
+            ["id0.640"] = <
+                text = <"Imaging Results">
+                description = <"Radiology findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.650"] = <
+                text = <"ECG Findings">
+                description = <"Electrocardiogram interpretation and findings.">
+            >
+            ["id0.700"] = <
+                text = <"Emergency Procedures">
+                description = <"Procedures performed in the emergency department.">
+            >
+            ["id0.710"] = <
+                text = <"Procedure Performed">
+                description = <"Emergency procedures such as intubation, central line placement, chest tube insertion, laceration repair, joint reduction, cardioversion, etc.">
+            >
+            ["id0.800"] = <
+                text = <"Resuscitation">
+                description = <"Resuscitation efforts including CPR, ACLS protocols, and outcomes.">
+            >
+            ["id0.810"] = <
+                text = <"Resuscitation Procedures">
+                description = <"Specific resuscitation procedures performed (CPR, defibrillation, intubation, chest compressions).">
+            >
+            ["id0.820"] = <
+                text = <"CPR Details">
+                description = <"Timeline of CPR events, medications given, shocks delivered, ROSC achieved.">
+            >
+            ["id0.900"] = <
+                text = <"Treatment & Interventions">
+                description = <"Medications, IV fluids, blood products, and other therapeutic interventions.">
+            >
+            ["id0.910"] = <
+                text = <"Medications Administered">
+                description = <"Medications given in emergency department using medication_order.v3 archetype.">
+            >
+            ["id0.920"] = <
+                text = <"IV Fluids">
+                description = <"Intravenous fluid administration.">
+            >
+            ["id0.930"] = <
+                text = <"Blood Products">
+                description = <"Blood transfusions, platelets, plasma, or cryoprecipitate administered.">
+            >
+            ["id1.000"] = <
+                text = <"Disposition">
+                description = <"Final disposition and care plan after emergency evaluation.">
+            >
+            ["id1.010"] = <
+                text = <"Disposition Decision">
+                description = <"Admit to hospital, discharge home, transfer to another facility, left without being seen (LWBS), or left against medical advice (LAMA).">
+            >
+            ["id1.020"] = <
+                text = <"Discharge/Admission Orders">
+                description = <"Care plan for post-emergency disposition using care_plan.v0 archetype.">
+            >
+            ["id1.030"] = <
+                text = <"Follow-up Arrangements">
+                description = <"Follow-up appointments, specialist referrals, or return precautions.">
+            >
+            ["id1.100"] = <
+                text = <"Clinical Synopsis">
+                description = <"Summary of emergency encounter including clinical reasoning and key decisions.">
+            >
+            ["id1.110"] = <
+                text = <"Emergency Summary">
+                description = <"Comprehensive summary of emergency care provided using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for emergency encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Walk-in emergency">
+                description = <"Patient walked into emergency department without ambulance.">
+            >
+            ["at0.2"] = <
+                text = <"Ambulance arrival">
+                description = <"Patient arrived via ambulance.">
+            >
+            ["at0.3"] = <
+                text = <"Trauma case">
+                description = <"Patient with significant traumatic injury.">
+            >
+            ["at0.4"] = <
+                text = <"Medical emergency">
+                description = <"Non-traumatic medical emergency (cardiac, respiratory, neurological, etc.).">
+            >
+            ["at0.5"] = <
+                text = <"Pediatric emergency">
+                description = <"Emergency involving child patient.">
+            >
+            ["at0.6"] = <
+                text = <"Obstetric emergency">
+                description = <"Emergency related to pregnancy or childbirth.">
+            >
+            ["at0.7"] = <
+                text = <"Psychiatric emergency">
+                description = <"Emergency involving mental health crisis.">
+            >
+            ["at0.8"] = <
+                text = <"Toxicological emergency">
+                description = <"Emergency involving poisoning, overdose, or toxic exposure.">
+            >
+            ["at0.9"] = <
+                text = <"Transfer from another facility">
+                description = <"Patient transferred from another healthcare facility.">
+            >
+            ["at0.10"] = <
+                text = <"ESI Level 1 (Resuscitation)">
+                description = <"Requires immediate life-saving intervention (e.g., cardiac arrest, severe trauma, respiratory failure).">
+            >
+            ["at0.11"] = <
+                text = <"ESI Level 2 (Emergent)">
+                description = <"High-risk situation requiring urgent evaluation within 10 minutes.">
+            >
+            ["at0.12"] = <
+                text = <"ESI Level 3 (Urgent)">
+                description = <"Stable but requires multiple resources, evaluation within 30 minutes.">
+            >
+            ["at0.13"] = <
+                text = <"ESI Level 4 (Less urgent)">
+                description = <"Requires one resource, can wait 1-2 hours.">
+            >
+            ["at0.14"] = <
+                text = <"ESI Level 5 (Non-urgent)">
+                description = <"Non-urgent condition requiring no resources.">
+            >
+            ["at0.15"] = <
+                text = <"Red (Critical)">
+                description = <"Life-threatening condition requiring immediate attention.">
+            >
+            ["at0.16"] = <
+                text = <"Orange (Serious)">
+                description = <"Serious condition, potentially unstable, requires prompt evaluation.">
+            >
+            ["at0.17"] = <
+                text = <"Yellow (Moderate)">
+                description = <"Moderately urgent, stable condition.">
+            >
+            ["at0.18"] = <
+                text = <"Green (Minor)">
+                description = <"Minor injury or illness, walking wounded.">
+            >
+            ["at0.19"] = <
+                text = <"Blue (Deceased/Expectant)">
+                description = <"Deceased on arrival or expectant (minimal chance of survival with available resources).">
+            >
+            ["at0.20"] = <
+                text = <"Full trauma alert">
+                description = <"Highest level trauma activation with full trauma team response.">
+            >
+            ["at0.21"] = <
+                text = <"Modified trauma alert">
+                description = <"Modified trauma team activation for significant but not critical injuries.">
+            >
+            ["at0.22"] = <
+                text = <"Trauma consultation">
+                description = <"Trauma consult requested but not full team activation.">
+            >
+            ["at0.23"] = <
+                text = <"Not applicable">
+                description = <"Non-trauma case, trauma alert not applicable.">
+            >
+            ["at0.24"] = <
+                text = <"Walk-in">
+                description = <"Patient walked into emergency department independently.">
+            >
+            ["at0.25"] = <
+                text = <"Private vehicle">
+                description = <"Brought to ED by family/friend in private car.">
+            >
+            ["at0.26"] = <
+                text = <"Ambulance (BLS)">
+                description = <"Basic Life Support ambulance transport.">
+            >
+            ["at0.27"] = <
+                text = <"Ambulance (ALS)">
+                description = <"Advanced Life Support ambulance with paramedics.">
+            >
+            ["at0.28"] = <
+                text = <"Air ambulance/Helicopter">
+                description = <"Transported by air medical services.">
+            >
+            ["at0.29"] = <
+                text = <"Police">
+                description = <"Brought by law enforcement.">
+            >
+            ["at0.30"] = <
+                text = <"Other">
+                description = <"Other mode of arrival.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rencontre en Médecine d'Urgence">
+                description = <"Une rencontre clinique documentant les soins aux urgences incluant le triage, l'évaluation, les procédures et la disposition.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Visite aux Urgences">
+                description = <"Identifiant unique pour cette visite au service des urgences.">
+            >
+            ["id0.3"] = <
+                text = <"Type de Rencontre">
+                description = <"Classification du type de rencontre d'urgence.">
+            >
+            ["id0.5"] = <
+                text = <"Niveau ESI">
+                description = <"Niveau d'indice de gravité des urgences (1-5) indiquant l'urgence et les besoins en ressources.">
+            >
+            ["id0.7"] = <
+                text = <"Catégorie de Triage">
+                description = <"Catégorie de triage codée par couleur indiquant le niveau d'urgence.">
+            >
+            ["id0.9"] = <
+                text = <"Niveau d'Alerte Traumatique">
+                description = <"Niveau d'activation traumatique basé sur le mécanisme de blessure et les signes vitaux.">
+            >
+            ["id0.100"] = <
+                text = <"Motif de Consultation">
+                description = <"Raison principale de la visite aux urgences telle qu'énoncée par le patient ou la personne accompagnante.">
+            >
+            ["id0.200"] = <
+                text = <"Évaluation de Triage">
+                description = <"Évaluation initiale de triage incluant les signes vitaux et l'évaluation de la gravité.">
+            >
+            ["id0.300"] = <
+                text = <"Évaluation Traumatique">
+                description = <"Évaluation spécifique au traumatisme incluant le mécanisme de blessure, les scores traumatiques et la documentation des blessures.">
+            >
+            ["id0.700"] = <
+                text = <"Procédures d'Urgence">
+                description = <"Procédures effectuées au service des urgences.">
+            >
+            ["id0.800"] = <
+                text = <"Réanimation">
+                description = <"Efforts de réanimation incluant la RCP, les protocoles ACLS et les résultats.">
+            >
+            ["id1.000"] = <
+                text = <"Disposition">
+                description = <"Disposition finale et plan de soins après l'évaluation d'urgence.">
+            >
+        >
+    >

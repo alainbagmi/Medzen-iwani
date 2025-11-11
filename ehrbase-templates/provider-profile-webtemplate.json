@@ -1,0 +1,541 @@
+{
+  "templateId": "medzen.provider.profile.v1",
+  "version": "1.0.0",
+  "defaultLanguage": "en",
+  "languages": ["en", "fr"],
+  "tree": {
+    "id": "provider_professional_profile",
+    "name": "Provider Professional Profile",
+    "localizedName": "Provider Professional Profile",
+    "rmType": "COMPOSITION",
+    "nodeId": "openEHR-EHR-COMPOSITION.report.v1",
+    "min": 1,
+    "max": 1,
+    "localizedNames": {
+      "en": "Provider Professional Profile",
+      "fr": "Profil Professionnel du Fournisseur"
+    },
+    "localizedDescriptions": {
+      "en": "Comprehensive professional profile for healthcare providers",
+      "fr": "Profil professionnel complet pour les prestataires de soins de santé"
+    },
+    "children": [
+      {
+        "id": "category",
+        "name": "category",
+        "rmType": "DV_CODED_TEXT",
+        "min": 1,
+        "max": 1,
+        "inputs": [
+          {
+            "suffix": "code",
+            "type": "CODED_TEXT",
+            "list": [
+              {
+                "value": "433",
+                "label": "event",
+                "localizedLabels": {
+                  "en": "event"
+                }
+              }
+            ],
+            "terminology": "openehr"
+          }
+        ]
+      },
+      {
+        "id": "context",
+        "rmType": "EVENT_CONTEXT",
+        "min": 1,
+        "max": 1,
+        "children": [
+          {
+            "id": "start_time",
+            "name": "start_time",
+            "rmType": "DV_DATE_TIME",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "setting",
+            "name": "setting",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "TEXT",
+                "defaultValue": "238",
+                "terminology": "openehr"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "provider_demographics",
+        "name": "Provider Demographics",
+        "localizedName": "Provider Demographics",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.person_data.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Provider Demographics",
+          "fr": "Démographie du Fournisseur"
+        },
+        "children": [
+          {
+            "id": "provider_id",
+            "name": "Provider ID",
+            "rmType": "DV_IDENTIFIER",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "full_name",
+            "name": "Full Name",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "date_of_birth",
+            "name": "Date of Birth",
+            "rmType": "DV_DATE",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          },
+          {
+            "id": "gender",
+            "name": "Gender",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "male", "label": "Male"},
+                  {"value": "female", "label": "Female"},
+                  {"value": "other", "label": "Other"},
+                  {"value": "prefer_not_to_say", "label": "Prefer not to say"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "contact_phone",
+            "name": "Contact Phone",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "contact_email",
+            "name": "Contact Email",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "profile_photo_url",
+            "name": "Profile Photo URL",
+            "rmType": "DV_URI",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "professional_credentials",
+        "name": "Professional Credentials",
+        "localizedName": "Professional Credentials",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.professional_credentials.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Professional Credentials",
+          "fr": "Titres Professionnels"
+        },
+        "children": [
+          {
+            "id": "medical_license_number",
+            "name": "Medical License Number",
+            "rmType": "DV_IDENTIFIER",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "license_issuing_authority",
+            "name": "License Issuing Authority",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "license_issue_date",
+            "name": "License Issue Date",
+            "rmType": "DV_DATE",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          },
+          {
+            "id": "license_expiry_date",
+            "name": "License Expiry Date",
+            "rmType": "DV_DATE",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          },
+          {
+            "id": "license_verification_status",
+            "name": "License Verification Status",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "verified", "label": "Verified"},
+                  {"value": "pending", "label": "Pending Verification"},
+                  {"value": "expired", "label": "Expired"},
+                  {"value": "suspended", "label": "Suspended"},
+                  {"value": "revoked", "label": "Revoked"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "board_certifications",
+            "name": "Board Certifications",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "specialties",
+        "name": "Medical Specialties",
+        "localizedName": "Medical Specialties",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.specialty_information.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Medical Specialties",
+          "fr": "Spécialités Médicales"
+        },
+        "children": [
+          {
+            "id": "primary_specialty",
+            "name": "Primary Specialty",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "sub_specialties",
+            "name": "Sub-specialties",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "years_of_experience",
+            "name": "Years of Experience",
+            "rmType": "DV_COUNT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "INTEGER",
+                "validation": {
+                  "range": {
+                    "min": 0,
+                    "max": 70
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": "areas_of_expertise",
+            "name": "Areas of Expertise",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "languages_spoken",
+            "name": "Languages Spoken",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "practice_information",
+        "name": "Practice Information",
+        "localizedName": "Practice Information",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.practice_info.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Practice Information",
+          "fr": "Informations sur la Pratique"
+        },
+        "children": [
+          {
+            "id": "practice_type",
+            "name": "Practice Type",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "solo", "label": "Solo Practice"},
+                  {"value": "group", "label": "Group Practice"},
+                  {"value": "hospital", "label": "Hospital-based"},
+                  {"value": "academic", "label": "Academic/Teaching"},
+                  {"value": "telemedicine", "label": "Telemedicine Only"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "associated_facilities",
+            "name": "Associated Facilities",
+            "rmType": "DV_IDENTIFIER",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "consultation_types",
+            "name": "Consultation Types",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT",
+                "list": [
+                  {"value": "in_person", "label": "In-Person"},
+                  {"value": "telemedicine", "label": "Telemedicine"},
+                  {"value": "home_visit", "label": "Home Visit"},
+                  {"value": "phone", "label": "Phone Consultation"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "patient_age_groups",
+            "name": "Patient Age Groups Treated",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT",
+                "list": [
+                  {"value": "pediatric", "label": "Pediatric (0-18)"},
+                  {"value": "adult", "label": "Adult (18-65)"},
+                  {"value": "geriatric", "label": "Geriatric (65+)"},
+                  {"value": "all_ages", "label": "All Ages"}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "verification_status",
+        "name": "Verification Status",
+        "localizedName": "Verification Status",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.verification_status.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Verification Status",
+          "fr": "Statut de Vérification"
+        },
+        "children": [
+          {
+            "id": "background_check_status",
+            "name": "Background Check Status",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "pending", "label": "Pending"},
+                  {"value": "in_progress", "label": "In Progress"},
+                  {"value": "completed", "label": "Completed"},
+                  {"value": "failed", "label": "Failed"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "credential_verification_date",
+            "name": "Credential Verification Date",
+            "rmType": "DV_DATE_TIME",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "account_approval_status",
+            "name": "Account Approval Status",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "pending_review", "label": "Pending Review"},
+                  {"value": "approved", "label": "Approved"},
+                  {"value": "rejected", "label": "Rejected"},
+                  {"value": "suspended", "label": "Suspended"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "approval_date",
+            "name": "Approval Date",
+            "rmType": "DV_DATE_TIME",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "approved_by_admin_id",
+            "name": "Approved By (Admin ID)",
+            "rmType": "DV_IDENTIFIER",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

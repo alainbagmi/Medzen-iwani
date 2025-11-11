@@ -1,0 +1,133 @@
+-- MedZen Patient Demographics Template
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_patient_demographics.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.report.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record comprehensive demographic information for patients in the MedZen healthcare platform.">
+            use = <"Used when a patient user selects their role during onboarding to capture their demographic and contact information.">
+            keywords = <"demographics", "patient", "contact", "emergency contact", "insurance">
+            misuse = <"Not to be used for clinical observations or assessments. Use appropriate OBSERVATION archetypes instead.">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer des informations démographiques complètes pour les patients dans la plateforme de santé MedZen.">
+            use = <"Utilisé lorsqu'un utilisateur patient sélectionne son rôle lors de l'inscription pour capturer ses informations démographiques et de contact.">
+            keywords = <"démographiques", "patient", "contact", "contact d'urgence", "assurance">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Patient Demographics Report
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Report ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Patient Demographics"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Official demographics container using person.v1 cluster
+            use_archetype ADMIN_ENTRY[id0.10, openEHR-EHR-ADMIN_ENTRY.demographics.v0] occurrences matches {1}
+
+            -- Contact information section
+            use_archetype SECTION[id0.20, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}
+
+            -- Emergency contacts section
+            use_archetype SECTION[id0.30, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}
+
+            -- Insurance information section
+            use_archetype SECTION[id0.40, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Patient Demographics Report">
+                description = <"A report containing comprehensive demographic information for a patient.">
+            >
+            ["id0.1"] = <
+                text = <"Report ID">
+                description = <"Unique identifier for this demographics report.">
+            >
+            ["id0.10"] = <
+                text = <"Patient Demographics">
+                description = <"Core demographic data using official demographics.v0 archetype with person.v1 cluster.">
+            >
+            ["id0.20"] = <
+                text = <"Contact Information">
+                description = <"Patient's contact details including address, phone, email.">
+            >
+            ["id0.30"] = <
+                text = <"Emergency Contacts">
+                description = <"Emergency contact persons for the patient.">
+            >
+            ["id0.40"] = <
+                text = <"Insurance Information">
+                description = <"Patient's health insurance details.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for administrative data.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rapport Démographique du Patient">
+                description = <"Un rapport contenant des informations démographiques complètes pour un patient.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant du Rapport">
+                description = <"Identifiant unique pour ce rapport démographique.">
+            >
+            ["id0.10"] = <
+                text = <"Données Démographiques du Patient">
+                description = <"Données démographiques de base utilisant l'archétype officiel demographics.v0 avec le cluster person.v1.">
+            >
+        >
+    >

@@ -1,0 +1,3 @@
+{
+  "query": "query { specialtiesCollection(first: 200) { edges { node { specialty_name specialty_code } } } }"
+}

@@ -1,0 +1,462 @@
+-- MedZen Infectious Disease & Tropical Medicine Encounter Template
+-- HIV/AIDS, TB, Malaria, and tropical disease management
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_infectious_disease_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive infectious disease consultation including HIV/AIDS management, tuberculosis treatment, malaria diagnosis and treatment, and other tropical disease management relevant to Cameroon healthcare context.">
+            use = <"Used by infectious disease specialists and primary care providers to document patient encounters for infectious and tropical diseases including HIV/AIDS (viral load monitoring, CD4 counts, ARV therapy), tuberculosis (sputum results, DOTS therapy tracking), malaria (blood smear, rapid diagnostic tests, antimalarial treatment), and other tropical diseases (dengue, typhoid, hepatitis, sleeping sickness). Supports both initial consultations and follow-up visits.">
+            keywords = <"infectious disease", "HIV", "AIDS", "tuberculosis", "TB", "malaria", "tropical medicine", "viral load", "CD4", "ARV", "antimalarial", "dengue", "typhoid", "hepatitis">
+            misuse = <"Not for recording routine vaccinations (use immunization template). Not for recording surgical procedures (use surgical procedure template). Not for recording non-infectious conditions.">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une consultation complète de maladie infectieuse incluant la prise en charge du VIH/SIDA, le traitement de la tuberculose, le diagnostic et traitement du paludisme, et la prise en charge d'autres maladies tropicales pertinentes au contexte sanitaire du Cameroun.">
+            use = <"Utilisé par les spécialistes des maladies infectieuses et les prestataires de soins primaires pour documenter les consultations de patients pour les maladies infectieuses et tropicales.">
+            keywords = <"maladie infectieuse", "VIH", "SIDA", "tuberculose", "TB", "paludisme", "médecine tropicale", "charge virale", "CD4", "ARV", "antipaludéen">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Infectious Disease Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Infectious Disease Encounter"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Initial consultation
+                                            at0.2,    -- Follow-up visit
+                                            at0.3,    -- HIV/AIDS management
+                                            at0.4,    -- TB treatment monitoring
+                                            at0.5,    -- Malaria treatment
+                                            at0.6,    -- Tropical disease consultation
+                                            at0.7]    -- Opportunistic infection management
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Disease Category
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.8,     -- HIV/AIDS
+                                            at0.9,     -- Tuberculosis
+                                            at0.10,    -- Malaria
+                                            at0.11,    -- Hepatitis
+                                            at0.12,    -- Dengue
+                                            at0.13,    -- Typhoid
+                                            at0.14,    -- Sleeping sickness
+                                            at0.15,    -- Schistosomiasis
+                                            at0.16,    -- Other tropical disease
+                                            at0.17]    -- Multiple infections
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Presenting History Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- History
+
+            -- Chief complaint and presenting symptoms
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+
+            -- Standard vital signs
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.220, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.230, openEHR-EHR-OBSERVATION.body_temperature.v2] occurrences matches {0..*}
+            use_archetype OBSERVATION[id0.240, openEHR-EHR-OBSERVATION.body_weight.v2] occurrences matches {0..*}
+
+            -- Physical Examination Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Examination
+
+            -- General and systemic examination
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- HIV/AIDS Specific Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- HIV/AIDS Management
+
+            -- WHO Clinical Staging
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- CD4 count and viral load results
+            use_archetype OBSERVATION[id0.420, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Opportunistic infections
+            use_archetype EVALUATION[id0.430, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Tuberculosis Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- TB Management
+
+            -- Sputum microscopy and culture results
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Chest X-ray findings
+            use_archetype OBSERVATION[id0.520, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..1}
+
+            -- TB treatment phase (intensive vs continuation)
+            use_archetype OBSERVATION[id0.530, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Malaria Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Malaria Diagnosis & Treatment
+
+            -- Blood smear and rapid diagnostic test results
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Malaria type and parasite density
+            use_archetype OBSERVATION[id0.620, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Other Laboratory Tests Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Laboratory Results
+
+            -- General lab results (hepatitis panel, dengue serology, etc.)
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Problems and Diagnoses Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}
+
+            -- Primary and secondary diagnoses
+            use_archetype EVALUATION[id0.810, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Treatment Plan Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Treatment
+
+            -- Medication orders (ARVs, anti-TB drugs, antimalarials, antibiotics)
+            use_archetype INSTRUCTION[id0.910, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Service requests (additional tests, referrals, specialist consultation)
+            use_archetype INSTRUCTION[id0.920, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up and Monitoring Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Follow-up Plan
+
+            -- Care plan and follow-up schedule
+            use_archetype INSTRUCTION[id1.010, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Patient Education Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Education & Counseling
+
+            -- Treatment adherence counseling and disease education
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Clinical Notes Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Synopsis
+
+            -- Provider notes and clinical observations
+            use_archetype EVALUATION[id1.210, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Infectious Disease Encounter">
+                description = <"A consultation for infectious and tropical disease management.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter ID">
+                description = <"Unique identifier for this infectious disease encounter.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"Type of infectious disease encounter.">
+            >
+            ["id0.5"] = <
+                text = <"Disease Category">
+                description = <"Primary category of infectious disease being managed.">
+            >
+            ["id0.100"] = <
+                text = <"History">
+                description = <"Presenting history and symptoms.">
+            >
+            ["id0.110"] = <
+                text = <"Presenting Complaint">
+                description = <"Chief complaint and symptom history using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Vital Signs">
+                description = <"Vital signs measurements.">
+            >
+            ["id0.210"] = <
+                text = <"Blood Pressure">
+                description = <"Blood pressure measurement using blood_pressure.v2 archetype.">
+            >
+            ["id0.220"] = <
+                text = <"Pulse">
+                description = <"Heart rate measurement using pulse.v2 archetype.">
+            >
+            ["id0.230"] = <
+                text = <"Body Temperature">
+                description = <"Body temperature using body_temperature.v2 archetype.">
+            >
+            ["id0.240"] = <
+                text = <"Body Weight">
+                description = <"Weight measurement using body_weight.v2 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Physical Examination">
+                description = <"Clinical examination findings.">
+            >
+            ["id0.310"] = <
+                text = <"Examination Findings">
+                description = <"General and systemic examination using exam.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"HIV/AIDS Management">
+                description = <"HIV/AIDS specific assessment and management.">
+            >
+            ["id0.410"] = <
+                text = <"WHO Clinical Staging">
+                description = <"WHO clinical staging for HIV/AIDS using story.v1 archetype.">
+            >
+            ["id0.420"] = <
+                text = <"CD4 Count & Viral Load">
+                description = <"CD4 count and viral load results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.430"] = <
+                text = <"Opportunistic Infections">
+                description = <"Opportunistic infections using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"TB Management">
+                description = <"Tuberculosis assessment and treatment monitoring.">
+            >
+            ["id0.510"] = <
+                text = <"Sputum Results">
+                description = <"Sputum microscopy and culture using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.520"] = <
+                text = <"Chest X-ray">
+                description = <"Chest radiograph findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.530"] = <
+                text = <"TB Treatment Phase">
+                description = <"TB treatment phase and DOTS therapy tracking using story.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Malaria Diagnosis & Treatment">
+                description = <"Malaria diagnosis and treatment.">
+            >
+            ["id0.610"] = <
+                text = <"Malaria Diagnostic Tests">
+                description = <"Blood smear and rapid diagnostic test results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.620"] = <
+                text = <"Malaria Type">
+                description = <"Malaria species and parasite density using story.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Laboratory Results">
+                description = <"Other laboratory test results.">
+            >
+            ["id0.710"] = <
+                text = <"Lab Tests">
+                description = <"General laboratory results using laboratory_test_result.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Problems and Diagnoses">
+                description = <"Infectious disease diagnoses.">
+            >
+            ["id0.810"] = <
+                text = <"Diagnosis">
+                description = <"Primary and secondary diagnoses using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Treatment Plan">
+                description = <"Treatment and medication orders.">
+            >
+            ["id0.910"] = <
+                text = <"Medications">
+                description = <"Medication orders (ARVs, anti-TB drugs, antimalarials) using medication_order.v3 archetype.">
+            >
+            ["id0.920"] = <
+                text = <"Service Requests">
+                description = <"Additional tests and referrals using service_request.v1 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Follow-up Plan">
+                description = <"Follow-up and monitoring schedule.">
+            >
+            ["id1.010"] = <
+                text = <"Care Plan">
+                description = <"Follow-up care plan using care_plan.v0 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Education & Counseling">
+                description = <"Patient education and adherence counseling.">
+            >
+            ["id1.110"] = <
+                text = <"Counseling">
+                description = <"Treatment adherence counseling using recommendation.v2 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Clinical Synopsis">
+                description = <"Provider notes and clinical summary.">
+            >
+            ["id1.210"] = <
+                text = <"Clinical Notes">
+                description = <"Clinical observations and notes using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Initial consultation">
+                description = <"First visit for infectious disease evaluation.">
+            >
+            ["at0.2"] = <
+                text = <"Follow-up visit">
+                description = <"Routine follow-up for ongoing infectious disease management.">
+            >
+            ["at0.3"] = <
+                text = <"HIV/AIDS management">
+                description = <"Visit focused on HIV/AIDS care (ARV therapy, viral load monitoring).">
+            >
+            ["at0.4"] = <
+                text = <"TB treatment monitoring">
+                description = <"Visit for tuberculosis treatment monitoring and DOTS therapy.">
+            >
+            ["at0.5"] = <
+                text = <"Malaria treatment">
+                description = <"Visit for malaria diagnosis and treatment.">
+            >
+            ["at0.6"] = <
+                text = <"Tropical disease consultation">
+                description = <"Consultation for tropical diseases (dengue, typhoid, hepatitis).">
+            >
+            ["at0.7"] = <
+                text = <"Opportunistic infection management">
+                description = <"Management of opportunistic infections in immunocompromised patients.">
+            >
+            ["at0.8"] = <
+                text = <"HIV/AIDS">
+                description = <"Human Immunodeficiency Virus/Acquired Immunodeficiency Syndrome.">
+            >
+            ["at0.9"] = <
+                text = <"Tuberculosis">
+                description = <"Mycobacterium tuberculosis infection.">
+            >
+            ["at0.10"] = <
+                text = <"Malaria">
+                description = <"Plasmodium infection (falciparum, vivax, ovale, malariae).">
+            >
+            ["at0.11"] = <
+                text = <"Hepatitis">
+                description = <"Viral hepatitis (A, B, C, D, E).">
+            >
+            ["at0.12"] = <
+                text = <"Dengue">
+                description = <"Dengue fever and dengue hemorrhagic fever.">
+            >
+            ["at0.13"] = <
+                text = <"Typhoid">
+                description = <"Typhoid fever (Salmonella typhi).">
+            >
+            ["at0.14"] = <
+                text = <"Sleeping sickness">
+                description = <"African trypanosomiasis.">
+            >
+            ["at0.15"] = <
+                text = <"Schistosomiasis">
+                description = <"Schistosoma infection.">
+            >
+            ["at0.16"] = <
+                text = <"Other tropical disease">
+                description = <"Other tropical or infectious disease not listed.">
+            >
+            ["at0.17"] = <
+                text = <"Multiple infections">
+                description = <"Patient has multiple concurrent infections.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Consultation de Maladie Infectieuse">
+                description = <"Une consultation pour la prise en charge des maladies infectieuses et tropicales.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Consultation">
+                description = <"Identifiant unique pour cette consultation de maladie infectieuse.">
+            >
+            ["id0.400"] = <
+                text = <"Prise en Charge VIH/SIDA">
+                description = <"Évaluation et prise en charge spécifique du VIH/SIDA.">
+            >
+            ["id0.420"] = <
+                text = <"CD4 et Charge Virale">
+                description = <"Résultats du CD4 et de la charge virale utilisant l'archétype laboratory_test_result.v1.">
+            >
+            ["id0.500"] = <
+                text = <"Prise en Charge TB">
+                description = <"Évaluation et suivi du traitement de la tuberculose.">
+            >
+            ["id0.600"] = <
+                text = <"Diagnostic et Traitement du Paludisme">
+                description = <"Diagnostic et traitement du paludisme.">
+            >
+            ["id0.810"] = <
+                text = <"Diagnostic">
+                description = <"Diagnostics primaires et secondaires utilisant l'archétype problem_diagnosis.v1.">
+            >
+            ["id0.910"] = <
+                text = <"Médicaments">
+                description = <"Ordonnances de médicaments (ARV, anti-TB, antipaludéens) utilisant l'archétype medication_order.v3.">
+            >
+        >
+    >

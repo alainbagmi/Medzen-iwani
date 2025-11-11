@@ -1,0 +1,146 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ehrbase
+  labels:
+    name: ehrbase
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ehrbase-studio
+  namespace: ehrbase
+  labels:
+    app: ehrbase-studio
+    component: web-ui
+spec:
+  replicas: 2  # High availability with 2 replicas
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ehrbase-studio
+  template:
+    metadata:
+      labels:
+        app: ehrbase-studio
+        component: web-ui
+    spec:
+      containers:
+      - name: studio
+        image: ehrbase/ehrbase-studio:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8081
+          name: http
+          protocol: TCP
+        env:
+        # Update this URL to match your actual EHRbase API service
+        - name: EHRBASE_REST_URL
+          value: "http://ehrbase-api-service:8080/ehrbase/rest"
+
+        # Optional: Configure Studio settings
+        - name: STUDIO_TITLE
+          value: "MedZen Iwani EHRbase Studio"
+
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ehrbase-studio-service
+  namespace: ehrbase
+  labels:
+    app: ehrbase-studio
+spec:
+  selector:
+    app: ehrbase-studio
+  ports:
+  - protocol: TCP
+    port: 8081
+    targetPort: 8081
+    name: http
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ehrbase-studio-ingress
+  namespace: ehrbase
+  annotations:
+    # For Traefik ingress controller (common in K3s)
+    kubernetes.io/ingress.class: "traefik"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+
+    # For nginx ingress controller (alternative)
+    # kubernetes.io/ingress.class: "nginx"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # If using cert-manager for automatic TLS
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+    # Rewrite path if needed
+    # traefik.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: ehrbase.mylestechsolutions.com
+    http:
+      paths:
+      - path: /studio
+        pathType: Prefix
+        backend:
+          service:
+            name: ehrbase-studio-service
+            port:
+              number: 8081
+
+  tls:
+  - hosts:
+    - ehrbase.mylestechsolutions.com
+    secretName: ehrbase-studio-tls

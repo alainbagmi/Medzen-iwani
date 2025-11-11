@@ -1,0 +1,741 @@
+-- MedZen Gastroenterology Procedures Template
+-- Endoscopy, colonoscopy, liver disease management
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_gastroenterology_procedures.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record gastroenterology clinical encounters including diagnostic and therapeutic endoscopic procedures, liver disease assessment and management, inflammatory bowel disease care, and gastrointestinal bleeding evaluation. Supports structured documentation of endoscopy findings, biopsy collection, therapeutic interventions, and post-procedure care.">
+            use = <"Used by gastroenterologists and endoscopy specialists to document upper GI endoscopy (EGD), colonoscopy, flexible sigmoidoscopy, ERCP, endoscopic ultrasound (EUS), and other GI procedures. Records bowel preparation quality, sedation details, anatomical landmarks reached, lesions identified, biopsies taken, therapeutic interventions (polypectomy, hemostasis, dilation, stent placement), and complications. Also used for non-procedure encounters including liver disease management (hepatitis, cirrhosis), IBD follow-up, and GI symptom evaluation.">
+            keywords = <"gastroenterology", "endoscopy", "colonoscopy", "EGD", "ERCP", "liver disease", "IBD", "Crohn's disease", "ulcerative colitis", "hepatitis", "cirrhosis", "GI bleeding", "polypectomy">
+            misuse = <"Not for surgical procedures (use surgical procedure template). Not for radiology reports (use radiology template). Not for general medical consultation without GI focus (use clinical consultation template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer les rencontres cliniques de gastroentérologie incluant les procédures endoscopiques diagnostiques et thérapeutiques, l'évaluation des maladies du foie et la prise en charge des maladies inflammatoires de l'intestin.">
+            use = <"Utilisé par les gastroentérologues pour documenter les endoscopies digestives, coloscopies, CPRE, échographie endoscopique et autres procédures GI.">
+            keywords = <"gastroentérologie", "endoscopie", "coloscopie", "CPRE", "maladie du foie", "MICI", "hépatite", "cirrhose">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Gastroenterology Procedures
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {{"MedZen GI"}}
+                                        type matches {{"GI Encounter"}}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,     -- Upper GI endoscopy (EGD)
+                                            at0.2,     -- Colonoscopy
+                                            at0.3,     -- Flexible sigmoidoscopy
+                                            at0.4,     -- ERCP (Endoscopic Retrograde Cholangiopancreatography)
+                                            at0.5,     -- EUS (Endoscopic Ultrasound)
+                                            at0.6,     -- Capsule endoscopy
+                                            at0.7,     -- Liver disease consultation
+                                            at0.8,     -- IBD follow-up
+                                            at0.9,     -- GI bleeding evaluation
+                                            at0.10]    -- General GI consultation
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Procedure Indication
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.11,    -- Screening (routine)
+                                            at0.12,    -- Surveillance (follow-up after previous findings)
+                                            at0.13,    -- Diagnostic (evaluate symptoms)
+                                            at0.14,    -- Therapeutic (intervention planned)
+                                            at0.15,    -- GI bleeding
+                                            at0.16,    -- Dysphagia
+                                            at0.17,    -- Abdominal pain
+                                            at0.18,    -- Diarrhea/Constipation
+                                            at0.19,    -- Positive FOBT/FIT
+                                            at0.20]    -- Weight loss/Anemia
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Bowel Preparation Quality
+                                value matches {
+                                    DV_CODED_TEXT[id0.8] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.21,    -- Excellent
+                                            at0.22,    -- Good
+                                            at0.23,    -- Fair
+                                            at0.24,    -- Poor
+                                            at0.25]    -- Not applicable (upper GI)
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Sedation Level
+                                value matches {
+                                    DV_CODED_TEXT[id0.10] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.26,    -- Conscious sedation
+                                            at0.27,    -- Deep sedation
+                                            at0.28,    -- General anesthesia
+                                            at0.29,    -- No sedation
+                                            at0.30]    -- Local anesthesia only
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.11] occurrences matches {0..1} matches {    -- Extent of Examination
+                                value matches {
+                                    DV_CODED_TEXT[id0.12] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.31,    -- Complete to cecum (colonoscopy)
+                                            at0.32,    -- Incomplete (specify reason)
+                                            at0.33,    -- To descending colon
+                                            at0.34,    -- To splenic flexure
+                                            at0.35,    -- To hepatic flexure
+                                            at0.36,    -- To transverse colon
+                                            at0.37,    -- To second portion of duodenum (EGD)
+                                            at0.38]    -- Complete examination
+                                        }
+                                    }
+                                }
+                            >
+                            ELEMENT[id0.13] occurrences matches {0..1} matches {    -- Cecal Intubation Time (minutes)
+                                value matches {
+                                    DV_DURATION[id0.14] matches {
+                                        value matches {PT0S..PT180M}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.15] occurrences matches {0..1} matches {    -- Total Procedure Time (minutes)
+                                value matches {
+                                    DV_DURATION[id0.16] matches {
+                                        value matches {PT0S..PT360M}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.17] occurrences matches {0..1} matches {    -- Withdrawal Time (minutes)
+                                value matches {
+                                    DV_DURATION[id0.18] matches {
+                                        value matches {PT0S..PT60M}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Clinical Indication Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Clinical Indication
+
+            -- Indication and presenting symptoms
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {1}
+
+            -- Relevant GI history
+            use_archetype EVALUATION[id0.120, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Pre-procedure Assessment Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Pre-procedure Assessment
+
+            -- Pre-procedure vital signs
+            use_archetype SECTION[id0.210, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.211, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.212, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id0.213, openEHR-EHR-OBSERVATION.pulse_oximetry.v1] occurrences matches {0..1}
+
+            -- ASA classification
+            use_archetype OBSERVATION[id0.220, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Sedation Details Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Sedation
+
+            -- Sedation medications administered
+            use_archetype INSTRUCTION[id0.310, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Procedure Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Procedure Details
+
+            -- Endoscopic procedure performed
+            use_archetype ACTION[id0.410, openEHR-EHR-ACTION.procedure.v1] occurrences matches {1..*}
+
+            -- Endoscope details (type, model)
+            use_archetype OBSERVATION[id0.420, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Anatomical Landmarks Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Anatomical Landmarks
+
+            -- Landmarks visualized during procedure
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Findings Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Endoscopic Findings
+
+            -- Detailed endoscopic observations
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {1..*}
+
+            -- Pathological findings
+            use_archetype EVALUATION[id0.620, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Lesion Characterization Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Lesion Details
+
+            -- Polyp/Lesion documentation (size, location, morphology)
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Paris classification (polyp morphology)
+            use_archetype OBSERVATION[id0.720, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {0..*}
+
+            -- Biopsies Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Biopsies
+
+            -- Biopsy collection details
+            use_archetype ACTION[id0.810, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Specimen details
+            use_archetype CLUSTER[id0.820, openEHR-EHR-CLUSTER.specimen.v1] occurrences matches {0..*}
+
+            -- Therapeutic Interventions Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Therapeutic Interventions
+
+            -- Polypectomy, EMR, hemostasis, dilation, stent placement, etc.
+            use_archetype ACTION[id0.910, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Resection technique (cold snare, hot snare, EMR, ESD)
+            use_archetype OBSERVATION[id0.920, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..*}
+
+            -- Liver Disease Assessment Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Liver Disease
+
+            -- Liver function assessment
+            use_archetype OBSERVATION[id1.010, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Liver disease diagnoses (hepatitis, cirrhosis, NAFLD)
+            use_archetype EVALUATION[id1.020, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Child-Pugh score or MELD score
+            use_archetype OBSERVATION[id1.030, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Varices evaluation (esophageal, gastric)
+            use_archetype OBSERVATION[id1.040, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- IBD Assessment Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- IBD Assessment
+
+            -- IBD diagnoses (Crohn's, UC)
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- IBD disease activity scores (Mayo, Crohn's Disease Activity Index)
+            use_archetype OBSERVATION[id1.120, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Endoscopic severity (SES-CD, Mayo endoscopic subscore)
+            use_archetype OBSERVATION[id1.130, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Complications Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Complications
+
+            -- Procedure complications (bleeding, perforation, aspiration)
+            use_archetype EVALUATION[id1.210, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {0..*}
+
+            -- Management of complications
+            use_archetype ACTION[id1.220, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Post-procedure Assessment Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Post-procedure
+
+            -- Post-procedure vital signs
+            use_archetype SECTION[id1.310, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+            use_archetype OBSERVATION[id1.311, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {0..1}
+            use_archetype OBSERVATION[id1.312, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {0..1}
+
+            -- Recovery status
+            use_archetype OBSERVATION[id1.320, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Recommendations Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Recommendations
+
+            -- Follow-up recommendations and surveillance intervals
+            use_archetype EVALUATION[id1.410, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Pathology follow-up
+            use_archetype INSTRUCTION[id1.420, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Discharge instructions
+            use_archetype INSTRUCTION[id1.430, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Clinical Synopsis Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Synopsis
+
+            -- Overall procedure summary
+            use_archetype EVALUATION[id1.510, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Gastroenterology Procedures">
+                description = <"A clinical encounter documenting gastroenterology procedures including endoscopy, colonoscopy, liver disease management, and IBD care.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter ID">
+                description = <"Unique identifier for this gastroenterology encounter.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"Type of gastroenterology encounter or procedure.">
+            >
+            ["id0.5"] = <
+                text = <"Procedure Indication">
+                description = <"Clinical indication for endoscopic procedure.">
+            >
+            ["id0.7"] = <
+                text = <"Bowel Preparation Quality">
+                description = <"Quality of colon cleansing for colonoscopy (Boston Bowel Prep Scale or similar).">
+            >
+            ["id0.9"] = <
+                text = <"Sedation Level">
+                description = <"Level of sedation or anesthesia provided during procedure.">
+            >
+            ["id0.11"] = <
+                text = <"Extent of Examination">
+                description = <"Extent of anatomical visualization achieved during endoscopy.">
+            >
+            ["id0.13"] = <
+                text = <"Cecal Intubation Time">
+                description = <"Time taken to reach the cecum during colonoscopy (quality metric).">
+            >
+            ["id0.15"] = <
+                text = <"Total Procedure Time">
+                description = <"Total duration of the endoscopic procedure from insertion to withdrawal.">
+            >
+            ["id0.17"] = <
+                text = <"Withdrawal Time">
+                description = <"Time spent withdrawing the endoscope (quality metric, minimum 6 minutes for colonoscopy).">
+            >
+            ["id0.100"] = <
+                text = <"Clinical Indication">
+                description = <"Reason for procedure and presenting GI symptoms.">
+            >
+            ["id0.110"] = <
+                text = <"Indication Details">
+                description = <"Detailed clinical indication using story.v1 archetype.">
+            >
+            ["id0.120"] = <
+                text = <"GI History">
+                description = <"Relevant gastrointestinal history using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Pre-procedure Assessment">
+                description = <"Pre-procedure evaluation including vital signs and ASA classification.">
+            >
+            ["id0.210"] = <
+                text = <"Pre-procedure Vitals">
+                description = <"Vital signs before procedure.">
+            >
+            ["id0.220"] = <
+                text = <"ASA Classification">
+                description = <"American Society of Anesthesiologists physical status classification.">
+            >
+            ["id0.300"] = <
+                text = <"Sedation">
+                description = <"Sedation medications and monitoring.">
+            >
+            ["id0.310"] = <
+                text = <"Sedation Medications">
+                description = <"Medications administered for sedation (midazolam, fentanyl, propofol) using medication_order.v3 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Procedure Details">
+                description = <"Details of endoscopic procedure performed.">
+            >
+            ["id0.410"] = <
+                text = <"Procedure Performed">
+                description = <"Endoscopic procedure using procedure.v1 archetype.">
+            >
+            ["id0.420"] = <
+                text = <"Endoscope Details">
+                description = <"Type and model of endoscope used.">
+            >
+            ["id0.500"] = <
+                text = <"Anatomical Landmarks">
+                description = <"Key anatomical landmarks visualized (cecum, ileocecal valve, appendiceal orifice, Z-line, cardia, pylorus, duodenum).">
+            >
+            ["id0.510"] = <
+                text = <"Landmarks Visualized">
+                description = <"Anatomical landmarks documented using exam.v1 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Endoscopic Findings">
+                description = <"Findings observed during endoscopic examination.">
+            >
+            ["id0.610"] = <
+                text = <"Endoscopy Observations">
+                description = <"Detailed endoscopic findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.620"] = <
+                text = <"Pathological Findings">
+                description = <"Pathological conditions identified (polyps, ulcers, tumors, inflammation, varices, strictures) using problem_diagnosis.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Lesion Details">
+                description = <"Detailed characterization of polyps or lesions.">
+            >
+            ["id0.710"] = <
+                text = <"Lesion Documentation">
+                description = <"Size, location, morphology of lesions using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.720"] = <
+                text = <"Paris Classification">
+                description = <"Morphological classification of polyps (pedunculated, sessile, flat, depressed) using exam.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Biopsies">
+                description = <"Tissue specimens collected during procedure.">
+            >
+            ["id0.810"] = <
+                text = <"Biopsy Collection">
+                description = <"Biopsy procedures using procedure.v1 archetype.">
+            >
+            ["id0.820"] = <
+                text = <"Specimen Details">
+                description = <"Specimen information using specimen.v1 cluster.">
+            >
+            ["id0.900"] = <
+                text = <"Therapeutic Interventions">
+                description = <"Therapeutic procedures performed during endoscopy.">
+            >
+            ["id0.910"] = <
+                text = <"Intervention Performed">
+                description = <"Polypectomy, EMR, ESD, hemostasis (clips, cautery), dilation, stent placement, variceal ligation using procedure.v1 archetype.">
+            >
+            ["id0.920"] = <
+                text = <"Resection Technique">
+                description = <"Technique used for polyp removal (cold snare, hot snare, EMR, ESD, piecemeal).">
+            >
+            ["id1.000"] = <
+                text = <"Liver Disease">
+                description = <"Assessment and management of liver disease.">
+            >
+            ["id1.010"] = <
+                text = <"Liver Function Tests">
+                description = <"Laboratory results (ALT, AST, bilirubin, albumin, PT/INR) using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.020"] = <
+                text = <"Liver Diagnoses">
+                description = <"Liver disease diagnoses (hepatitis B/C, cirrhosis, NAFLD, portal hypertension) using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.030"] = <
+                text = <"Liver Severity Scores">
+                description = <"Child-Pugh score, MELD score for cirrhosis severity.">
+            >
+            ["id1.040"] = <
+                text = <"Varices Assessment">
+                description = <"Esophageal or gastric varices evaluation and grading using imaging_exam_result.v0 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"IBD Assessment">
+                description = <"Inflammatory bowel disease evaluation and management.">
+            >
+            ["id1.110"] = <
+                text = <"IBD Diagnoses">
+                description = <"IBD diagnoses (Crohn's disease, ulcerative colitis) using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.120"] = <
+                text = <"Disease Activity Scores">
+                description = <"Mayo score for UC, Crohn's Disease Activity Index (CDAI).">
+            >
+            ["id1.130"] = <
+                text = <"Endoscopic Severity">
+                description = <"SES-CD (Simple Endoscopic Score for Crohn's), Mayo endoscopic subscore for UC using imaging_exam_result.v0 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Complications">
+                description = <"Procedure-related complications.">
+            >
+            ["id1.210"] = <
+                text = <"Complication Details">
+                description = <"Complications (bleeding, perforation, aspiration, cardiopulmonary events) using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.220"] = <
+                text = <"Complication Management">
+                description = <"Interventions for complications using procedure.v1 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Post-procedure">
+                description = <"Post-procedure assessment and recovery.">
+            >
+            ["id1.310"] = <
+                text = <"Post-procedure Vitals">
+                description = <"Vital signs after procedure.">
+            >
+            ["id1.320"] = <
+                text = <"Recovery Status">
+                description = <"Patient recovery and readiness for discharge.">
+            >
+            ["id1.400"] = <
+                text = <"Recommendations">
+                description = <"Follow-up recommendations and surveillance.">
+            >
+            ["id1.410"] = <
+                text = <"Follow-up Recommendations">
+                description = <"Surveillance colonoscopy intervals, further testing using recommendation.v2 archetype.">
+            >
+            ["id1.420"] = <
+                text = <"Pathology Follow-up">
+                description = <"Requests for pathology results review using service_request.v1 archetype.">
+            >
+            ["id1.430"] = <
+                text = <"Discharge Instructions">
+                description = <"Post-procedure care instructions using care_plan.v0 archetype.">
+            >
+            ["id1.500"] = <
+                text = <"Clinical Synopsis">
+                description = <"Summary of procedure and findings.">
+            >
+            ["id1.510"] = <
+                text = <"Procedure Summary">
+                description = <"Overall summary of procedure, findings, and plan using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for gastroenterology encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Upper GI endoscopy (EGD)">
+                description = <"Esophagogastroduodenoscopy.">
+            >
+            ["at0.2"] = <
+                text = <"Colonoscopy">
+                description = <"Complete colonoscopy to cecum.">
+            >
+            ["at0.3"] = <
+                text = <"Flexible sigmoidoscopy">
+                description = <"Sigmoidoscopy examining rectum and sigmoid colon.">
+            >
+            ["at0.4"] = <
+                text = <"ERCP">
+                description = <"Endoscopic retrograde cholangiopancreatography.">
+            >
+            ["at0.5"] = <
+                text = <"EUS">
+                description = <"Endoscopic ultrasound.">
+            >
+            ["at0.6"] = <
+                text = <"Capsule endoscopy">
+                description = <"Wireless capsule endoscopy of small bowel.">
+            >
+            ["at0.7"] = <
+                text = <"Liver disease consultation">
+                description = <"Non-procedure encounter for liver disease management.">
+            >
+            ["at0.8"] = <
+                text = <"IBD follow-up">
+                description = <"Inflammatory bowel disease follow-up consultation.">
+            >
+            ["at0.9"] = <
+                text = <"GI bleeding evaluation">
+                description = <"Assessment of gastrointestinal bleeding.">
+            >
+            ["at0.10"] = <
+                text = <"General GI consultation">
+                description = <"General gastroenterology consultation without procedure.">
+            >
+            ["at0.11"] = <
+                text = <"Screening">
+                description = <"Routine screening in asymptomatic patient (e.g., colorectal cancer screening).">
+            >
+            ["at0.12"] = <
+                text = <"Surveillance">
+                description = <"Follow-up surveillance after previous polyps, cancer, or IBD.">
+            >
+            ["at0.13"] = <
+                text = <"Diagnostic">
+                description = <"Diagnostic evaluation of symptoms.">
+            >
+            ["at0.14"] = <
+                text = <"Therapeutic">
+                description = <"Planned therapeutic intervention.">
+            >
+            ["at0.15"] = <
+                text = <"GI bleeding">
+                description = <"Evaluation and management of gastrointestinal bleeding.">
+            >
+            ["at0.16"] = <
+                text = <"Dysphagia">
+                description = <"Difficulty swallowing.">
+            >
+            ["at0.17"] = <
+                text = <"Abdominal pain">
+                description = <"Chronic or acute abdominal pain.">
+            >
+            ["at0.18"] = <
+                text = <"Diarrhea/Constipation">
+                description = <"Evaluation of bowel habit changes.">
+            >
+            ["at0.19"] = <
+                text = <"Positive FOBT/FIT">
+                description = <"Positive fecal occult blood test or fecal immunochemical test.">
+            >
+            ["at0.20"] = <
+                text = <"Weight loss/Anemia">
+                description = <"Unexplained weight loss or iron-deficiency anemia.">
+            >
+            ["at0.21"] = <
+                text = <"Excellent">
+                description = <"Excellent bowel preparation, entire mucosa visible.">
+            >
+            ["at0.22"] = <
+                text = <"Good">
+                description = <"Good bowel preparation with minor residual stool.">
+            >
+            ["at0.23"] = <
+                text = <"Fair">
+                description = <"Fair bowel preparation, some residual stool limiting examination.">
+            >
+            ["at0.24"] = <
+                text = <"Poor">
+                description = <"Poor bowel preparation, significant residual stool compromising examination.">
+            >
+            ["at0.25"] = <
+                text = <"Not applicable">
+                description = <"Bowel preparation not applicable (upper GI procedure).">
+            >
+            ["at0.26"] = <
+                text = <"Conscious sedation">
+                description = <"Moderate sedation with midazolam/fentanyl.">
+            >
+            ["at0.27"] = <
+                text = <"Deep sedation">
+                description = <"Deep sedation with propofol.">
+            >
+            ["at0.28"] = <
+                text = <"General anesthesia">
+                description = <"General anesthesia with intubation.">
+            >
+            ["at0.29"] = <
+                text = <"No sedation">
+                description = <"Procedure performed without sedation.">
+            >
+            ["at0.30"] = <
+                text = <"Local anesthesia only">
+                description = <"Local anesthesia (throat spray for EGD).">
+            >
+            ["at0.31"] = <
+                text = <"Complete to cecum">
+                description = <"Colonoscopy successfully reached cecum with visualization of ileocecal valve and appendiceal orifice.">
+            >
+            ["at0.32"] = <
+                text = <"Incomplete">
+                description = <"Examination incomplete due to technical difficulty, poor prep, or patient tolerance.">
+            >
+            ["at0.33"] = <
+                text = <"To descending colon">
+                description = <"Reached descending colon only.">
+            >
+            ["at0.34"] = <
+                text = <"To splenic flexure">
+                description = <"Reached splenic flexure only.">
+            >
+            ["at0.35"] = <
+                text = <"To hepatic flexure">
+                description = <"Reached hepatic flexure only.">
+            >
+            ["at0.36"] = <
+                text = <"To transverse colon">
+                description = <"Reached transverse colon only.">
+            >
+            ["at0.37"] = <
+                text = <"To second portion of duodenum">
+                description = <"EGD reached second portion of duodenum.">
+            >
+            ["at0.38"] = <
+                text = <"Complete examination">
+                description = <"Complete examination of intended area.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Procédures de Gastroentérologie">
+                description = <"Une rencontre clinique documentant les procédures de gastroentérologie incluant l'endoscopie, la coloscopie et la prise en charge des maladies du foie.">
+            >
+            ["id0.3"] = <
+                text = <"Type de Rencontre">
+                description = <"Type de rencontre ou procédure gastroentérologique.">
+            >
+            ["id0.5"] = <
+                text = <"Indication de la Procédure">
+                description = <"Indication clinique pour la procédure endoscopique.">
+            >
+            ["id0.7"] = <
+                text = <"Qualité de la Préparation Intestinale">
+                description = <"Qualité du nettoyage du côlon pour la coloscopie.">
+            >
+            ["id0.100"] = <
+                text = <"Indication Clinique">
+                description = <"Raison de la procédure et symptômes gastro-intestinaux présentés.">
+            >
+            ["id0.600"] = <
+                text = <"Résultats Endoscopiques">
+                description = <"Résultats observés lors de l'examen endoscopique.">
+            >
+            ["id1.000"] = <
+                text = <"Maladie du Foie">
+                description = <"Évaluation et prise en charge des maladies du foie.">
+            >
+            ["id1.100"] = <
+                text = <"Évaluation des MICI">
+                description = <"Évaluation et prise en charge des maladies inflammatoires chroniques de l'intestin.">
+            >
+        >
+    >

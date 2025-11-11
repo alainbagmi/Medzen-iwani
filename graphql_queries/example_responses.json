@@ -1,0 +1,298 @@
+{
+  "metadata": {
+    "description": "Example GraphQL query responses for medical providers",
+    "created": "2025-11-06",
+    "api_version": "v1",
+    "note": "These are example responses based on the current database schema with standardized provider types"
+  },
+
+  "examples": {
+    "single_provider": {
+      "query_type": "GetProvider by ID",
+      "response": {
+        "data": {
+          "medical_provider_profilesCollection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "56381b30-d867-4619-ab9e-8c5c59473d5c",
+                  "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+                  "professional_role": "Medical Doctor",
+                  "medical_license_number": "MD-45",
+                  "license_issuing_authority": "Cameroon Medical Council",
+                  "license_expiry_date": "2025-11-05",
+                  "professional_registration_number": "REG-DUMMY-0001",
+                  "primary_specialization": "general_medicine",
+                  "secondary_specializations": [],
+                  "sub_specialties": [],
+                  "areas_of_expertise": [],
+                  "medical_school": "Dummy Medical School",
+                  "graduation_year": 2005,
+                  "residency_programs": [],
+                  "fellowship_programs": [],
+                  "board_certifications": [],
+                  "continuing_education_credits": 0,
+                  "years_of_experience": 5,
+                  "previous_positions": [],
+                  "practice_type": "clinic",
+                  "consultation_fee_range": "[15000,25000]",
+                  "languages_spoken": ["en", "fr"],
+                  "working_hours": null,
+                  "max_patients_per_day": 20,
+                  "consultation_duration_minutes": 30,
+                  "accepts_emergency_calls": false,
+                  "telemedicine_setup_complete": false,
+                  "video_consultation_enabled": false,
+                  "audio_consultation_enabled": false,
+                  "chat_consultation_enabled": false,
+                  "ussd_consultation_enabled": false,
+                  "total_consultations": 0,
+                  "patient_satisfaction_avg": 4.0,
+                  "response_time_avg_minutes": 15,
+                  "consultation_completion_rate": 0.95,
+                  "hospital_affiliations": [],
+                  "professional_memberships": [],
+                  "content_creator_status": false,
+                  "total_posts_created": 0,
+                  "total_followers": 0,
+                  "content_engagement_score": 0.0,
+                  "background_check_completed": false,
+                  "malpractice_insurance_valid": false,
+                  "is_specialist": false,
+                  "unique_identifier": "PROV-UID-DUMMY-0001",
+                  "application_status": "approved",
+                  "created_at": "2025-11-05T12:38:39.591572+00:00",
+                  "updated_at": "2025-11-06T20:30:53+00:00",
+                  "users": {
+                    "id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+                    "full_name": "Dummy Doctor",
+                    "email": "dr.dummy@example.com",
+                    "phone_number": "+237600000000",
+                    "date_of_birth": "1980-01-01",
+                    "gender": "male",
+                    "country": "CM",
+                    "preferred_language": "English",
+                    "timezone": "UTC",
+                    "account_status": "active",
+                    "avatar_url": "https://example.com/avatar.png",
+                    "created_at": "2025-11-05T12:33:58.330766+00:00",
+                    "updated_at": "2025-11-05T12:44:40.119147+00:00",
+                    "last_seen_at": "2025-11-05T12:44:40.119147+00:00",
+                    "unique_patient_id": "UPI-DUMMY-0001"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+
+    "all_active_providers": {
+      "query_type": "GetAllActiveProviders",
+      "response": {
+        "data": {
+          "medical_provider_profilesCollection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "56381b30-d867-4619-ab9e-8c5c59473d5c",
+                  "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+                  "professional_role": "Medical Doctor",
+                  "primary_specialization": "general_medicine",
+                  "years_of_experience": 5,
+                  "application_status": "approved",
+                  "users": {
+                    "full_name": "Dummy Doctor",
+                    "email": "dr.dummy@example.com"
+                  }
+                }
+              }
+            ],
+            "pageInfo": {
+              "hasNextPage": false,
+              "hasPreviousPage": false
+            }
+          }
+        }
+      }
+    },
+
+    "providers_by_type": {
+      "query_type": "GetProvidersByType",
+      "parameters": {
+        "providerType": "Medical Doctor",
+        "limit": 20
+      },
+      "response": {
+        "data": {
+          "medical_provider_profilesCollection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "56381b30-d867-4619-ab9e-8c5c59473d5c",
+                  "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+                  "professional_role": "Medical Doctor",
+                  "primary_specialization": "general_medicine",
+                  "years_of_experience": 5,
+                  "consultation_fee_range": "[15000,25000]",
+                  "languages_spoken": ["en", "fr"],
+                  "video_consultation_enabled": false,
+                  "patient_satisfaction_avg": 4.0,
+                  "users": {
+                    "full_name": "Dummy Doctor",
+                    "email": "dr.dummy@example.com",
+                    "phone_number": "+237600000000",
+                    "avatar_url": "https://example.com/avatar.png"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+
+    "providers_by_specialization": {
+      "query_type": "GetProvidersBySpecialization",
+      "parameters": {
+        "specialization": "general_medicine",
+        "limit": 20
+      },
+      "response": {
+        "data": {
+          "medical_provider_profilesCollection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "56381b30-d867-4619-ab9e-8c5c59473d5c",
+                  "user_id": "ae6a139c-51fd-4d7c-877d-4bf19834a07d",
+                  "professional_role": "Medical Doctor",
+                  "primary_specialization": "general_medicine",
+                  "years_of_experience": 5,
+                  "consultation_fee_range": "[15000,25000]",
+                  "patient_satisfaction_avg": 4.0,
+                  "total_consultations": 0,
+                  "users": {
+                    "full_name": "Dummy Doctor",
+                    "email": "dr.dummy@example.com",
+                    "avatar_url": "https://example.com/avatar.png"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+
+    "provider_statistics": {
+      "query_type": "GetProviderStatistics",
+      "response": {
+        "total_providers": 1,
+        "active_providers": 1,
+        "pending_applications": 0,
+        "by_type": [
+          {
+            "type": "Medical Doctor",
+            "count": 1
+          }
+        ],
+        "by_specialization": [
+          {
+            "specialization": "general_medicine",
+            "count": 1
+          }
+        ]
+      }
+    },
+
+    "all_provider_types": {
+      "query_type": "GetAllProviderTypes",
+      "response": [
+        {
+          "id": "1",
+          "provider_type_name": "Medical Doctor",
+          "provider_type_code": "MD",
+          "description": "Physician with MD degree, fully licensed to practice medicine",
+          "requires_medical_license": true,
+          "requires_board_certification": true,
+          "can_prescribe_medication": true,
+          "supervision_required": false,
+          "display_order": 1,
+          "is_active": true
+        },
+        {
+          "id": "2",
+          "provider_type_name": "Doctor of Osteopathic Medicine",
+          "provider_type_code": "DO",
+          "description": "Physician with DO degree, fully licensed to practice medicine",
+          "requires_medical_license": true,
+          "requires_board_certification": true,
+          "can_prescribe_medication": true,
+          "supervision_required": false,
+          "display_order": 2,
+          "is_active": true
+        },
+        {
+          "id": "3",
+          "provider_type_name": "Nurse Practitioner",
+          "provider_type_code": "NP",
+          "description": "Advanced practice registered nurse with prescriptive authority",
+          "requires_medical_license": true,
+          "requires_board_certification": true,
+          "can_prescribe_medication": true,
+          "supervision_required": false,
+          "display_order": 3,
+          "is_active": true
+        },
+        {
+          "id": "4",
+          "provider_type_name": "Physician Assistant",
+          "provider_type_code": "PA",
+          "description": "Licensed to practice medicine under physician supervision",
+          "requires_medical_license": true,
+          "requires_board_certification": true,
+          "can_prescribe_medication": true,
+          "supervision_required": true,
+          "display_order": 4,
+          "is_active": true
+        },
+        {
+          "id": "5",
+          "provider_type_name": "Registered Nurse",
+          "provider_type_code": "RN",
+          "description": "Licensed registered nurse providing direct patient care",
+          "requires_medical_license": true,
+          "requires_board_certification": false,
+          "can_prescribe_medication": false,
+          "supervision_required": false,
+          "display_order": 5,
+          "is_active": true
+        }
+      ]
+    }
+  },
+
+  "common_queries": {
+    "find_doctors_in_area": {
+      "description": "Find all medical doctors in a specific country/region",
+      "graphql": "query FindDoctorsInArea($country: String!) { medical_provider_profilesCollection(filter: { professional_role: { eq: \"Medical Doctor\" }, users: { country: { eq: $country } } }) { edges { node { id professional_role users { full_name country } } } } }"
+    },
+
+    "top_rated_providers": {
+      "description": "Get top-rated providers by patient satisfaction",
+      "graphql": "query TopRatedProviders($limit: Int!) { medical_provider_profilesCollection(first: $limit, orderBy: { patient_satisfaction_avg: DescNullsLast }, filter: { application_status: { eq: \"approved\" } }) { edges { node { id professional_role patient_satisfaction_avg total_consultations users { full_name } } } } }"
+    },
+
+    "telemedicine_enabled_providers": {
+      "description": "Find providers with telemedicine capabilities",
+      "graphql": "query TelemedicineProviders { medical_provider_profilesCollection(filter: { video_consultation_enabled: { eq: true }, application_status: { eq: \"approved\" } }) { edges { node { id professional_role video_consultation_enabled audio_consultation_enabled chat_consultation_enabled users { full_name phone_number } } } } }"
+    },
+
+    "providers_by_language": {
+      "description": "Find providers who speak specific languages",
+      "graphql": "query ProvidersByLanguage($language: String!) { medical_provider_profilesCollection(filter: { languages_spoken: { contains: [$language] } }) { edges { node { id professional_role languages_spoken users { full_name } } } } }"
+    }
+  }
+}

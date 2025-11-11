@@ -1,0 +1,495 @@
+{
+  "templateId": "medzen.admin.profile.v1",
+  "version": "1.0.0",
+  "defaultLanguage": "en",
+  "languages": ["en", "fr"],
+  "tree": {
+    "id": "admin_profile",
+    "name": "System Administrator Profile",
+    "localizedName": "System Administrator Profile",
+    "rmType": "COMPOSITION",
+    "nodeId": "openEHR-EHR-COMPOSITION.report.v1",
+    "min": 1,
+    "max": 1,
+    "localizedNames": {
+      "en": "System Administrator Profile",
+      "fr": "Profil de l'Administrateur Système"
+    },
+    "localizedDescriptions": {
+      "en": "Administrative profile for system administrators with permissions and access controls",
+      "fr": "Profil administratif pour les administrateurs système avec autorisations et contrôles d'accès"
+    },
+    "children": [
+      {
+        "id": "category",
+        "name": "category",
+        "rmType": "DV_CODED_TEXT",
+        "min": 1,
+        "max": 1,
+        "inputs": [
+          {
+            "suffix": "code",
+            "type": "CODED_TEXT",
+            "list": [
+              {
+                "value": "433",
+                "label": "event",
+                "localizedLabels": {
+                  "en": "event"
+                }
+              }
+            ],
+            "terminology": "openehr"
+          }
+        ]
+      },
+      {
+        "id": "context",
+        "rmType": "EVENT_CONTEXT",
+        "min": 1,
+        "max": 1,
+        "children": [
+          {
+            "id": "start_time",
+            "name": "start_time",
+            "rmType": "DV_DATE_TIME",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "setting",
+            "name": "setting",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "TEXT",
+                "defaultValue": "238",
+                "terminology": "openehr"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "admin_identification",
+        "name": "Administrator Identification",
+        "localizedName": "Administrator Identification",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.admin_info.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Administrator Identification",
+          "fr": "Identification de l'Administrateur"
+        },
+        "children": [
+          {
+            "id": "admin_id",
+            "name": "Admin ID",
+            "rmType": "DV_IDENTIFIER",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "full_name",
+            "name": "Full Name",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "email",
+            "name": "Email",
+            "rmType": "DV_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "phone",
+            "name": "Phone",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "department",
+            "name": "Department",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "it", "label": "IT"},
+                  {"value": "operations", "label": "Operations"},
+                  {"value": "security", "label": "Security"},
+                  {"value": "compliance", "label": "Compliance"},
+                  {"value": "quality_assurance", "label": "Quality Assurance"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "employee_id",
+            "name": "Employee ID",
+            "rmType": "DV_IDENTIFIER",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "id",
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "admin_permissions",
+        "name": "Administrator Permissions",
+        "localizedName": "Administrator Permissions",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.permissions.v0",
+        "min": 1,
+        "max": 1,
+        "localizedNames": {
+          "en": "Administrator Permissions",
+          "fr": "Autorisations de l'Administrateur"
+        },
+        "children": [
+          {
+            "id": "access_level",
+            "name": "Access Level",
+            "rmType": "DV_CODED_TEXT",
+            "min": 1,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "super_admin", "label": "Super Administrator"},
+                  {"value": "admin", "label": "Administrator"},
+                  {"value": "moderator", "label": "Moderator"},
+                  {"value": "read_only", "label": "Read Only"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "permitted_actions",
+            "name": "Permitted Actions",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT",
+                "list": [
+                  {"value": "user_management", "label": "User Management"},
+                  {"value": "facility_approval", "label": "Facility Approval"},
+                  {"value": "provider_verification", "label": "Provider Verification"},
+                  {"value": "system_config", "label": "System Configuration"},
+                  {"value": "security_settings", "label": "Security Settings"},
+                  {"value": "audit_logs", "label": "Audit Logs"},
+                  {"value": "data_export", "label": "Data Export"},
+                  {"value": "backup_restore", "label": "Backup & Restore"},
+                  {"value": "billing_management", "label": "Billing Management"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "restricted_modules",
+            "name": "Restricted Modules",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "can_delete_records",
+            "name": "Can Delete Records",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "can_modify_billing",
+            "name": "Can Modify Billing",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "security_credentials",
+        "name": "Security Credentials",
+        "localizedName": "Security Credentials",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.security.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Security Credentials",
+          "fr": "Identifiants de Sécurité"
+        },
+        "children": [
+          {
+            "id": "last_password_change",
+            "name": "Last Password Change",
+            "rmType": "DV_DATE_TIME",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          },
+          {
+            "id": "two_factor_enabled",
+            "name": "Two-Factor Authentication Enabled",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "security_clearance_level",
+            "name": "Security Clearance Level",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "level_1", "label": "Level 1 - Basic"},
+                  {"value": "level_2", "label": "Level 2 - Standard"},
+                  {"value": "level_3", "label": "Level 3 - Enhanced"},
+                  {"value": "level_4", "label": "Level 4 - Top Secret"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "ip_whitelist",
+            "name": "IP Whitelist",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": -1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "last_login",
+            "name": "Last Login",
+            "rmType": "DV_DATE_TIME",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATETIME"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "employment_details",
+        "name": "Employment Details",
+        "localizedName": "Employment Details",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.employment.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Employment Details",
+          "fr": "Détails de l'Emploi"
+        },
+        "children": [
+          {
+            "id": "hire_date",
+            "name": "Hire Date",
+            "rmType": "DV_DATE",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          },
+          {
+            "id": "employment_status",
+            "name": "Employment Status",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "active", "label": "Active"},
+                  {"value": "on_leave", "label": "On Leave"},
+                  {"value": "suspended", "label": "Suspended"},
+                  {"value": "terminated", "label": "Terminated"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "job_title",
+            "name": "Job Title",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          },
+          {
+            "id": "reports_to",
+            "name": "Reports To",
+            "rmType": "DV_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "TEXT"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "audit_metadata",
+        "name": "Audit Metadata",
+        "localizedName": "Audit Metadata",
+        "rmType": "ADMIN_ENTRY",
+        "nodeId": "openEHR-EHR-ADMIN_ENTRY.audit.v0",
+        "min": 0,
+        "max": 1,
+        "localizedNames": {
+          "en": "Audit Metadata",
+          "fr": "Métadonnées d'Audit"
+        },
+        "children": [
+          {
+            "id": "background_check_status",
+            "name": "Background Check Status",
+            "rmType": "DV_CODED_TEXT",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "suffix": "code",
+                "type": "CODED_TEXT",
+                "list": [
+                  {"value": "pending", "label": "Pending"},
+                  {"value": "in_progress", "label": "In Progress"},
+                  {"value": "completed", "label": "Completed"},
+                  {"value": "failed", "label": "Failed"}
+                ]
+              }
+            ]
+          },
+          {
+            "id": "background_check_date",
+            "name": "Background Check Date",
+            "rmType": "DV_DATE",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          },
+          {
+            "id": "compliance_training_completed",
+            "name": "Compliance Training Completed",
+            "rmType": "DV_BOOLEAN",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "BOOLEAN"
+              }
+            ]
+          },
+          {
+            "id": "hipaa_certification_date",
+            "name": "HIPAA Certification Date",
+            "rmType": "DV_DATE",
+            "min": 0,
+            "max": 1,
+            "inputs": [
+              {
+                "type": "DATE"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

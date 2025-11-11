@@ -1,0 +1,458 @@
+-- MedZen Cardiology Encounter Template
+-- Comprehensive cardiac care including ECG, echocardiography, stress testing
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_cardiology_encounter.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.encounter.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record a comprehensive cardiology consultation including chest pain evaluation, heart failure management, arrhythmia assessment, hypertension control, and cardiac diagnostic procedures (ECG, echocardiography, stress testing, cardiac catheterization).">
+            use = <"Used by cardiologists and cardiac care providers to document patient encounters for cardiovascular conditions including ischemic heart disease (angina, myocardial infarction), heart failure (NYHA classification, ejection fraction monitoring), arrhythmias (atrial fibrillation, ventricular tachycardia), hypertension, and valvular heart disease. Supports both initial consultations, follow-up visits, and post-procedure reviews.">
+            keywords = <"cardiology", "heart", "ECG", "echocardiogram", "stress test", "heart failure", "arrhythmia", "hypertension", "chest pain", "angina", "myocardial infarction", "cardiac catheterization", "angiography">
+            misuse = <"Not for recording cardiac surgery procedures (use surgical procedure template). Not for recording cardiac arrest or emergency resuscitation (use emergency medicine template).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer une consultation cardiologique complète incluant l'évaluation des douleurs thoraciques, la prise en charge de l'insuffisance cardiaque, l'évaluation des arythmies, le contrôle de l'hypertension et les procédures diagnostiques cardiaques.">
+            use = <"Utilisé par les cardiologues et les prestataires de soins cardiaques pour documenter les consultations de patients pour les affections cardiovasculaires.">
+            keywords = <"cardiologie", "cœur", "ECG", "échocardiogramme", "test d'effort", "insuffisance cardiaque", "arythmie", "hypertension", "douleur thoracique", "angine">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Cardiology Encounter
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Encounter ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Cardiology Encounter"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Encounter Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Initial consultation
+                                            at0.2,    -- Follow-up visit
+                                            at0.3,    -- Chest pain evaluation
+                                            at0.4,    -- Heart failure management
+                                            at0.5,    -- Arrhythmia assessment
+                                            at0.6,    -- Hypertension control
+                                            at0.7,    -- Post-procedure review
+                                            at0.8]    -- Diagnostic procedure
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- NYHA Classification
+                                value matches {
+                                    DV_CODED_TEXT[id0.6] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.9,     -- Class I (No symptoms)
+                                            at0.10,    -- Class II (Mild symptoms)
+                                            at0.11,    -- Class III (Marked limitation)
+                                            at0.12,    -- Class IV (Severe symptoms at rest)
+                                            at0.13]    -- Not applicable
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Presenting History Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- History
+
+            -- Chief complaint (chest pain, dyspnea, palpitations, syncope)
+            use_archetype OBSERVATION[id0.110, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Cardiac History Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Cardiac History
+
+            -- Previous cardiac events, procedures, interventions
+            use_archetype OBSERVATION[id0.210, openEHR-EHR-OBSERVATION.story.v1] occurrences matches {0..1}
+
+            -- Vital Signs Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.vital_signs.v0] occurrences matches {0..1}
+
+            -- Blood pressure (may include ambulatory BP monitoring)
+            use_archetype OBSERVATION[id0.310, openEHR-EHR-OBSERVATION.blood_pressure.v2] occurrences matches {1..*}
+
+            -- Pulse and heart rate (including rhythm assessment)
+            use_archetype OBSERVATION[id0.320, openEHR-EHR-OBSERVATION.pulse.v2] occurrences matches {1..*}
+
+            -- Body weight (for heart failure monitoring)
+            use_archetype OBSERVATION[id0.330, openEHR-EHR-OBSERVATION.body_weight.v2] occurrences matches {0..*}
+
+            -- Pulse oximetry
+            use_archetype OBSERVATION[id0.340, openEHR-EHR-OBSERVATION.pulse_oximetry.v1] occurrences matches {0..*}
+
+            -- Physical Examination Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Cardiovascular Examination
+
+            -- Cardiovascular system examination (heart sounds, murmurs, JVP, peripheral pulses)
+            use_archetype OBSERVATION[id0.410, openEHR-EHR-OBSERVATION.exam.v1] occurrences matches {1..*}
+
+            -- ECG Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- ECG Findings
+
+            -- 12-lead ECG results
+            use_archetype OBSERVATION[id0.510, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Echocardiography Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Echocardiogram
+
+            -- Echocardiographic findings (ejection fraction, wall motion, valves, chamber sizes)
+            use_archetype OBSERVATION[id0.610, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Stress Testing Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Stress Test
+
+            -- Exercise tolerance test or pharmacological stress test results
+            use_archetype OBSERVATION[id0.710, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Cardiac Catheterization Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Cardiac Catheterization
+
+            -- Coronary angiography and catheterization findings
+            use_archetype OBSERVATION[id0.810, openEHR-EHR-OBSERVATION.imaging_exam_result.v0] occurrences matches {0..*}
+
+            -- Cardiac procedure performed (angioplasty, stenting)
+            use_archetype ACTION[id0.820, openEHR-EHR-ACTION.procedure.v1] occurrences matches {0..*}
+
+            -- Laboratory Tests Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Laboratory Results
+
+            -- Cardiac biomarkers (troponin, BNP, CK-MB, lipid profile)
+            use_archetype OBSERVATION[id0.910, openEHR-EHR-OBSERVATION.laboratory_test_result.v1] occurrences matches {0..*}
+
+            -- Problems and Diagnoses Section
+            use_archetype SECTION[id1.000, openEHR-EHR-SECTION.problem_list.v0] occurrences matches {0..1}
+
+            -- Cardiac diagnoses (CAD, heart failure, arrhythmia, valvular disease)
+            use_archetype EVALUATION[id1.010, openEHR-EHR-EVALUATION.problem_diagnosis.v1] occurrences matches {1..*}
+
+            -- Risk Assessment Section
+            use_archetype SECTION[id1.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Cardiovascular Risk
+
+            -- Cardiovascular risk stratification (Framingham score, ASCVD risk)
+            use_archetype EVALUATION[id1.110, openEHR-EHR-EVALUATION.health_risk.v1] occurrences matches {0..*}
+
+            -- Treatment Plan Section
+            use_archetype SECTION[id1.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Treatment
+
+            -- Cardiac medications (anticoagulants, beta-blockers, ACE inhibitors, statins, diuretics)
+            use_archetype INSTRUCTION[id1.210, openEHR-EHR-INSTRUCTION.medication_order.v3] occurrences matches {0..*}
+
+            -- Service requests (additional tests, procedures, specialist consultation)
+            use_archetype INSTRUCTION[id1.220, openEHR-EHR-INSTRUCTION.service_request.v1] occurrences matches {0..*}
+
+            -- Follow-up and Monitoring Section
+            use_archetype SECTION[id1.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Follow-up Plan
+
+            -- Care plan (cardiac rehabilitation, lifestyle modifications)
+            use_archetype INSTRUCTION[id1.310, openEHR-EHR-INSTRUCTION.care_plan.v0] occurrences matches {0..1}
+
+            -- Patient Education Section
+            use_archetype SECTION[id1.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Education & Lifestyle
+
+            -- Diet, exercise, medication adherence counseling
+            use_archetype EVALUATION[id1.410, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Clinical Notes Section
+            use_archetype SECTION[id1.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Clinical Synopsis
+
+            -- Provider notes and clinical observations
+            use_archetype EVALUATION[id1.510, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Cardiology Encounter">
+                description = <"A cardiology consultation or procedure visit.">
+            >
+            ["id0.1"] = <
+                text = <"Encounter ID">
+                description = <"Unique identifier for this cardiology encounter.">
+            >
+            ["id0.3"] = <
+                text = <"Encounter Type">
+                description = <"Type of cardiology encounter.">
+            >
+            ["id0.5"] = <
+                text = <"NYHA Classification">
+                description = <"New York Heart Association functional classification for heart failure.">
+            >
+            ["id0.100"] = <
+                text = <"History">
+                description = <"Presenting cardiac history.">
+            >
+            ["id0.110"] = <
+                text = <"Chief Complaint">
+                description = <"Chief complaint and symptom history using story.v1 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Cardiac History">
+                description = <"Previous cardiac events and procedures.">
+            >
+            ["id0.210"] = <
+                text = <"Previous Cardiac History">
+                description = <"Past cardiac events and interventions using story.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Vital Signs">
+                description = <"Cardiac vital signs.">
+            >
+            ["id0.310"] = <
+                text = <"Blood Pressure">
+                description = <"Blood pressure monitoring using blood_pressure.v2 archetype.">
+            >
+            ["id0.320"] = <
+                text = <"Pulse">
+                description = <"Heart rate and rhythm using pulse.v2 archetype.">
+            >
+            ["id0.330"] = <
+                text = <"Body Weight">
+                description = <"Weight measurement for heart failure monitoring using body_weight.v2 archetype.">
+            >
+            ["id0.340"] = <
+                text = <"Oxygen Saturation">
+                description = <"Pulse oximetry using pulse_oximetry.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Cardiovascular Examination">
+                description = <"Physical examination of cardiovascular system.">
+            >
+            ["id0.410"] = <
+                text = <"Cardiac Exam">
+                description = <"Cardiovascular examination findings using exam.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"ECG Findings">
+                description = <"Electrocardiogram results.">
+            >
+            ["id0.510"] = <
+                text = <"12-Lead ECG">
+                description = <"ECG findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Echocardiogram">
+                description = <"Echocardiographic assessment.">
+            >
+            ["id0.610"] = <
+                text = <"Echo Results">
+                description = <"Echocardiographic findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Stress Test">
+                description = <"Exercise or pharmacological stress testing.">
+            >
+            ["id0.710"] = <
+                text = <"Stress Test Results">
+                description = <"Stress test findings using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Cardiac Catheterization">
+                description = <"Coronary angiography and catheterization.">
+            >
+            ["id0.810"] = <
+                text = <"Cath Lab Findings">
+                description = <"Cardiac catheterization results using imaging_exam_result.v0 archetype.">
+            >
+            ["id0.820"] = <
+                text = <"Cardiac Procedure">
+                description = <"Cardiac procedures performed using procedure.v1 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Laboratory Results">
+                description = <"Cardiac laboratory tests.">
+            >
+            ["id0.910"] = <
+                text = <"Cardiac Biomarkers">
+                description = <"Cardiac biomarkers and lipid profile using laboratory_test_result.v1 archetype.">
+            >
+            ["id1.000"] = <
+                text = <"Problems and Diagnoses">
+                description = <"Cardiac diagnoses.">
+            >
+            ["id1.010"] = <
+                text = <"Cardiac Diagnosis">
+                description = <"Cardiac diagnoses using problem_diagnosis.v1 archetype.">
+            >
+            ["id1.100"] = <
+                text = <"Cardiovascular Risk">
+                description = <"Cardiovascular risk assessment.">
+            >
+            ["id1.110"] = <
+                text = <"Risk Stratification">
+                description = <"CV risk assessment using health_risk.v1 archetype.">
+            >
+            ["id1.200"] = <
+                text = <"Treatment Plan">
+                description = <"Cardiac treatment and medications.">
+            >
+            ["id1.210"] = <
+                text = <"Cardiac Medications">
+                description = <"Cardiac medication orders using medication_order.v3 archetype.">
+            >
+            ["id1.220"] = <
+                text = <"Service Requests">
+                description = <"Additional cardiac tests and procedures using service_request.v1 archetype.">
+            >
+            ["id1.300"] = <
+                text = <"Follow-up Plan">
+                description = <"Follow-up and rehabilitation plan.">
+            >
+            ["id1.310"] = <
+                text = <"Care Plan">
+                description = <"Cardiac care plan using care_plan.v0 archetype.">
+            >
+            ["id1.400"] = <
+                text = <"Education & Lifestyle">
+                description = <"Patient education and lifestyle counseling.">
+            >
+            ["id1.410"] = <
+                text = <"Lifestyle Counseling">
+                description = <"Diet and exercise counseling using recommendation.v2 archetype.">
+            >
+            ["id1.500"] = <
+                text = <"Clinical Synopsis">
+                description = <"Provider clinical notes.">
+            >
+            ["id1.510"] = <
+                text = <"Clinical Notes">
+                description = <"Clinical observations using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for encounter.">
+            >
+            ["at0.1"] = <
+                text = <"Initial consultation">
+                description = <"First cardiology consultation.">
+            >
+            ["at0.2"] = <
+                text = <"Follow-up visit">
+                description = <"Routine cardiology follow-up.">
+            >
+            ["at0.3"] = <
+                text = <"Chest pain evaluation">
+                description = <"Evaluation of chest pain or acute coronary syndrome.">
+            >
+            ["at0.4"] = <
+                text = <"Heart failure management">
+                description = <"Heart failure monitoring and treatment adjustment.">
+            >
+            ["at0.5"] = <
+                text = <"Arrhythmia assessment">
+                description = <"Evaluation and management of cardiac arrhythmias.">
+            >
+            ["at0.6"] = <
+                text = <"Hypertension control">
+                description = <"Blood pressure monitoring and hypertension management.">
+            >
+            ["at0.7"] = <
+                text = <"Post-procedure review">
+                description = <"Follow-up after cardiac procedure or intervention.">
+            >
+            ["at0.8"] = <
+                text = <"Diagnostic procedure">
+                description = <"Visit for cardiac diagnostic procedure (ECG, echo, stress test, catheterization).">
+            >
+            ["at0.9"] = <
+                text = <"Class I">
+                description = <"No limitation of physical activity. Ordinary physical activity does not cause symptoms.">
+            >
+            ["at0.10"] = <
+                text = <"Class II">
+                description = <"Slight limitation of physical activity. Comfortable at rest but ordinary activity causes symptoms.">
+            >
+            ["at0.11"] = <
+                text = <"Class III">
+                description = <"Marked limitation of physical activity. Less than ordinary activity causes symptoms.">
+            >
+            ["at0.12"] = <
+                text = <"Class IV">
+                description = <"Unable to carry on any physical activity without symptoms. Symptoms at rest.">
+            >
+            ["at0.13"] = <
+                text = <"Not applicable">
+                description = <"NYHA classification not applicable for this patient.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Consultation Cardiologique">
+                description = <"Une consultation ou visite de procédure cardiologique.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant de Consultation">
+                description = <"Identifiant unique pour cette consultation cardiologique.">
+            >
+            ["id0.5"] = <
+                text = <"Classification NYHA">
+                description = <"Classification fonctionnelle NYHA pour l'insuffisance cardiaque.">
+            >
+            ["id0.500"] = <
+                text = <"Résultats ECG">
+                description = <"Résultats de l'électrocardiogramme.">
+            >
+            ["id0.600"] = <
+                text = <"Échocardiogramme">
+                description = <"Évaluation échocardiographique.">
+            >
+            ["id0.910"] = <
+                text = <"Biomarqueurs Cardiaques">
+                description = <"Biomarqueurs cardiaques et profil lipidique utilisant l'archétype laboratory_test_result.v1.">
+            >
+            ["id1.210"] = <
+                text = <"Médicaments Cardiaques">
+                description = <"Ordonnances de médicaments cardiaques utilisant l'archétype medication_order.v3.">
+            >
+        >
+    >

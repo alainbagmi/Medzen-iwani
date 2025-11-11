@@ -1,0 +1,313 @@
+-- MedZen Pharmacy Stock Management Template
+-- Medication inventory tracking and expiry monitoring
+-- Uses official OpenEHR archetypes from CKM
+-- Territory: CM (Cameroon)
+-- Language: en, fr
+
+template (adl_version=1.5.1; rm_release=1.0.4)
+    openEHR-EHR-COMPOSITION.medzen_pharmacy_stock_management.v1.0.0
+
+specialize
+    openEHR-EHR-COMPOSITION.report.v1
+
+language
+    original_language = <[ISO_639-1::en]>
+    translations = <
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            author = <
+                ["name"] = <"MedZen Team">
+            >
+        >
+    >
+
+description
+    original_author = <
+        ["date"] = <"2025-11-02">
+        ["name"] = <"MedZen Health">
+        ["organisation"] = <"MedZen">
+        ["email"] = <"info@medzenhealth.app">
+    >
+    lifecycle_state = <"initial_draft">
+    details = <
+        ["en"] = <
+            language = <[ISO_639-1::en]>
+            purpose = <"To record pharmacy inventory management including stock levels, expiry dates, stock movements (receipts, dispensing, returns, wastage), and inventory alerts for medication stock control.">
+            use = <"Used by pharmacy staff to track medication inventory levels, monitor expiry dates, record stock movements (received, dispensed, returned, expired, damaged), generate reorder alerts, and maintain audit trails for regulatory compliance. Supports both individual medication tracking and bulk inventory operations.">
+            keywords = <"pharmacy", "inventory", "stock", "expiry", "medication", "supply chain", "reorder", "wastage", "audit">
+            misuse = <"Not for recording medication dispensing to patients (use medication dispensing record). Not for recording medication administration (use medication administration record).">
+        >
+        ["fr"] = <
+            language = <[ISO_639-1::fr]>
+            purpose = <"Enregistrer la gestion des stocks de pharmacie incluant les niveaux de stock, les dates de péremption, les mouvements de stock et les alertes d'inventaire.">
+            use = <"Utilisé par le personnel de pharmacie pour suivre les niveaux d'inventaire de médicaments.">
+            keywords = <"pharmacie", "inventaire", "stock", "péremption", "médicament">
+        >
+    >
+
+definition
+    COMPOSITION[id1.1] matches {    -- Pharmacy Stock Management Report
+        category matches {
+            DV_CODED_TEXT[id2] matches {
+                defining_code matches {[at0001]}    -- event
+            }
+        }
+        context matches {
+            EVENT_CONTEXT[id3] matches {
+                other_context matches {
+                    ITEM_TREE[id4] matches {
+                        items cardinality matches {0..*; unordered} matches {
+                            ELEMENT[id0.1] occurrences matches {0..1} matches {    -- Report ID
+                                value matches {
+                                    DV_IDENTIFIER[id0.2] matches {
+                                        issuer matches {"MedZen"}
+                                        type matches {"Stock Report"}
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.3] occurrences matches {0..1} matches {    -- Report Type
+                                value matches {
+                                    DV_CODED_TEXT[id0.4] matches {
+                                        defining_code matches {
+                                            [local::
+                                            at0.1,    -- Daily stock report
+                                            at0.2,    -- Stock receipt
+                                            at0.3,    -- Stock return
+                                            at0.4,    -- Expiry alert report
+                                            at0.5,    -- Stock adjustment
+                                            at0.6,    -- Reorder recommendation
+                                            at0.7,    -- Wastage report
+                                            at0.8]    -- Audit/Stocktake
+                                        }
+                                    }
+                                }
+                            }
+                            ELEMENT[id0.5] occurrences matches {0..1} matches {    -- Pharmacy Location
+                                value matches {
+                                    DV_TEXT[id0.6]
+                                }
+                            }
+                            ELEMENT[id0.7] occurrences matches {0..1} matches {    -- Reporting Period Start
+                                value matches {
+                                    DV_DATE_TIME[id0.8]
+                                }
+                            }
+                            ELEMENT[id0.9] occurrences matches {0..1} matches {    -- Reporting Period End
+                                value matches {
+                                    DV_DATE_TIME[id0.10]
+                                }
+                            >
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        content cardinality matches {1..*; unordered} matches {
+            -- Medication Inventory Section
+            use_archetype SECTION[id0.100, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {1}    -- Current Inventory
+
+            -- Individual medication stock status
+            use_archetype EVALUATION[id0.110, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {1..*}
+
+            -- Stock Receipt Section
+            use_archetype SECTION[id0.200, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Stock Receipts
+
+            -- Received medication action
+            use_archetype ACTION[id0.210, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Stock Dispensing Section
+            use_archetype SECTION[id0.300, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Stock Dispensed
+
+            -- Dispensed medication tracking
+            use_archetype ACTION[id0.310, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Stock Return Section
+            use_archetype SECTION[id0.400, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Stock Returns
+
+            -- Returned medication tracking
+            use_archetype ACTION[id0.410, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Expiry Tracking Section
+            use_archetype SECTION[id0.500, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Expiry Alerts
+
+            -- Medications nearing expiry
+            use_archetype EVALUATION[id0.510, openEHR-EHR-EVALUATION.medication_summary.v0] occurrences matches {0..*}
+
+            -- Wastage and Disposal Section
+            use_archetype SECTION[id0.600, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Wastage
+
+            -- Expired or damaged medication disposal
+            use_archetype ACTION[id0.610, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Stock Adjustment Section
+            use_archetype SECTION[id0.700, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Stock Adjustments
+
+            -- Inventory corrections and adjustments
+            use_archetype ACTION[id0.710, openEHR-EHR-ACTION.medication.v1] occurrences matches {0..*}
+
+            -- Reorder Recommendations Section
+            use_archetype SECTION[id0.800, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Reorder Alerts
+
+            -- Medications below reorder level
+            use_archetype EVALUATION[id0.810, openEHR-EHR-EVALUATION.recommendation.v2] occurrences matches {0..*}
+
+            -- Audit Trail Section
+            use_archetype SECTION[id0.900, openEHR-EHR-SECTION.adhoc.v1] occurrences matches {0..1}    -- Audit Information
+
+            -- Stocktake and audit notes
+            use_archetype EVALUATION[id0.910, openEHR-EHR-EVALUATION.clinical_synopsis.v1] occurrences matches {0..1}
+        }
+    }
+
+terminology
+    term_definitions = <
+        ["en"] = <
+            ["id1.1"] = <
+                text = <"Pharmacy Stock Management Report">
+                description = <"A report documenting pharmacy inventory status, stock movements, and alerts.">
+            >
+            ["id0.1"] = <
+                text = <"Report ID">
+                description = <"Unique identifier for this stock management report.">
+            >
+            ["id0.3"] = <
+                text = <"Report Type">
+                description = <"Type of stock management report.">
+            >
+            ["id0.5"] = <
+                text = <"Pharmacy Location">
+                description = <"Physical location of the pharmacy or storage facility.">
+            >
+            ["id0.7"] = <
+                text = <"Reporting Period Start">
+                description = <"Start date and time of the reporting period.">
+            >
+            ["id0.9"] = <
+                text = <"Reporting Period End">
+                description = <"End date and time of the reporting period.">
+            >
+            ["id0.100"] = <
+                text = <"Current Inventory">
+                description = <"Current medication inventory status.">
+            >
+            ["id0.110"] = <
+                text = <"Medication Stock Status">
+                description = <"Individual medication stock level using medication_summary.v0 archetype.">
+            >
+            ["id0.200"] = <
+                text = <"Stock Receipts">
+                description = <"Medications received into inventory.">
+            >
+            ["id0.210"] = <
+                text = <"Stock Received">
+                description = <"Medication receipt action using medication.v1 archetype.">
+            >
+            ["id0.300"] = <
+                text = <"Stock Dispensed">
+                description = <"Medications dispensed from inventory.">
+            >
+            ["id0.310"] = <
+                text = <"Stock Dispensed Action">
+                description = <"Medication dispensing from inventory using medication.v1 archetype.">
+            >
+            ["id0.400"] = <
+                text = <"Stock Returns">
+                description = <"Medications returned to inventory.">
+            >
+            ["id0.410"] = <
+                text = <"Stock Return Action">
+                description = <"Medication return tracking using medication.v1 archetype.">
+            >
+            ["id0.500"] = <
+                text = <"Expiry Alerts">
+                description = <"Medications approaching or past expiry date.">
+            >
+            ["id0.510"] = <
+                text = <"Expiring Medication">
+                description = <"Medication expiry tracking using medication_summary.v0 archetype.">
+            >
+            ["id0.600"] = <
+                text = <"Wastage">
+                description = <"Expired, damaged, or otherwise wasted medications.">
+            >
+            ["id0.610"] = <
+                text = <"Medication Wastage">
+                description = <"Disposal of expired/damaged medication using medication.v1 archetype.">
+            >
+            ["id0.700"] = <
+                text = <"Stock Adjustments">
+                description = <"Inventory corrections and adjustments.">
+            >
+            ["id0.710"] = <
+                text = <"Adjustment Action">
+                description = <"Stock adjustment action using medication.v1 archetype.">
+            >
+            ["id0.800"] = <
+                text = <"Reorder Alerts">
+                description = <"Medications below minimum stock level requiring reorder.">
+            >
+            ["id0.810"] = <
+                text = <"Reorder Recommendation">
+                description = <"Reorder recommendations using recommendation.v2 archetype.">
+            >
+            ["id0.900"] = <
+                text = <"Audit Information">
+                description = <"Audit trail and stocktake documentation.">
+            >
+            ["id0.910"] = <
+                text = <"Audit Notes">
+                description = <"Stocktake and audit notes using clinical_synopsis.v1 archetype.">
+            >
+            ["at0001"] = <
+                text = <"event">
+                description = <"Event category for stock report.">
+            >
+            ["at0.1"] = <
+                text = <"Daily stock report">
+                description = <"Daily summary of inventory status.">
+            >
+            ["at0.2"] = <
+                text = <"Stock receipt">
+                description = <"Report of medications received into inventory.">
+            >
+            ["at0.3"] = <
+                text = <"Stock return">
+                description = <"Report of medications returned to inventory.">
+            >
+            ["at0.4"] = <
+                text = <"Expiry alert report">
+                description = <"Report of medications nearing or past expiry date.">
+            >
+            ["at0.5"] = <
+                text = <"Stock adjustment">
+                description = <"Report of inventory corrections or adjustments.">
+            >
+            ["at0.6"] = <
+                text = <"Reorder recommendation">
+                description = <"Report of medications requiring reorder.">
+            >
+            ["at0.7"] = <
+                text = <"Wastage report">
+                description = <"Report of expired, damaged, or wasted medications.">
+            >
+            ["at0.8"] = <
+                text = <"Audit/Stocktake">
+                description = <"Physical inventory count and audit report.">
+            >
+        >
+        ["fr"] = <
+            ["id1.1"] = <
+                text = <"Rapport de Gestion des Stocks de Pharmacie">
+                description = <"Un rapport documentant l'état de l'inventaire de pharmacie, les mouvements de stock et les alertes.">
+            >
+            ["id0.1"] = <
+                text = <"Identifiant du Rapport">
+                description = <"Identifiant unique pour ce rapport de gestion des stocks.">
+            >
+            ["id0.110"] = <
+                text = <"État du Stock de Médicaments">
+                description = <"Niveau de stock de médicament individuel utilisant l'archétype medication_summary.v0.">
+            >
+        >
+    >
