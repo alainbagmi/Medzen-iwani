@@ -1,0 +1,125 @@
+# Git Ignore - MedZen Iwani Healthcare App
+# Created: 2025-11-11
+# Purpose: Protect sensitive credentials and generated files from version control
+
+# ============================================
+# CRITICAL: Firebase Sensitive Files
+# ============================================
+firebase/functions/.runtimeconfig.json
+firebase/functions/node_modules/
+firebase/functions/package-lock.json
+firebase/.firebase/
+firebase/firebase-debug.log
+.firebaserc
+
+# ============================================
+# CRITICAL: Supabase Sensitive Files
+# ============================================
+supabase/.env
+supabase/.env.local
+supabase/functions/.env
+supabase/.branches/
+supabase/.temp/
+
+# ============================================
+# Environment Variables & Secrets
+# ============================================
+**/*.env
+**/*.env.local
+**/*.env.*.local
+.env
+.env.local
+.env.production
+.env.development
+
+# ============================================
+# Flutter Generated Files
+# ============================================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.lock
+pubspec.lock
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ============================================
+# Credentials & Keys
+# ============================================
+**/*credentials*.json
+**/*serviceAccountKey*.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
+**/*.keystore
+
+# ============================================
+# Backup Files
+# ============================================
+*.backup
+*.bak
+*.old
+*~
+
+# ============================================
+# Test & Debug Files
+# ============================================
+coverage/
+test/.test_coverage.dart
+*.log
+
+# ============================================
+# Platform-Specific
+# ============================================
+# iOS
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Android
+android/app/google-services.json
+android/.gradle/
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/key.properties
+
+# Web
+web/firebase-config.js
+
+# ============================================
+# Node Modules (All Locations)
+# ============================================
+**/node_modules/
+**/package-lock.json
+
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+
+# ============================================
+# MCP Server Configs (May Contain Tokens)
+# ============================================
+~/MCP_DETAILS/**/*.env
+openehr-mcp-server/.env
+powersync-mcp-server/.env
