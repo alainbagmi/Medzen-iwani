@@ -66,4 +66,33 @@ class VideoCallSessionsRow extends SupabaseDataRow {
 
   DateTime? get createdAt => getField<DateTime>('created_at');
   set createdAt(DateTime? value) => setField<DateTime>('created_at', value);
+
+  String? get providerRtcToken => getField<String>('provider_rtc_token');
+  set providerRtcToken(String? value) =>
+      setField<String>('provider_rtc_token', value);
+
+  String? get patientRtcToken => getField<String>('patient_rtc_token');
+  set patientRtcToken(String? value) =>
+      setField<String>('patient_rtc_token', value);
+
+  DateTime? get tokenExpiresAt => getField<DateTime>('token_expires_at');
+  set tokenExpiresAt(DateTime? value) =>
+      setField<DateTime>('token_expires_at', value);
+
+  DateTime? get callWindowStart => getField<DateTime>('call_window_start');
+  set callWindowStart(DateTime? value) =>
+      setField<DateTime>('call_window_start', value);
+
+  DateTime? get callWindowEnd => getField<DateTime>('call_window_end');
+  set callWindowEnd(DateTime? value) =>
+      setField<DateTime>('call_window_end', value);
+
+  String? get groupChatId => getField<String>('group_chat_id');
+  set groupChatId(String? value) => setField<String>('group_chat_id', value);
+
+  String? get providerId => getField<String>('provider_id');
+  set providerId(String? value) => setField<String>('provider_id', value);
+
+  String? get patientId => getField<String>('patient_id');
+  set patientId(String? value) => setField<String>('patient_id', value);
 }

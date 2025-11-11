@@ -1,22 +1,32 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
 import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'index.dart'; // Imports other custom actions
+import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom action code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-// To call the cloud function make sure to import this dependency
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:permission_handler/permission_handler.dart';
-
 import '/custom_code/widgets/pre_joining_dialog.dart';
 
-// Method for generating secure video call tokens and proceeding to join
-// Uses secure Firebase function with authentication and Supabase integration
+/// New joinRoom implementation for Agora video calls with session-based token generation
+///
+/// This function generates Agora RTC tokens via Firebase Cloud Function and launches video call UI.
+/// Uses the new generateVideoCallTokens function with session management.
+///
+/// Parameters:
+/// - context: Build context for navigation
+/// - sessionId: UUID of the video_call_sessions record
+/// - providerId: UUID of the medical provider
+/// - patientId: UUID of the patient
+/// - appointmentId: UUID of the appointment
+/// - isProvider: Whether current user is the provider (true) or patient (false)
+/// - userName: Display name of current user
+/// - userImage: Profile image URL of current user
 Future joinRoom(
   BuildContext context,
   String sessionId,
@@ -25,70 +35,114 @@ Future joinRoom(
   String appointmentId,
   bool isProvider,
   String? userName,
-  String? profileImage,
+  String? userImage,
 ) async {
-  // Prepare input for secure token generation
-  // No credentials passed from client - all handled server-side
-  final input = <String, dynamic>{
-    'sessionId': sessionId,
-    'providerId': providerId,
-    'patientId': patientId,
-    'appointmentId': appointmentId,
-  };
-
   try {
-    // Call secure Firebase function with authentication
+    // Request camera and microphone permissions
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.camera,
+      Permission.microphone,
+    ].request();
+
+    // Check if all permissions are granted
+    if (statuses[Permission.camera] != PermissionStatus.granted ||
+        statuses[Permission.microphone] != PermissionStatus.granted) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Camera and microphone permissions are required for video calls.'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
+        ),
+      );
+      return;
+    }
+
+    // Show loading indicator
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    // Call Firebase function to generate Agora tokens
+    final input = <String, dynamic>{
+      'sessionId': sessionId,
+      'providerId': providerId,
+      'patientId': patientId,
+      'appointmentId': appointmentId,
+    };
+
     final response = await FirebaseFunctions.instance
         .httpsCallable('generateVideoCallTokens')
         .call(input);
 
-    // Parse response with multiple tokens and metadata
+    // Dismiss loading indicator
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
     final data = response.data as Map<String, dynamic>;
-    final channelName = data['channelName'] as String;
-    final providerToken = data['providerToken'] as String;
-    final patientToken = data['patientToken'] as String;
-    final conversationId = data['conversationId'] as String;
-    final expiresAt = data['expiresAt'] as String;
 
-    // Hardcoded App ID (safe to be in client code)
-    const agoraAppId = '9a6e33f84cd542d9aba14374ae3326b7';
+    if (data['success'] == true) {
+      final channelName = data['channelName'] as String;
+      final token = isProvider
+          ? data['providerToken'] as String
+          : data['patientToken'] as String;
+      final conversationId = data['conversationId'] as String?;
 
-    // Use appropriate token based on user role
-    final token = isProvider ? providerToken : patientToken;
-    final roleLabel = isProvider ? 'Provider' : 'Patient';
+      debugPrint('✅ Video call tokens generated successfully');
+      debugPrint('Channel: $channelName');
+      debugPrint('Conversation ID: $conversationId');
 
-    debugPrint('✅ Video call tokens generated successfully!');
-    debugPrint('Channel: $channelName');
-    debugPrint('Role: $roleLabel');
-    debugPrint('Conversation ID: $conversationId');
-    debugPrint('Token expires at: $expiresAt');
+      // Small delay before showing dialog
+      await Future.delayed(const Duration(milliseconds: 500));
 
-    await Future.delayed(
-      const Duration(seconds: 1),
-    );
+      if (!context.mounted) return;
 
-    if (context.mounted) {
+      // Show pre-joining dialog with video call controls
       await showDialog(
         context: context,
+        barrierDismissible: false,
         builder: (context) => PreJoiningDialog(
           channelName: channelName,
           token: token,
-          appId: agoraAppId,
-          userName: userName ?? roleLabel,
-          profileImage: profileImage ??
-              'https://res.cloudinary.com/dcato1y8g/image/upload/v1747920945/1747920944488000_ld6xer.jpg',
+          appId: '', // Will be fetched from config in PreJoiningDialog
+          userName: userName ?? (isProvider ? 'Provider' : 'Patient'),
+          profileImage: userImage ?? '',
+        ),
+      );
+    } else {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to generate video call tokens: ${data['message']}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
         ),
       );
     }
   } catch (e) {
-    debugPrint('❌ Error generating video call tokens: $e');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to join video call: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    // Dismiss loading indicator if shown
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     }
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error starting video call: ${e.toString()}'),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+
+    debugPrint('❌ Error in joinRoom: $e');
   }
 }
