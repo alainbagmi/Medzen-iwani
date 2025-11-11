@@ -528,18 +528,253 @@ claude mcp add flutterflow --env FLUTTERFLOW_API_TOKEN=... -- node /path/to/buil
 - **Node.js:** Functions require Node.js 20
 - **Flutter Version:** >=3.0.0 (check `flutter --version` matches)
 
+## Code Protection & Safety
+
+**Protection Status:** ✅ ACTIVE (Implemented 2025-11-11)
+
+This project has comprehensive protection measures to prevent accidental deletion or overwriting of critical code, particularly the `onUserCreated` Firebase Cloud Function and custom implementations.
+
+### Version Control (Git)
+
+**Status:** ✅ Initialized and Active
+
+```bash
+# Repository initialized with comprehensive .gitignore
+git init
+git add firebase/functions/index.js firebase/functions/package.json
+git commit -m "Protect onUserCreated function"
+
+# Check repository status
+git status
+git log --oneline
+```
+
+**Protected in .gitignore:**
+- `firebase/functions/.runtimeconfig.json` (sensitive config)
+- `firebase/functions/node_modules/` (dependencies)
+- `**/*.env` (all environment files)
+- `supabase/.env*` (Supabase secrets)
+- All credential files (*.key, *.pem, *credentials*.json)
+
+### Automated Backups
+
+**Status:** ✅ Scripts Created (Cron Setup Required)
+
+**Manual Backup:** Run anytime before risky operations
+```bash
+./create-backup.sh
+# Creates timestamped backup in ~/backups-medzen/backup_YYYYMMDD_HHMMSS/
+# Includes: Firebase functions, Supabase migrations, PowerSync config, documentation, Git bundle
+```
+
+**Automated Backup:** Daily backups via cron (30-day retention)
+```bash
+# Setup automated backups (one-time)
+./setup-automated-backups.sh
+# Choose schedule: Daily 2 AM (recommended) or custom
+
+# View backup log
+tail -f ~/backups-medzen/backup.log
+
+# List all backups
+ls -lh ~/backups-medzen/
+```
+
+**Backup Locations:**
+- `~/backups-medzen/backup_*/` - Timestamped backups (kept 30 days)
+- `~/backups-medzen/backup.log` - Automated backup log
+
+**What's Backed Up:**
+- Firebase Cloud Functions (`firebase/functions/index.js`, `package.json`)
+- Firebase config (`firebase.json`, `firestore.rules`, `storage.rules`)
+- Supabase migrations (`supabase/migrations/*.sql`)
+- Supabase edge functions (`supabase/functions/`)
+- PowerSync configuration (`POWERSYNC_SYNC_RULES.yaml`, `lib/powersync/`)
+- Critical documentation (CLAUDE.md, ONUSERCREATED_COMPLETE_IMPLEMENTATION.md, etc.)
+- Git repository bundle (full history)
+
+### Pre-Deployment Verification
+
+**Status:** ✅ Script Ready
+
+**Always run before deploying functions:**
+```bash
+cd firebase/functions
+./pre-deploy-check.sh
+```
+
+**Checks Performed:**
+1. ✅ Node.js version (20 or higher)
+2. ✅ npm dependencies installed
+3. ✅ Firebase Functions config set (Supabase, EHRbase)
+4. ✅ onUserCreated function exists with EHRbase integration
+5. ✅ No hardcoded credentials in code
+6. ✅ Linting passes
+7. ✅ .runtimeconfig.json in .gitignore
+8. ✅ Git tracking status
+
+**Deploy only if all checks pass:**
+```bash
+# If pre-deploy-check.sh passes
+firebase deploy --only functions:onUserCreated
+```
+
+### Safe FlutterFlow Re-Export
+
+**Status:** ✅ Script Ready
+
+**Critical:** FlutterFlow re-export can overwrite custom code. ALWAYS use the safe re-export script:
+
+```bash
+# 1. Export from FlutterFlow web interface
+#    - Download Code → Export as ZIP
+#    - Save to ~/Downloads/
+
+# 2. Run safe re-export script
+./safe-reexport.sh ~/Downloads/medzen-iwani-export.zip
+
+# Script will:
+# ✓ Create automatic backup
+# ✓ Extract ZIP to temp directory
+# ✓ Analyze changes
+# ✓ Show diff summary
+# ✓ Ask for confirmation
+# ✓ Copy ONLY safe directories (lib/flutter_flow/)
+# ✓ PROTECT critical directories (lib/powersync/, lib/custom_code/, firebase/, supabase/)
+# ✓ Verify protected files still exist
+# ✓ Run flutter pub get
+```
+
+**Protected Directories (NEVER overwritten):**
+- 🔒 `lib/powersync/` - Offline-first database implementation
+- 🔒 `lib/custom_code/` - Custom actions and widgets
+- 🔒 `firebase/` - Cloud Functions and configuration
+- 🔒 `supabase/` - Migrations and edge functions
+- 🔒 `graphql_queries/` - Custom GraphQL queries
+
+**Safe Directories (Updated from FlutterFlow):**
+- ✓ `lib/flutter_flow/` - FlutterFlow-managed utilities
+- ✓ Generated page widgets (lib/*_page/)
+
+### Recovery Procedures
+
+**If Function Gets Deleted/Corrupted:**
+
+1. **From Git (Fastest):**
+   ```bash
+   git status  # Check what changed
+   git diff firebase/functions/index.js  # Review changes
+   git checkout firebase/functions/index.js  # Restore from last commit
+   git log --oneline  # View commit history
+   ```
+
+2. **From Backup:**
+   ```bash
+   # List backups
+   ls -lh ~/backups-medzen/
+
+   # Restore from specific backup
+   BACKUP_DIR=~/backups-medzen/backup_20251111_130510
+   cp $BACKUP_DIR/firebase/functions/index.js firebase/functions/
+   cp $BACKUP_DIR/firebase/functions/package.json firebase/functions/
+
+   # Verify and redeploy
+   cd firebase/functions
+   npm install
+   ./pre-deploy-check.sh
+   firebase deploy --only functions:onUserCreated
+   ```
+
+3. **From Documentation:**
+   ```bash
+   # Reference implementation in documentation
+   cat ONUSERCREATED_COMPLETE_IMPLEMENTATION.md
+   # Contains complete function code and configuration
+   ```
+
+**If FlutterFlow Re-Export Breaks Things:**
+
+1. **Check what was overwritten:**
+   ```bash
+   git status
+   git diff
+   ```
+
+2. **Restore from Git:**
+   ```bash
+   git checkout lib/powersync/
+   git checkout lib/custom_code/
+   git checkout firebase/
+   git checkout supabase/
+   ```
+
+3. **Or restore from backup:**
+   ```bash
+   BACKUP_DIR=~/backups-medzen/backup_YYYYMMDD_HHMMSS
+   cp -r $BACKUP_DIR/lib/powersync lib/
+   cp -r $BACKUP_DIR/firebase/functions/ firebase/
+   ```
+
+### Verification After Recovery
+
+After any recovery operation:
+
+```bash
+# 1. Verify critical files exist
+ls -lh firebase/functions/index.js
+ls -lh lib/powersync/
+ls -lh supabase/migrations/
+
+# 2. Check function is correct
+grep "exports.onUserCreated" firebase/functions/index.js
+grep "electronic_health_records" firebase/functions/index.js
+
+# 3. Run pre-deployment check
+cd firebase/functions && ./pre-deploy-check.sh
+
+# 4. Deploy and verify
+firebase deploy --only functions:onUserCreated
+firebase functions:list | grep onUserCreated
+
+# 5. Test function
+firebase functions:log --only onUserCreated
+```
+
+### Protection Maintenance
+
+**Weekly:**
+- ✅ Verify automated backups running: `tail ~/backups-medzen/backup.log`
+- ✅ Check Git status: `git status` (commit any changes)
+
+**Before Major Changes:**
+- ✅ Run manual backup: `./create-backup.sh`
+- ✅ Commit to Git: `git add . && git commit -m "Checkpoint before X"`
+
+**Before FlutterFlow Re-Export:**
+- ✅ Run safe re-export script: `./safe-reexport.sh /path/to/export.zip`
+- ✅ NEVER manually extract and copy FlutterFlow exports
+
+**Before Deploying Functions:**
+- ✅ Run pre-deployment check: `cd firebase/functions && ./pre-deploy-check.sh`
+
+**Monthly:**
+- ✅ Test recovery procedures (restore from backup to temp directory)
+- ✅ Review backup retention (30 days default)
+
 ## Infrastructure & Deployment
 
-**EHRbase Deployment:** Kubernetes on Proxmox cluster (10.10.10.x network)
+**EHRbase Deployment:** AWS ECS (Production)
+- `aws-deployment/` - CloudFormation templates for EHRbase on AWS ECS
+- Stack: ECS Fargate, RDS PostgreSQL, Application Load Balancer, VPC
+- Endpoint: `https://ehr.medzenhealth.app/ehrbase`
+- Access: EHRbase REST API, Web UI at `/ehrbase/`
+- See AWS_MCP_INSTALLATION_SUMMARY.md and AWS_EHRBASE_DEPLOYMENT_GUIDE.md
+
+**Alternative Deployment:** Kubernetes on Proxmox (Development/Testing)
 - `proxmox-deployment/k8s/` - Kubernetes manifests for EHRbase, PostgreSQL, Studio
 - `ehrbase-admin/kubernetes/` - Admin dashboard deployment
 - Access via MCP: `mcp__proxmox-main__*` tools for VM/node management
-
-**AWS Deployment:** (Optional alternative to Proxmox)
-- `aws-deployment/` - CloudFormation templates for EHRbase on AWS ECS
-- Use when: Cloud-native deployment preferred over on-premise Proxmox
-- Includes: ECS, RDS PostgreSQL, ALB, VPC configuration
-- See AWS_MCP_INSTALLATION_SUMMARY.md and AWS_EHRBASE_DEPLOYMENT_GUIDE.md
+- Note: Currently not in use for production
 
 **OpenEHR MCP Server:** `openehr-mcp-server/` - Local MCP server for EHRbase interaction
 - Templates, compositions, AQL queries
