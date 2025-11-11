@@ -364,7 +364,7 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
 
       const ehrResponse = await axios.post(
         `${EHRBASE_URL}/rest/openehr/v1/ehr`,
-        {},
+        undefined,  // No body - EHRbase creates default EHR_STATUS
         {
           auth: {
             username: EHRBASE_USERNAME,
@@ -376,7 +376,20 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
         }
       );
 
-      ehrId = ehrResponse.data.ehr_id.value;
+      console.log("📊 EHRbase response headers:", JSON.stringify(ehrResponse.headers));
+
+      // Extract EHR ID from Location header (e.g., ".../ehr/uuid") or ETag header
+      // EHRbase returns 201 with empty body - ID is in headers
+      if (ehrResponse.headers.location) {
+        // Extract UUID from location URL (last segment after final /)
+        ehrId = ehrResponse.headers.location.split('/').pop();
+      } else if (ehrResponse.headers.etag) {
+        // Remove quotes from ETag header
+        ehrId = ehrResponse.headers.etag.replace(/"/g, '');
+      } else {
+        throw new Error(`EHRbase response missing location/etag headers: ${JSON.stringify(ehrResponse.headers)}`);
+      }
+
       console.log(`✅ EHRbase EHR created: ${ehrId}`);
 
       // STEP 4: Create electronic_health_records entry
