@@ -2,6 +2,11 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
+// Video Call Token Functions
+const videoCallTokens = require("./videoCallTokens.js");
+exports.generateVideoCallTokens = videoCallTokens.generateVideoCallTokens;
+exports.refreshVideoCallToken = videoCallTokens.refreshVideoCallToken;
+
 const kFcmTokensCollection = "fcm_tokens";
 const kPushNotificationsCollection = "ff_push_notifications";
 const kSchedulerIntervalMinutes = 60;
