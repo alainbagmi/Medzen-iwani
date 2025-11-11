@@ -438,7 +438,108 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
   }
 });
 
+// Firebase Auth trigger: Delete user from ALL systems when Firebase user is deleted
 exports.onUserDeleted = functions.auth.user().onDelete(async (user) => {
-  let firestore = admin.firestore();
-  await firestore.collection("users").doc(user.uid).delete();
+  const startTime = Date.now();
+  console.log(`🗑️  onUserDeleted triggered for: ${user.email} (${user.uid})`);
+
+  try {
+    // Get configuration
+    const config = functions.config();
+    const SUPABASE_URL = config.supabase?.url;
+    const SUPABASE_SERVICE_KEY = config.supabase?.service_key;
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      throw new Error("Missing Supabase configuration");
+    }
+
+    // Create Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // STEP 1: Get Supabase user ID from users table
+    console.log("📝 Step 1: Finding Supabase user ID...");
+    const { data: userData } = await supabase
+      .from("users")
+      .select("id")
+      .eq("firebase_uid", user.uid)
+      .maybeSingle();
+
+    if (!userData) {
+      console.log("⚠️  No Supabase user found for this Firebase UID");
+      // Still delete Firestore doc
+      await admin.firestore().collection("users").doc(user.uid).delete();
+      console.log("✅ Firestore document deleted");
+      return;
+    }
+
+    const supabaseUserId = userData.id;
+    console.log(`✅ Found Supabase user: ${supabaseUserId}`);
+
+    // STEP 2: Delete from electronic_health_records table
+    console.log("📝 Step 2: Deleting electronic_health_records entry...");
+    const { error: ehrRecordError } = await supabase
+      .from("electronic_health_records")
+      .delete()
+      .eq("patient_id", supabaseUserId);
+
+    if (ehrRecordError) {
+      console.log(`⚠️  electronic_health_records deletion warning: ${ehrRecordError.message}`);
+    } else {
+      console.log("✅ electronic_health_records entry deleted");
+    }
+
+    // NOTE: We do NOT delete from EHRbase - EHR records should be retained for legal/audit reasons
+    // Even if a user account is deleted, their medical history must be preserved per HIPAA/GDPR requirements
+
+    // STEP 3: Delete from Supabase users table
+    console.log("📝 Step 3: Deleting from Supabase users table...");
+    const { error: userDeleteError } = await supabase
+      .from("users")
+      .delete()
+      .eq("id", supabaseUserId);
+
+    if (userDeleteError) {
+      console.log(`⚠️  Supabase users table deletion warning: ${userDeleteError.message}`);
+    } else {
+      console.log("✅ Supabase users table record deleted");
+    }
+
+    // STEP 4: Delete from Supabase Auth
+    console.log("📝 Step 4: Deleting from Supabase Auth...");
+    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(supabaseUserId);
+
+    if (authDeleteError) {
+      console.log(`⚠️  Supabase Auth deletion warning: ${authDeleteError.message}`);
+    } else {
+      console.log("✅ Supabase Auth user deleted");
+    }
+
+    // STEP 5: Delete from Firestore
+    console.log("📝 Step 5: Deleting from Firestore...");
+    await admin.firestore().collection("users").doc(user.uid).delete();
+    console.log("✅ Firestore document deleted");
+
+    // Success!
+    const duration = Date.now() - startTime;
+    console.log("🎉 User deletion completed across all systems");
+    console.log(`   Firebase UID: ${user.uid}`);
+    console.log(`   Supabase ID: ${supabaseUserId}`);
+    console.log(`   Duration: ${duration}ms`);
+    console.log("   Note: EHRbase EHR preserved for legal/audit requirements");
+  } catch (error) {
+    console.error("❌ onUserDeleted failed:", error.message);
+    console.error("Stack trace:", error.stack);
+    // Don't throw - we want to ensure Firestore cleanup happens even if other steps fail
+    try {
+      await admin.firestore().collection("users").doc(user.uid).delete();
+      console.log("✅ Firestore document deleted (fallback)");
+    } catch (firestoreError) {
+      console.error("❌ Firestore deletion also failed:", firestoreError.message);
+    }
+  }
 });
