@@ -1,5 +1,5 @@
-const axios = require("axios").default;
-const qs = require("qs");
+// const axios = require("axios").default;
+// const qs = require("qs");
 
 /// Helper functions to route to the appropriate API Call.
 
@@ -21,8 +21,10 @@ async function makeApiCall(context, data) {
   return response;
 }
 
-// eslint-disable-next-line no-unused-vars
-async function _makeApiRequest({
+// Reserved for future API implementations
+// Uncomment when adding custom API calls to callMap
+/*
+async function makeApiRequest({
   method,
   url,
   headers,
@@ -58,15 +60,13 @@ async function _makeApiRequest({
     });
 }
 
-// eslint-disable-next-line no-unused-vars
 const _unauthenticatedResponse = {
   statusCode: 401,
   headers: {},
   error: "API call requires authentication",
 };
 
-// eslint-disable-next-line no-unused-vars
-function _createBody({ headers, params, body, bodyType }) {
+function createBody({ headers, params, body, bodyType }) {
   switch (bodyType) {
   case "JSON":
     headers["Content-Type"] = "application/json";
@@ -79,8 +79,8 @@ function _createBody({ headers, params, body, bodyType }) {
     return qs.stringify(params);
   }
 }
-// eslint-disable-next-line no-unused-vars
-function _escapeStringForJson(val) {
+
+function escapeStringForJson(val) {
   if (typeof val !== "string") {
     return val;
   }
@@ -90,5 +90,6 @@ function _escapeStringForJson(val) {
     .replace(/[\n]/g, "\\n")
     .replace(/[\t]/g, "\\t");
 }
+*/
 
 module.exports = { makeApiCall };
