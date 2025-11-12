@@ -6,6 +6,16 @@ admin.initializeApp();
 const { createClient } = require("@supabase/supabase-js");
 const axios = require("axios");
 
+// Video Call Token Functions
+const videoCallTokens = require("./videoCallTokens.js");
+exports.generateVideoCallTokens = videoCallTokens.generateVideoCallTokens;
+exports.refreshVideoCallToken = videoCallTokens.refreshVideoCallToken;
+
+// AI Chat Handler Functions
+const aiChatHandler = require("./aiChatHandler.js");
+exports.handleAiChatMessage = aiChatHandler.handleAiChatMessage;
+exports.createAiConversation = aiChatHandler.createAiConversation;
+
 const kFcmTokensCollection = "fcm_tokens";
 const kPushNotificationsCollection = "ff_push_notifications";
 const kSchedulerIntervalMinutes = 60;
