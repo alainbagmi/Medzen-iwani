@@ -1,20 +1,14 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
+const videoCallTokens = require("./videoCallTokens");
 
 // Import Supabase client and axios for onUserCreated function
 const { createClient } = require("@supabase/supabase-js");
 const axios = require("axios");
 
-// Video Call Token Functions
-const videoCallTokens = require("./videoCallTokens.js");
-exports.generateVideoCallTokens = videoCallTokens.generateVideoCallTokens;
-exports.refreshVideoCallToken = videoCallTokens.refreshVideoCallToken;
-
 // AI Chat Handler Functions
-const aiChatHandler = require("./aiChatHandler.js");
-exports.handleAiChatMessage = aiChatHandler.handleAiChatMessage;
-exports.createAiConversation = aiChatHandler.createAiConversation;
+const aiChatHandler = require("./aiChatHandler");
 
 const kFcmTokensCollection = "fcm_tokens";
 const kPushNotificationsCollection = "ff_push_notifications";
@@ -451,3 +445,102 @@ exports.onUserDeleted = functions.auth.user().onDelete(async (user) => {
   let firestore = admin.firestore();
   await firestore.collection("users").doc(user.uid).delete();
 });
+
+// Firebase Auth Blocking Function: Execute before user creation
+exports.beforeUserCreated = functions.auth.user().beforeCreate(async (user, context) => {
+  const startTime = Date.now();
+  console.log(`🔒 beforeUserCreated triggered for: ${user.email}`);
+
+  try {
+    // Email validation - ensure email exists and is properly formatted
+    if (!user.email || !user.email.includes("@")) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Valid email address is required for registration"
+      );
+    }
+
+    // Email verification check - require verified emails for security
+    if (!user.emailVerified && context.eventType !== "providers/cloud") {
+      console.log(`⚠️  Email not verified for: ${user.email}`);
+      // Note: For medical app, you may want to enforce email verification
+      // Uncomment below to block unverified emails:
+      // throw new functions.https.HttpsError(
+      //   "failed-precondition",
+      //   "Email must be verified before account creation"
+      // );
+    }
+
+    // Log successful validation
+    const duration = Date.now() - startTime;
+    console.log(`✅ beforeUserCreated validation passed for: ${user.email} (${duration}ms)`);
+
+    // Return empty object to allow user creation to proceed
+    return {};
+  } catch (error) {
+    console.error(`❌ beforeUserCreated blocked user creation: ${user.email}`, error.message);
+
+    // If it's already an HttpsError, re-throw it
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    // Otherwise, wrap in HttpsError
+    throw new functions.https.HttpsError(
+      "internal",
+      `User creation validation failed: ${error.message}`
+    );
+  }
+});
+
+// Firebase Auth Blocking Function: Execute before user sign-in
+exports.beforeUserSignedIn = functions.auth.user().beforeSignIn(async (user, context) => {
+  const startTime = Date.now();
+  console.log(`🔒 beforeUserSignedIn triggered for: ${user.email || user.uid}`);
+
+  try {
+    // Basic security check - ensure user account is enabled
+    if (user.disabled) {
+      throw new functions.https.HttpsError(
+        "permission-denied",
+        "This account has been disabled. Please contact support."
+      );
+    }
+
+    // Check for suspicious sign-in attempts
+    // For medical app, you might want to implement additional checks:
+    // - IP allowlisting/blocklisting
+    // - Time-based access restrictions
+    // - Failed login attempt tracking
+
+    // Log successful sign-in validation
+    const duration = Date.now() - startTime;
+    console.log(`✅ beforeUserSignedIn validation passed for: ${user.email || user.uid} (${duration}ms)`);
+    console.log(`   Sign-in method: ${context.credential?.signInMethod || "unknown"}`);
+    console.log(`   IP Address: ${context.ipAddress || "unknown"}`);
+
+    // Return empty object to allow sign-in to proceed
+    return {};
+  } catch (error) {
+    console.error(`❌ beforeUserSignedIn blocked sign-in: ${user.email || user.uid}`, error.message);
+
+    // If it's already an HttpsError, re-throw it
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    // Otherwise, wrap in HttpsError
+    throw new functions.https.HttpsError(
+      "internal",
+      `Sign-in validation failed: ${error.message}`
+    );
+  }
+});
+
+// Agora Video Call Token Functions
+exports.generateVideoCallTokens = videoCallTokens.generateVideoCallTokens;
+exports.refreshVideoCallToken = videoCallTokens.refreshVideoCallToken;
+
+// AI Chat Handler Functions
+exports.handleAiChatMessage = aiChatHandler.handleAiChatMessage;
+exports.createAiConversation = aiChatHandler.createAiConversation;
