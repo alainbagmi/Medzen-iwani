@@ -1,0 +1,699 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'MedZen Amazon Chime SDK Multi-Region Infrastructure - Video Calling & Medical Transcription'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: medzen
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+
+  LambdaMemory:
+    Type: Number
+    Default: 1024
+    AllowedValues:
+      - 512
+      - 1024
+      - 2048
+
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+    NoEcho: true
+
+  SupabaseServiceKey:
+    Type: String
+    Description: Supabase service role key
+    NoEcho: true
+
+  RetentionDays:
+    Type: Number
+    Default: 2555
+    Description: Data retention in days (7 years for HIPAA)
+
+Resources:
+  # ============================================
+  # KMS Key for Encryption
+  # ============================================
+  ChimeKMSKey:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: KMS key for Chime SDK encryption
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: Allow S3 Service
+            Effect: Allow
+            Principal:
+              Service: s3.amazonaws.com
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: '*'
+
+  ChimeKMSKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${ProjectName}-chime-key'
+      TargetKeyId: !Ref ChimeKMSKey
+
+  # ============================================
+  # S3 Buckets
+  # ============================================
+  RecordingsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-recordings-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref ChimeKMSKey
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: TransitionToGlacier
+            Status: Enabled
+            Transitions:
+              - StorageClass: GLACIER
+                TransitionInDays: 90
+          - Id: DeleteAfterRetention
+            Status: Enabled
+            ExpirationInDays: !Ref RetentionDays
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Function: !GetAtt RecordingHandlerFunction.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.mp4'
+      Tags:
+        - Key: HIPAA
+          Value: 'true'
+        - Key: Environment
+          Value: !Ref Environment
+
+  TranscriptsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-transcripts-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref ChimeKMSKey
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfterRetention
+            Status: Enabled
+            ExpirationInDays: !Ref RetentionDays
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: HIPAA
+          Value: 'true'
+        - Key: Environment
+          Value: !Ref Environment
+
+  MedicalEntitiesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-medical-entities-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !Ref ChimeKMSKey
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ============================================
+  # IAM Role for Lambda
+  # ============================================
+  ChimeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-chime-lambda-role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ChimeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - chime:CreateMeeting
+                  - chime:DeleteMeeting
+                  - chime:GetMeeting
+                  - chime:ListMeetings
+                  - chime:CreateAttendee
+                  - chime:DeleteAttendee
+                  - chime:GetAttendee
+                  - chime:ListAttendees
+                  - chime:CreateMediaCapturePipeline
+                  - chime:DeleteMediaCapturePipeline
+                  - chime:GetMediaCapturePipeline
+                  - chime:ListMediaCapturePipelines
+                  - chime:StartMeetingTranscription
+                  - chime:StopMeetingTranscription
+                Resource: '*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub 'arn:aws:s3:::${ProjectName}-*'
+                  - !Sub 'arn:aws:s3:::${ProjectName}-*/*'
+        - PolicyName: TranscribeAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - transcribe:StartMedicalTranscriptionJob
+                  - transcribe:GetMedicalTranscriptionJob
+                  - transcribe:ListMedicalTranscriptionJobs
+                Resource: '*'
+        - PolicyName: ComprehendMedicalAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - comprehendmedical:DetectEntitiesV2
+                  - comprehendmedical:InferICD10CM
+                  - comprehendmedical:InferRxNorm
+                  - comprehendmedical:DetectPHI
+                Resource: '*'
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt MeetingAuditTable.Arn
+                  - !Sub '${MeetingAuditTable.Arn}/index/*'
+        - PolicyName: KMSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kms:Decrypt
+                  - kms:GenerateDataKey
+                Resource:
+                  - !GetAtt ChimeKMSKey.Arn
+
+  # ============================================
+  # DynamoDB Table for Audit Logs
+  # ============================================
+  MeetingAuditTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-meeting-audit'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+        - AttributeName: meetingId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: meetingId-index
+          KeySchema:
+            - AttributeName: meetingId
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: HIPAA
+          Value: 'true'
+
+  # ============================================
+  # Lambda Functions
+  # ============================================
+
+  # Meeting Manager Function
+  MeetingManagerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-meeting-manager'
+      Description: Manages Chime SDK meetings
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: !Ref LambdaMemory
+      Timeout: 30
+      Role: !GetAtt ChimeLambdaRole.Arn
+      Environment:
+        Variables:
+          RECORDINGS_BUCKET: !Ref RecordingsBucket
+          TRANSCRIPTS_BUCKET: !Ref TranscriptsBucket
+          AUDIT_TABLE: !Ref MeetingAuditTable
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          MEDIA_REGION: !Ref AWS::Region
+      Code:
+        ZipFile: |
+          const { ChimeSDKMeetingsClient, CreateMeetingCommand, CreateAttendeeCommand, DeleteMeetingCommand } = require('@aws-sdk/client-chime-sdk-meetings');
+          const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+          const { v4: uuidv4 } = require('uuid');
+
+          const chimeClient = new ChimeSDKMeetingsClient({ region: process.env.MEDIA_REGION });
+          const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+
+          exports.handler = async (event) => {
+            const { action, meetingId, attendeeId, userId, appointmentId } = JSON.parse(event.body || '{}');
+
+            try {
+              switch (action) {
+                case 'create': {
+                  const meeting = await chimeClient.send(new CreateMeetingCommand({
+                    ClientRequestToken: uuidv4(),
+                    MediaRegion: process.env.MEDIA_REGION,
+                    ExternalMeetingId: appointmentId,
+                    MeetingFeatures: {
+                      Audio: { EchoReduction: 'AVAILABLE' }
+                    }
+                  }));
+
+                  // Audit log
+                  await dynamoClient.send(new PutItemCommand({
+                    TableName: process.env.AUDIT_TABLE,
+                    Item: {
+                      pk: { S: `MEETING#${meeting.Meeting.MeetingId}` },
+                      sk: { S: `CREATED#${new Date().toISOString()}` },
+                      meetingId: { S: meeting.Meeting.MeetingId },
+                      timestamp: { S: new Date().toISOString() },
+                      action: { S: 'CREATED' },
+                      appointmentId: { S: appointmentId || 'N/A' },
+                      ttl: { N: String(Math.floor(Date.now() / 1000) + 86400 * 2555) }
+                    }
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ meeting: meeting.Meeting })
+                  };
+                }
+
+                case 'join': {
+                  const attendee = await chimeClient.send(new CreateAttendeeCommand({
+                    MeetingId: meetingId,
+                    ExternalUserId: userId
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ attendee: attendee.Attendee })
+                  };
+                }
+
+                case 'end': {
+                  await chimeClient.send(new DeleteMeetingCommand({ MeetingId: meetingId }));
+
+                  // Audit log
+                  await dynamoClient.send(new PutItemCommand({
+                    TableName: process.env.AUDIT_TABLE,
+                    Item: {
+                      pk: { S: `MEETING#${meetingId}` },
+                      sk: { S: `ENDED#${new Date().toISOString()}` },
+                      meetingId: { S: meetingId },
+                      timestamp: { S: new Date().toISOString() },
+                      action: { S: 'ENDED' },
+                      ttl: { N: String(Math.floor(Date.now() / 1000) + 86400 * 2555) }
+                    }
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ message: 'Meeting ended' })
+                  };
+                }
+
+                default:
+                  return {
+                    statusCode: 400,
+                    body: JSON.stringify({ error: 'Invalid action' })
+                  };
+              }
+            } catch (error) {
+              console.error('Error:', error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({ error: error.message })
+              };
+            }
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Recording Handler Function
+  RecordingHandlerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-recording-handler'
+      Description: Processes meeting recordings
+      Runtime: python3.11
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 300
+      Role: !GetAtt ChimeLambdaRole.Arn
+      Environment:
+        Variables:
+          TRANSCRIPTS_BUCKET: !Ref TranscriptsBucket
+          AUDIT_TABLE: !Ref MeetingAuditTable
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import os
+          from urllib.parse import unquote_plus
+
+          transcribe = boto3.client('transcribe')
+          dynamodb = boto3.client('dynamodb')
+
+          def handler(event, context):
+              for record in event['Records']:
+                  bucket = record['s3']['bucket']['name']
+                  key = unquote_plus(record['s3']['object']['key'])
+
+                  # Extract meeting ID from key
+                  meeting_id = key.split('/')[0] if '/' in key else 'unknown'
+
+                  # Start medical transcription
+                  job_name = f"medzen-{meeting_id}-{context.aws_request_id[:8]}"
+
+                  try:
+                      transcribe.start_medical_transcription_job(
+                          MedicalTranscriptionJobName=job_name,
+                          LanguageCode='en-US',
+                          MediaFormat='mp4',
+                          Media={'MediaFileUri': f's3://{bucket}/{key}'},
+                          OutputBucketName=os.environ['TRANSCRIPTS_BUCKET'],
+                          Specialty='PRIMARYCARE',
+                          Type='CONVERSATION',
+                          Settings={
+                              'ShowSpeakerLabels': True,
+                              'MaxSpeakerLabels': 2
+                          }
+                      )
+
+                      # Audit log
+                      dynamodb.put_item(
+                          TableName=os.environ['AUDIT_TABLE'],
+                          Item={
+                              'pk': {'S': f'MEETING#{meeting_id}'},
+                              'sk': {'S': f'TRANSCRIPTION_STARTED#{job_name}'},
+                              'meetingId': {'S': meeting_id},
+                              'timestamp': {'S': context.function_name},
+                              'action': {'S': 'TRANSCRIPTION_STARTED'},
+                              'jobName': {'S': job_name}
+                          }
+                      )
+
+                      return {'statusCode': 200, 'body': json.dumps({'job': job_name})}
+
+                  except Exception as e:
+                      print(f'Error: {str(e)}')
+                      return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+
+  RecordingHandlerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RecordingHandlerFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt RecordingsBucket.Arn
+
+  # Transcription Processor Function
+  TranscriptionProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-transcription-processor'
+      Description: Processes completed transcriptions
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: !Ref LambdaMemory
+      Timeout: 300
+      Role: !GetAtt ChimeLambdaRole.Arn
+      Environment:
+        Variables:
+          MEDICAL_ENTITIES_BUCKET: !Ref MedicalEntitiesBucket
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+      Code:
+        ZipFile: |
+          const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
+          const { ComprehendMedicalClient, DetectEntitiesV2Command, InferICD10CMCommand } = require('@aws-sdk/client-comprehendmedical');
+
+          const s3Client = new S3Client({ region: process.env.AWS_REGION });
+          const comprehendClient = new ComprehendMedicalClient({ region: process.env.AWS_REGION });
+
+          exports.handler = async (event) => {
+            for (const record of event.Records) {
+              const bucket = record.s3.bucket.name;
+              const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
+
+              // Get transcript
+              const getResponse = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+              const transcript = JSON.parse(await getResponse.Body.transformToString());
+
+              // Extract text
+              const text = transcript.results?.transcripts?.[0]?.transcript || '';
+              if (!text) continue;
+
+              // Detect medical entities
+              const entities = await comprehendClient.send(new DetectEntitiesV2Command({ Text: text }));
+
+              // Get ICD-10 codes
+              const icd10 = await comprehendClient.send(new InferICD10CMCommand({ Text: text }));
+
+              // Save results
+              const results = {
+                transcript: text,
+                entities: entities.Entities,
+                icd10Codes: icd10.Entities,
+                processedAt: new Date().toISOString()
+              };
+
+              const meetingId = key.split('/')[0] || 'unknown';
+              await s3Client.send(new PutObjectCommand({
+                Bucket: process.env.MEDICAL_ENTITIES_BUCKET,
+                Key: `${meetingId}/entities.json`,
+                Body: JSON.stringify(results),
+                ContentType: 'application/json'
+              }));
+            }
+
+            return { statusCode: 200 };
+          };
+
+  # ============================================
+  # API Gateway
+  # ============================================
+  ChimeApiGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${ProjectName}-chime-api'
+      ProtocolType: HTTP
+      Description: Chime SDK Meetings API
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - POST
+          - GET
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+
+  ChimeApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt MeetingManagerFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  ChimeApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      RouteKey: 'POST /meetings'
+      Target: !Sub 'integrations/${ChimeApiIntegration}'
+
+  ChimeApiRouteHealth:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      RouteKey: 'GET /health'
+      Target: !Sub 'integrations/${ChimeApiIntegration}'
+
+  ChimeApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      StageName: '$default'
+      AutoDeploy: true
+
+  ChimeApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MeetingManagerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChimeApiGateway}/*/*'
+
+  # ============================================
+  # CloudWatch Logs
+  # ============================================
+  MeetingManagerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-meeting-manager'
+      RetentionInDays: 90
+
+  RecordingHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-recording-handler'
+      RetentionInDays: 90
+
+  TranscriptionProcessorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-transcription-processor'
+      RetentionInDays: 90
+
+  # ============================================
+  # CloudWatch Alarms
+  # ============================================
+  MeetingErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-chime-meeting-errors'
+      AlarmDescription: Chime meeting creation errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 3
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref MeetingManagerFunction
+
+Outputs:
+  ChimeApiEndpoint:
+    Description: Chime SDK API Gateway endpoint
+    Value: !Sub 'https://${ChimeApiGateway}.execute-api.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-ChimeApiEndpoint'
+
+  MeetingManagerFunctionArn:
+    Description: Meeting Manager Lambda ARN
+    Value: !GetAtt MeetingManagerFunction.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-MeetingManagerArn'
+
+  RecordingsBucketName:
+    Description: Recordings S3 bucket name
+    Value: !Ref RecordingsBucket
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-RecordingsBucket'
+
+  TranscriptsBucketName:
+    Description: Transcripts S3 bucket name
+    Value: !Ref TranscriptsBucket
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-TranscriptsBucket'
+
+  MedicalEntitiesBucketName:
+    Description: Medical entities S3 bucket name
+    Value: !Ref MedicalEntitiesBucket
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-MedicalEntitiesBucket'
+
+  AuditTableName:
+    Description: DynamoDB audit table name
+    Value: !Ref MeetingAuditTable
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-AuditTable'
+
+  KMSKeyArn:
+    Description: KMS Key ARN for Chime encryption
+    Value: !GetAtt ChimeKMSKey.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-ChimeKMSKeyArn'

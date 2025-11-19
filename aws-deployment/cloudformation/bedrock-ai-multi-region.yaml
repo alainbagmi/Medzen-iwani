@@ -1,0 +1,499 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'MedZen Bedrock AI Multi-Region Infrastructure - Lambda, API Gateway, Bedrock'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: medzen
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+
+  LambdaMemory:
+    Type: Number
+    Default: 1024
+    AllowedValues:
+      - 512
+      - 1024
+      - 2048
+      - 3008
+    Description: Lambda function memory in MB
+
+  LambdaTimeout:
+    Type: Number
+    Default: 60
+    MinValue: 30
+    MaxValue: 900
+    Description: Lambda function timeout in seconds
+
+  BedrockModelId:
+    Type: String
+    Default: anthropic.claude-3-sonnet-20240229-v1:0
+    Description: Primary Bedrock model ID
+
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+    NoEcho: true
+
+  SupabaseServiceKey:
+    Type: String
+    Description: Supabase service role key
+    NoEcho: true
+
+Resources:
+  # ============================================
+  # Lambda Function
+  # ============================================
+  AILambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-ai-chat-handler'
+      Description: AI Chat handler with Bedrock integration
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: !Ref LambdaMemory
+      Timeout: !Ref LambdaTimeout
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          BEDROCK_MODEL_ID: !Ref BedrockModelId
+          BEDROCK_REGION: !Ref AWS::Region
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          ENVIRONMENT: !Ref Environment
+          # Failover regions
+          FAILOVER_REGION_1: us-east-1
+          FAILOVER_REGION_2: af-south-1
+      Code:
+        ZipFile: |
+          const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
+          const { TranslateClient, TranslateTextCommand } = require('@aws-sdk/client-translate');
+          const { ComprehendMedicalClient, DetectEntitiesV2Command } = require('@aws-sdk/client-comprehendmedical');
+
+          // Multi-region clients
+          const primaryRegion = process.env.BEDROCK_REGION || 'eu-west-1';
+          const failoverRegion1 = process.env.FAILOVER_REGION_1 || 'us-east-1';
+          const failoverRegion2 = process.env.FAILOVER_REGION_2 || 'af-south-1';
+
+          const bedrockClients = {
+            primary: new BedrockRuntimeClient({ region: primaryRegion }),
+            failover1: new BedrockRuntimeClient({ region: failoverRegion1 }),
+            failover2: new BedrockRuntimeClient({ region: failoverRegion2 })
+          };
+
+          const translateClient = new TranslateClient({ region: primaryRegion });
+          const comprehendClient = new ComprehendMedicalClient({ region: primaryRegion });
+
+          // Language detection patterns
+          const languagePatterns = {
+            sw: ['habari', 'jambo', 'asante', 'daktari', 'mgonjwa', 'hospitali'],
+            rw: ['muraho', 'murakoze', 'muganga', 'umuryango'],
+            ha: ['sannu', 'nagode', 'likita', 'asibiti'],
+            yo: ['bawo', 'ese', 'dokita', 'ile-iwosan'],
+            ar: ['مرحبا', 'شكرا', 'طبيب', 'مستشفى'],
+            fr: ['bonjour', 'merci', 'médecin', 'hôpital', 'santé'],
+            pcm: ['wetin', 'abeg', 'dey', 'wahala', 'hospital'],
+            camfrang: ['ça va', 'je go', 'c\'est', 'mon', 'frère']
+          };
+
+          function detectLanguage(text) {
+            const lowerText = text.toLowerCase();
+            for (const [lang, patterns] of Object.entries(languagePatterns)) {
+              const matches = patterns.filter(p => lowerText.includes(p)).length;
+              if (matches >= 2) return lang;
+            }
+            return 'en';
+          }
+
+          async function invokeBedrockWithFailover(modelId, body) {
+            const clients = ['primary', 'failover1', 'failover2'];
+
+            for (const clientKey of clients) {
+              try {
+                const response = await bedrockClients[clientKey].send(
+                  new InvokeModelCommand({
+                    modelId,
+                    contentType: 'application/json',
+                    accept: 'application/json',
+                    body: JSON.stringify(body)
+                  })
+                );
+                return { response, region: clientKey };
+              } catch (error) {
+                console.error(`Failed in ${clientKey}:`, error.message);
+                if (clientKey === 'failover2') throw error;
+              }
+            }
+          }
+
+          exports.handler = async (event) => {
+            try {
+              const body = JSON.parse(event.body || '{}');
+              const { message, conversationId, userId } = body;
+
+              if (!message) {
+                return {
+                  statusCode: 400,
+                  body: JSON.stringify({ error: 'Message is required' })
+                };
+              }
+
+              // Detect language
+              const detectedLanguage = detectLanguage(message);
+
+              // Detect medical entities
+              let medicalEntities = [];
+              try {
+                const entityResponse = await comprehendClient.send(
+                  new DetectEntitiesV2Command({ Text: message })
+                );
+                medicalEntities = entityResponse.Entities || [];
+              } catch (e) {
+                console.error('Entity detection failed:', e.message);
+              }
+
+              // Build prompt
+              const systemPrompt = `You are MedZen AI, a healthcare assistant for African users.
+              Detected language: ${detectedLanguage}
+              Respond in the same language as the user.
+              Provide culturally appropriate medical guidance.
+              Always recommend consulting a healthcare provider for serious concerns.`;
+
+              const bedrockBody = {
+                anthropic_version: 'bedrock-2023-05-31',
+                max_tokens: 2000,
+                temperature: 0.7,
+                system: systemPrompt,
+                messages: [{ role: 'user', content: message }]
+              };
+
+              // Invoke Bedrock with failover
+              const { response, region } = await invokeBedrockWithFailover(
+                process.env.BEDROCK_MODEL_ID,
+                bedrockBody
+              );
+
+              const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+              const aiMessage = responseBody.content[0].text;
+
+              return {
+                statusCode: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({
+                  message: aiMessage,
+                  language: detectedLanguage,
+                  region,
+                  entities: medicalEntities.slice(0, 5)
+                })
+              };
+
+            } catch (error) {
+              console.error('Error:', error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({ error: error.message })
+              };
+            }
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Lambda URL for direct invocation
+  LambdaUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !Ref AILambdaFunction
+      Cors:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+
+  LambdaUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AILambdaFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+  # ============================================
+  # IAM Role for Lambda
+  # ============================================
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-ai-lambda-role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: BedrockAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - !Sub 'arn:aws:bedrock:*::foundation-model/*'
+        - PolicyName: TranslateAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - translate:TranslateText
+                  - translate:DetectDominantLanguage
+                Resource: '*'
+        - PolicyName: ComprehendMedicalAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - comprehendmedical:DetectEntitiesV2
+                  - comprehendmedical:InferICD10CM
+                  - comprehendmedical:InferRxNorm
+                Resource: '*'
+        - PolicyName: TranscribePollyAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - transcribe:StartTranscriptionJob
+                  - transcribe:GetTranscriptionJob
+                  - transcribe:StartMedicalTranscriptionJob
+                  - polly:SynthesizeSpeech
+                Resource: '*'
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource:
+                  - !Sub 'arn:aws:s3:::${ProjectName}-*/*'
+
+  # ============================================
+  # API Gateway
+  # ============================================
+  ApiGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${ProjectName}-ai-api'
+      ProtocolType: HTTP
+      Description: AI Chat API Gateway
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - POST
+          - OPTIONS
+          - GET
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Api-Key
+        MaxAge: 86400
+
+  ApiGatewayIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt AILambdaFunction.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 29000
+
+  ApiGatewayRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'POST /ai/chat'
+      Target: !Sub 'integrations/${ApiGatewayIntegration}'
+
+  ApiGatewayRouteHealth:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: 'GET /health'
+      Target: !Sub 'integrations/${ApiGatewayIntegration}'
+
+  ApiGatewayStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGateway
+      StageName: '$default'
+      AutoDeploy: true
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","routeKey":"$context.routeKey","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength","integrationLatency":"$context.integrationLatency"}'
+
+  ApiGatewayPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AILambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  # ============================================
+  # CloudWatch Logs
+  # ============================================
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-ai-chat-handler'
+      RetentionInDays: 30
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${ProjectName}-ai-api'
+      RetentionInDays: 30
+
+  # ============================================
+  # CloudWatch Alarms
+  # ============================================
+  LambdaErrorsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-ai-lambda-errors'
+      AlarmDescription: AI Lambda function errors
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AILambdaFunction
+
+  LambdaDurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-ai-lambda-duration'
+      AlarmDescription: AI Lambda function duration is high
+      MetricName: Duration
+      Namespace: AWS/Lambda
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 30000
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AILambdaFunction
+
+  LambdaThrottlesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-ai-lambda-throttles'
+      AlarmDescription: AI Lambda function is being throttled
+      MetricName: Throttles
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref AILambdaFunction
+
+  # ============================================
+  # S3 Bucket for Audio/Transcriptions
+  # ============================================
+  AIAssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-ai-assets-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: CleanupOldFiles
+            Status: Enabled
+            ExpirationInDays: 30
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3000
+
+Outputs:
+  LambdaFunctionArn:
+    Description: AI Lambda Function ARN
+    Value: !GetAtt AILambdaFunction.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-AILambdaArn'
+
+  LambdaFunctionUrl:
+    Description: Lambda Function URL
+    Value: !GetAtt LambdaUrl.FunctionUrl
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-AILambdaUrl'
+
+  ApiGatewayEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-AIApiEndpoint'
+
+  AIAssetsBucketName:
+    Description: S3 bucket for AI assets
+    Value: !Ref AIAssetsBucket
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-AIAssetsBucket'
+
+  LambdaExecutionRoleArn:
+    Description: Lambda execution role ARN
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-AILambdaRoleArn'
