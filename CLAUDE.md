@@ -4,871 +4,674 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**medzen-iwani** - Flutter healthcare app (FlutterFlow-generated) for iOS/Android/Web with 4 user roles: Patient, Medical Provider, Facility Admin, System Admin.
+MedZen healthcare application - FlutterFlow-based telehealth platform with 4 user roles: Patient, Provider, Facility Admin, System Admin.
 
-**Tech Stack:** Flutter >=3.0.0, Firebase (Auth, Functions, Performance), Supabase (DB, Storage), Node.js 20, PowerSync (offline-first), EHRbase (OpenEHR)
+**Stack:** Flutter + Firebase Auth + Supabase (DB/Storage) + EHRbase (OpenEHR) + AWS Chime SDK (video) + AWS Bedrock (AI)
 
-**Firebase Project:** `medzen-bf20e` (used in Firebase CLI commands)
+**Critical IDs:**
+- Firebase: `medzen-bf20e`
+- Supabase: `noaeltglphdlkbflipit`
+- AWS Regions:
+  - `eu-central-1` (primary) - ALL services (Chime SDK, Bedrock AI, EHRbase - migrating)
+  - `eu-west-1` (secondary/DR) - EHRbase (current primary, becoming read replica), failover infrastructure
+  - `af-south-1` - **DECOMMISSIONED** (deleted/being deleted)
 
-## Before You Start
+## Non-Negotiable Rules
 
-**Prerequisites:**
-- Flutter SDK >=3.0.0
-- Node.js 20 (for Firebase Functions)
-- Firebase CLI (`npm install -g firebase-tools`)
-- Supabase CLI (`npm install -g supabase`)
-- Active accounts: Firebase, Supabase, PowerSync, EHRbase
+### 1. Initialization Order (CRITICAL)
+Firebase → Supabase → App State initialization MUST happen in this exact order in `lib/main.dart:22-37`. Breaking this order causes app crashes.
 
-**First-Time Setup:**
-```bash
-# 1. Flutter dependencies
-flutter pub get
+### 2. FlutterFlow Files - DO NOT EDIT
+NEVER modify files in `lib/flutter_flow/` - they are auto-generated and will be overwritten. NEVER remove auto-generated imports even if they appear unused.
 
-# 2. Firebase setup
-cd firebase/functions && npm install
-firebase login
-firebase use medzen-bf20e
+### 3. Medical Data Operations
+Medical data (vital_signs, lab_results, prescriptions, etc.) MUST use Supabase directly.
 
-# 3. Supabase setup
-npx supabase login
-npx supabase link --project-ref <YOUR_PROJECT_REF>
+**IMPORTANT:** PowerSync is extensively referenced in documentation but is NOT currently deployed in production. All data operations should use Supabase directly.
 
-# 4. Verify connections (make scripts executable if needed)
-chmod +x *.sh
-./test_system_connections_simple.sh
+```dart
+// ✅ Correct - use Supabase
+await SupaFlow.client.from('vital_signs').insert({'patient_id': userId, 'bp': 120});
+
+// ❌ Wrong - PowerSync not deployed
+await db.execute('INSERT INTO vital_signs...');
 ```
+
+### 4. Video Call Implementation
+Video calls use `ChimeMeetingWebview` widget with Amazon Chime SDK v3.19.0 bundled directly as inline JavaScript (1.11 MB UMD bundle). The SDK is embedded in a Dart raw string (`r'''`) to prevent string interpolation conflicts. No external CDN dependencies or asset files required - completely self-contained and works offline after initial app load.
+
+### 5. Firebase Configuration
+NEVER hardcode credentials. Use `firebase functions:config:set` only. Check before deployment: `firebase functions:config:get`
+
+### 6. Database Migrations
+NEVER edit existing migration files. Always create new timestamped migrations in `supabase/migrations/YYYYMMDDHHMMSS_description.sql`.
+
+### 7. UUID Handling
+NEVER cast UUIDs to TEXT in SQL. Use native UUID type. Wrong: `id::text`, Right: `id`
+
+### 8. Image URL Constraints
+User avatar URLs MUST start with `http://` or `https://`. Database constraints enforce this. See migration `20251203000000_fix_malformed_image_urls.sql`.
 
 ## Essential Commands
 
-### Flutter
+### Root Project Commands
 ```bash
-flutter pub get                              # Install dependencies
-flutter run [-d chrome|macos|<device-id>]   # Run app
-flutter test && flutter analyze              # Test & analyze
-flutter build apk|appbundle|ios|web          # Build for platform
-flutter clean                                # Clean build artifacts
+# Lint all Firebase functions
+npm run lint
 ```
 
-### Firebase
+### Flutter Development
 ```bash
-cd firebase/functions
-npm install && npm run lint                  # Setup & lint
-npm run serve                                # Local emulator (targets medzen-bf20e)
-npm run logs                                 # View logs (shortcut)
-npm run shell                                # Interactive shell
-npm run compile                              # TypeScript compilation
-firebase emulators:start [--only functions]  # Local emulator testing
-firebase deploy [--only functions|firestore:rules|storage]  # Deploy
+# Clean build (fixes most issues)
+flutter clean && flutter pub get
 
-# Config (never commit .runtimeconfig.json)
+# Run on specific device
+flutter run -d chrome  # or specific device
+flutter devices       # list available devices
+
+# Build for platforms
+flutter build apk --release  # Android
+flutter build ios --release  # iOS
+flutter build web --release  # Web
+
+# Analyze code
+flutter analyze
+
+# Check for Flutter/Dart issues
+flutter doctor -v
+```
+
+### Firebase Functions
+```bash
+# Install dependencies
+cd firebase/functions && npm install
+
+# Lint code
+npm run lint
+
+# Test locally (emulator)
+npm run serve
+
+# Deploy all functions
+firebase deploy --only functions
+
+# Deploy specific function
+firebase deploy --only functions:onUserCreated
+
+# View logs (real-time)
+firebase functions:log --limit 50
+npm run logs  # shortcut
+
+# Configure secrets (NEVER hardcode)
 firebase functions:config:set supabase.url="..." supabase.service_key="..."
-firebase functions:config:set ehrbase.url="..." ehrbase.username="..." ehrbase.password="..."
-firebase functions:config:get                # View current config
-firebase functions:log [--only functionName] # View logs
+firebase functions:config:get  # verify config
 ```
-
-**Note:** Firebase project is `medzen-bf20e` - npm scripts automatically target this project.
-
-**Structure:** `firebase/{firebase.json, firestore.rules, storage.rules, functions/index.js}`
-**Functions:** `onUserCreated` (creates Supabase user + EHRbase EHR), `onUserDeleted` (cleanup)
-
-**Additional Capabilities:** Functions include payment processing (Stripe, Razorpay, Braintree), LangChain integration (OpenAI, Google Gemini, Anthropic), Mux video, and OneSignal notifications.
 
 ### Supabase
 ```bash
-npx supabase login && npx supabase link      # Initial setup
-npx supabase db push|reset|diff|remote       # DB management
-npx supabase functions deploy [function-name]  # Deploy edge functions
-npx supabase secrets set KEY=value           # Set secrets
-npx supabase secrets list                    # List all secrets
-npx supabase functions logs function-name    # View logs
+# Link project (first time only)
+npx supabase link --project-ref noaeltglphdlkbflipit
+
+# Apply migrations
+npx supabase db push
+
+# Deploy ALL Production Edge Functions (required for full functionality)
+# Authentication & EHR
+npx supabase functions deploy powersync-token
+npx supabase functions deploy sync-to-ehrbase
+
+# Video Calls (Chime SDK) - 5 functions
+npx supabase functions deploy chime-meeting-token
+npx supabase functions deploy chime-messaging
+npx supabase functions deploy chime-recording-callback
+npx supabase functions deploy chime-transcription-callback
+npx supabase functions deploy chime-entity-extraction
+
+# AI Chat
+npx supabase functions deploy bedrock-ai-chat
+
+# Utilities
+npx supabase functions deploy cleanup-expired-recordings
+npx supabase functions deploy cleanup-old-profile-pictures
+npx supabase functions deploy upload-profile-picture
+npx supabase functions deploy check-user
+npx supabase functions deploy refresh-powersync-views
+
+# Set secrets (required before deploying functions)
+npx supabase secrets set EHRBASE_URL=https://ehr.medzenhealth.app/ehrbase
+npx supabase secrets set EHRBASE_USERNAME=ehrbase-admin
+npx supabase secrets set EHRBASE_PASSWORD=your-password
+npx supabase secrets set CHIME_API_ENDPOINT=https://xxx.execute-api.eu-central-1.amazonaws.com
+npx supabase secrets set AWS_REGION=eu-central-1
+
+# View logs
+npx supabase functions logs [function-name] --tail
+
+# List deployed functions
+npx supabase functions list
 ```
 
-**Edge Functions:**
-- `sync-to-ehrbase` - Processes EHR sync queue, creates EHRbase compositions
-- `powersync-token` - JWT generation for PowerSync authentication
-- `refresh-powersync-views` - Refreshes materialized views for role-based access
+### AWS Deployment
+```bash
+# Navigate to deployment directory
+cd aws-deployment
 
-**Important Files:**
-- `supabase/config.toml` - Local emulator and functions configuration
-- `supabase/.env.template` - Template for edge function secrets
-- `supabase/migrations/` - Database schema migrations (applied in order)
+# Deploy Chime SDK to all regions
+./scripts/deploy-all-regions.sh
+
+# Deploy individual region
+./scripts/deploy-bedrock-ai.sh
+
+# Validate entire deployment
+./scripts/validate-deployment.sh
+
+# Configure S3 notifications for recordings
+./scripts/configure-s3-notifications.sh
+
+# Setup EventBridge for scheduled cleanup
+./scripts/setup-eventbridge-cleanup.sh
+
+# Cost analysis and reporting
+./scripts/cost-report.sh
+
+# Test multi-region failover
+./scripts/failover-test.sh
+
+# Cleanup EventBridge rules (if needed)
+./scripts/cleanup-eventbridge.sh
+
+# Direct CloudFormation deployment
+aws cloudformation deploy \
+  --template-file cloudformation/chime-sdk-multi-region.yaml \
+  --stack-name medzen-chime-sdk-eu-central-1 \
+  --region eu-central-1 \
+  --capabilities CAPABILITY_IAM
+
+# Monitor CloudFormation stack
+aws cloudformation describe-stacks \
+  --stack-name medzen-chime-sdk-eu-central-1 \
+  --region eu-central-1
+```
+
+### FlutterFlow Re-export (Critical)
+```bash
+# After FlutterFlow export, use this script to safely merge
+./safe-reexport.sh ~/Downloads/export.zip
+
+# ALWAYS verify after re-export
+grep -q "assets/html/" pubspec.yaml && echo "✅ OK" || echo "❌ Video will fail!"
+```
 
 ## Architecture
 
-### 4-System Architecture
-1. **Firebase Auth** - Authentication (Google/Apple/Email), Firestore user docs, Cloud Functions, Performance
-2. **Supabase** - Primary DB (100+ tables), Storage, Realtime, Row-level security
-3. **PowerSync** - Offline-first local SQLite with bidirectional sync
-4. **EHRbase** - OpenEHR-compliant health records (external)
+### Five Integrated Systems
 
-**Critical Init Order (`lib/main.dart`):** Firebase → Supabase → PowerSync → App State
-
-This order is **NON-NEGOTIABLE** - the app will fail to function correctly if initialization happens out of order.
-
-**Important:** PowerSync is NOT initialized in `lib/main.dart` itself. The initialization sequence in `main.dart` prepares Firebase and Supabase, but PowerSync initialization occurs later in landing pages via Custom Actions. This is intentional to support role-based sync rules that depend on authenticated user context.
-
-### Authentication Flows
-
-**Signup (Online Required):**
-1. Firebase Auth creates user → triggers `onUserCreated` Cloud Function
-2. Function creates: Supabase user, EHRbase EHR, `electronic_health_records` entry
-3. App init: Firebase → Supabase → PowerSync (gets JWT token, downloads initial data)
-
-**Login - Online:**
-1. Firebase Auth validates → App init (Firebase → Supabase → PowerSync)
-2. PowerSync gets fresh token, connects to cloud, bidirectional sync with Supabase
-
-**Login - Offline:**
-1. Firebase uses cached credentials (✅ works offline)
-2. PowerSync uses local SQLite (✅ full CRUD offline)
-3. When online: Auto-sync queued changes → Supabase → `ehrbase_sync_queue` → EHRbase
-
-### Offline Capabilities
-
-| System | Offline Login | Offline R/W | Sync |
-|--------|--------------|-------------|------|
-| Firebase Auth | ✅ Cached | ✅ Profile only | N/A |
-| Supabase | ⚠️ Passive | ❌ Fails | ✅ Via PowerSync |
-| PowerSync | ✅ Yes | ✅ Full CRUD | ✅ Bidirectional auto |
-| EHRbase | ❌ No | ❌ No | ✅ Via queue→edge fn |
-
-**Dev Rules:** Init order matters. Use PowerSync `db` for medical data (never direct Supabase). Test offline with airplane mode.
-
-### Key Structures
-
-**4 User Roles** (select via `lib/home_pages/role_page/`):
-- **Patient:** `lib/patients_folder/` (bottom_nav, landing_page, profile)
-- **Provider:** `lib/medical_provider/` (account_creation, confirmation, patient access)
-- **Facility Admin:** `lib/facility_admin/` (bottom_nav, landing_page, staff management)
-- **System Admin:** `lib/system_admin/` (bottom_nav, landing_page, system config)
-
-**State Management:**
-- `FFAppState` (`lib/app_state.dart`): Global state with `ChangeNotifier` (UserRole, SelectedRole, subscription, AuthUser/SupabaseUser, persisted via `flutter_secure_storage`)
-- `AppStateNotifier` (`lib/main.dart`): Firebase auth stream, splash screen, `go_router` redirects
-- `authenticatedUserStream` & `jwtTokenStream`: Real-time auth state streams
-
-**FlutterFlow Pattern** (DO NOT edit `lib/flutter_flow/` directly):
-- Every page: `*_widget.dart` (UI) + `*_model.dart` (state/logic)
-- Custom code: `lib/custom_code/{actions,widgets}/`, `lib/flutter_flow/custom_functions.dart`
-  - Actions: `get_specialties_by_category.dart`, `get_all_specialties.dart`, `join_room.dart`, etc.
-  - Widgets: `country_phone_picker.dart`, `pre_joining_dialog.dart`, etc.
-  - Both directories export components via `index.dart`
-  - **CRITICAL**: FlutterFlow requires specific auto-generated imports between `// Automatic FlutterFlow imports` and `// Begin custom action code`. NEVER remove these imports even if analyzer shows them as "unused" - they are required for FlutterFlow platform validation
-- Utils: `flutter_flow_{theme,util,widgets,animations}.dart`, `internationalization.dart` (en/fr/af), `nav/`
-- Navigation: `lib/flutter_flow/nav/nav.dart` - All routes defined here with `go_router`
-
-**Backend:**
-- Firestore: `lib/backend/backend.dart` (`queryUsersRecord()`, `FFFirestorePage`, `maybeCreateUser()`)
-- Supabase: `lib/backend/supabase/` (`SupaFlow.client`, `database/{tables,row,table}.dart`)
-- API: `lib/backend/api_requests/` (`APIManager`)
-- Auth: `lib/auth/firebase_auth/` (auth_util.dart, firebase_user_provider.dart)
-
-**GraphQL Queries:**
-- `graphql_queries/` - Pre-built GraphQL queries for Supabase PostgREST
-- Used for complex queries (specialties, provider types, pagination)
-- See `graphql_queries/PAGINATION_GUIDE.md` and `SOLUTION_CUSTOM_ACTIONS.md`
-- Note: FlutterFlow GraphQL has limitations - use Custom Actions for complex queries
-
-## EHR Synchronization & OpenEHR Integration
-
-**Docs:** See POWERSYNC_QUICK_START.md (⭐ start here), POWERSYNC_IMPLEMENTATION.md, EHR_SYSTEM_README.md, EHR_SYSTEM_DEPLOYMENT.md
-
-**Components:**
-1. Firebase `onUserCreated` → creates EHRbase EHR + Supabase user (atomic operation)
-2. Supabase `sync-to-ehrbase` edge function → processes `ehrbase_sync_queue`
-3. DB triggers (in migrations) → auto-queue medical records on insert/update
-4. Flutter `ehr_sync_service.dart` → background sync (5min interval), connectivity monitor
-
-**OpenEHR Tables** (`lib/backend/supabase/database/tables/`):
-- `electronic_health_records` - Links users to EHRbase EHR IDs
-- `ehr_compositions` - OpenEHR compositions (template_id, archetypes, data)
-- `ehrbase_sync_queue` - Sync queue (sync_status, retry_count, ehrbase_composition_id, data_snapshot JSONB)
-- `openehr_integration_health` - System health metrics
-- `v_ehrbase_sync_status` - View for sync monitoring
-- Medical data tables: `vital_signs`, `lab_results`, `prescriptions`, `immunizations`, `medical_records`, `allergies`
-
-**OpenEHR Templates:**
-- **Status**: 26 ADL templates created in `ehrbase-templates/proper-templates/`
-- **Deployment Status**: ⏳ Awaiting ADL-to-OPT conversion before upload to EHRbase
-- **Templates Include**:
-  - 19 specialty templates (antenatal care, surgical procedures, oncology, cardiology, etc.)
-  - 7 core templates (patient demographics, vital signs, lab results, prescriptions, etc.)
-- **Template IDs**: All use `medzen.*` namespace (e.g., `medzen.antenatal_care_encounter.v1`)
-
-**Template Conversion & Deployment:**
-- **Conversion Required**: ADL templates must be converted to OPT (XML) format before EHRbase upload
-- **Tracking Tool**: `ehrbase-templates/track_conversion_progress.sh` - Real-time conversion status
-- **Upload Tool**: `ehrbase-templates/upload_all_templates.sh` - Batch upload script (ready)
-- **Verification Tool**: `ehrbase-templates/verify_templates.sh` - Post-upload verification (ready)
-- **Documentation**: See `ehrbase-templates/TEMPLATE_CONVERSION_STATUS.md` for complete status
-- **Conversion Options**:
-  - OpenEHR Template Designer (web tool) - Recommended, 15-30 min per template
-  - Archie Java Library - For programmatic conversion/automation
-- **Estimated Timeline**: 6-13 hours for conversion + 30 min upload + 2-3 hours testing
-
-**Sync Flow:** Local write → PowerSync → Supabase → DB trigger → `ehrbase_sync_queue` → Edge function → EHRbase (async, with exponential backoff retry)
-
-**Check Sync Status:** Query `sync_status` in `ehrbase_sync_queue` before assuming data is in EHRbase (pending/processing/completed/failed)
-
-**Template Integration:**
-- Edge function `sync-to-ehrbase` has template mappings configured for all 19 specialty tables
-- Database triggers active on all specialty tables for automatic sync queue population
-- Templates ready for integration testing once uploaded to EHRbase
-
-**Shared Components:** `lib/components/` (24 directories: headers, footers, OTP, password validation, reset/logout dialogs, system_status_debug)
-
-**Video Call:** `lib/home_pages/{video_call,join_call}/` (WebRTC via `webview_flutter`)
-
-**Assets:** `assets/{fonts,images,videos,audios,rive_animations,pdfs,jsons}/` - All assets must be added to `pubspec.yaml`
-
-## Development Workflows
-
-### Adding a New Page
-1. **FlutterFlow export** OR manual creation:
-   - Create `page_name_widget.dart` (UI)
-   - Create `page_name_model.dart` (state/logic)
-2. Export in `lib/index.dart`
-3. Add route in `lib/flutter_flow/nav/nav.dart`
-
-### Auth Flow Pattern
+**Authentication & Data Flow:**
 ```
-Firebase Auth (source of truth)
+Firebase Auth (login)
     ↓
-maybeCreateUser() creates Firestore doc
+Supabase Auth + Database (user profiles, medical records)
     ↓
-FFAppState().UserRole set
-    ↓
-Role-based redirect (go_router)
+EHRbase (OpenEHR health records)
+    +
+AWS Chime SDK (video/audio calls - online only)
+    +
+AWS Bedrock (AI chat assistant)
 ```
 
-### Modifying State
+### User Signup Flow (Automatic)
+```
+1. User signs up → Firebase Auth creates user
+2. Firebase `onUserCreated` Cloud Function triggers (~2.3s total):
+   - Creates Supabase Auth user (via Admin API)
+   - Inserts record in `users` table
+   - Creates EHR in EHRbase via REST API
+   - Inserts record in `electronic_health_records` table
+3. All systems synchronized automatically
+```
+
+### Medical Data Sync Flow
+```
+1. User creates medical data → Supabase tables
+2. Database trigger → adds entry to `ehrbase_sync_queue`
+3. Edge Function `sync-to-ehrbase` → processes queue (polls or triggered)
+4. Creates OpenEHR composition in EHRbase
+5. Updates queue entry with sync_status='completed'
+```
+
+### Video Call Flow (Online Only)
+```
+1. User taps join call → `join_room.dart` custom action
+2. Calls Supabase Edge Function `chime-meeting-token`
+3. Edge Function → AWS Lambda (via API Gateway)
+4. Lambda creates/joins Chime meeting
+5. Returns meeting + attendee tokens + join info
+6. `ChimeMeetingWebview` widget loads with embedded HTML/JS and Chime SDK v3.19.0
+7. Real-time video/audio communication via AWS Chime
+```
+
+### AI Chat Flow (Bedrock)
+```
+1. User sends message → Firebase Function `handleAiChatMessage`
+2. Function calls AWS Lambda `bedrock-ai-chat`
+3. Lambda invokes Bedrock (Claude Sonnet 3.5)
+4. Streaming response via EventSource
+5. Messages stored in `ai_messages` table
+6. Supports multiple languages with auto-translation
+```
+
+## Key File Locations
+
+### Custom Code
+- Actions: `lib/custom_code/actions/`
+- Widgets: `lib/custom_code/widgets/`
+- Main video call: `lib/custom_code/actions/join_room.dart`
+- AI chat actions: `lib/custom_code/actions/send_bedrock_message.dart`
+
+### Backend
+- Supabase config: `lib/backend/supabase/supabase.dart`
+- Database schema: `lib/backend/supabase/database/tables/*.dart`
+- API calls: `lib/backend/api_requests/api_calls.dart`
+
+### User Roles
+- Patients: `lib/patients_folder/`
+- Providers: `lib/medical_provider/`
+- Facility Admins: `lib/facility_admin/`
+- System Admins: `lib/system_admin/`
+
+### Configuration
+- Environment: `assets/environment_values/environment.json` (FlutterFlow managed)
+- Routes: `lib/flutter_flow/nav/nav.dart`
+- App State: `lib/app_state.dart`
+
+### Backend Functions
+- Firebase: `firebase/functions/index.js` (modular functions imported)
+- Firebase modules: `firebase/functions/*.js` (individual function files)
+- Supabase: `supabase/functions/*/index.ts`
+- AWS Lambda: `aws-lambda/*/index.js`
+- Migrations: `supabase/migrations/*.sql`
+
+### Assets
+- Video calls: Self-contained in `ChimeMeetingWebview` widget (no external files)
+- Fonts: `assets/fonts/`
+- Images: `assets/images/`
+
+## Critical Functions
+
+### Firebase Cloud Functions
+- `onUserCreated` - 5-system user sync (Firebase → Supabase → EHRbase)
+- `onUserDeleted` - Cascading deletion across all systems
+- `handleAiChatMessage` - Bedrock AI chat integration (streaming)
+- `sendPushNotificationsTrigger` - FCM push notifications
+- `videoCallTokens` - Legacy video call tokens (deprecated, use Chime)
+
+### Supabase Edge Functions
+
+**Authentication & EHR:**
+- `powersync-token` - JWT token for PowerSync auth (PowerSync not currently deployed)
+- `sync-to-ehrbase` - Medical data → OpenEHR compositions
+- `check-user` - User validation and lookup
+- `refresh-powersync-views` - Refresh materialized views
+
+**Video Calls (Chime SDK):**
+- `chime-meeting-token` - Video call meeting creation/join
+- `chime-messaging` - Real-time chat messaging in calls
+- `chime-recording-callback` - S3 recording processing
+- `chime-transcription-callback` - Medical transcription processing
+- `chime-entity-extraction` - Extract medical entities from transcripts
+
+**AI Chat:**
+- `bedrock-ai-chat` - AI assistant chat (also available via Firebase)
+
+**Storage & Utilities:**
+- `cleanup-expired-recordings` - Scheduled S3 cleanup
+- `cleanup-old-profile-pictures` - Remove old profile pictures
+- `upload-profile-picture` - Handle profile picture uploads
+
+### AWS Lambda Functions
+- `CreateChimeMeeting` - Create/join video meetings
+- `BedrockAIChat` - Bedrock AI streaming chat
+- `ChimeRecordingProcessor` - Process meeting recordings
+- `ChimeTranscriptionProcessor` - Medical transcription
+
+## Common Issues & Quick Fixes
+
+| Problem | Solution |
+|---------|----------|
+| App won't build | `flutter clean && flutter pub get` |
+| Video calls show blank screen | Check camera/microphone permissions. Verify Firebase authentication. SDK is bundled locally (no CDN dependency). Check console logs for JavaScript errors. |
+| Firebase function fails | Check config: `firebase functions:config:get` |
+| Offline mode broken | Verify init order in `lib/main.dart:22-37` |
+| EHR sync failing | Check queue: `SELECT * FROM ehrbase_sync_queue WHERE sync_status='failed'` |
+| Chime video fails | Verify `CHIME_API_ENDPOINT` in Supabase secrets |
+| Malformed image URLs | Run migration `20251203000000_fix_malformed_image_urls.sql` |
+| FlutterFlow re-export broke code | Use `./safe-reexport.sh` instead of manual copy |
+| AWS Lambda timeout | Check CloudFormation timeout settings (default 60s) |
+
+## Testing
+
+### Automated Test Scripts
+The repository includes several automated test scripts for system validation:
+
+```bash
+# Complete system integration test
+./test_system_connections_simple.sh
+
+# Video call functionality
+./test_chime_deployment.sh
+./test_chime_video_complete.sh
+./test_video_call_auth_fix.sh
+./test_video_call_jwt_fix.sh
+./test_video_call_permissions.sh
+
+# AI chat system
+./test_ai_chat_e2e.sh
+
+# Edge functions
+./test_edge_function.sh
+
+# User flows
+./test_complete_flow.sh
+
+# Data verification
+./verify_appointment_data.sh
+```
+
+**Usage:**
+```bash
+# Make scripts executable (if needed)
+chmod +x test_*.sh verify_*.sh
+
+# Run any test
+./test_chime_deployment.sh
+```
+
+### Manual Testing Workflows
+```bash
+# Test user creation flow
+firebase functions:log --limit 10  # watch logs
+# Then create user in app
+
+# Test EHR sync
+# 1. Create/update medical record in app
+# 2. Check queue: SELECT * FROM ehrbase_sync_queue ORDER BY created_at DESC LIMIT 5;
+# 3. Check logs: npx supabase functions logs sync-to-ehrbase
+
+# Test video call
+# 1. Create appointment with video_enabled=true
+# 2. Join call from both provider and patient
+# 3. Check CloudWatch logs for Lambda execution
+```
+
+### In-App Testing
+Navigate to Connection Test Page in the app to run automated integration tests for all systems.
+
+## Important Patterns
+
+### Global State Updates
 ```dart
-// Global state (persisted)
 FFAppState().update(() {
   FFAppState().UserRole = 'patient';
-  FFAppState().SelectedRole = 'patient';
-});
-
-// Page-level state (temporary)
-pageModel.setState(() { /* ... */ });
-
-// Listen to auth streams
-medzenIwaniFirebaseUserStream().listen((user) {
-  // React to auth changes
+  FFAppState().currentUserId = userId;
 });
 ```
 
-### Adding Firebase Functions
-1. Edit `firebase/functions/index.js`
-2. Test locally: `npm run serve` or `firebase emulators:start`
-3. Deploy: `firebase deploy --only functions`
-4. View logs: `firebase functions:log`
-
-### Adding Supabase Functions
-1. Create `supabase/functions/<name>/index.ts`
-2. Set secrets: `npx supabase secrets set KEY=value`
-3. Deploy: `npx supabase functions deploy <name>`
-4. View logs: `npx supabase functions logs <name>`
-
-### Adding Database Migrations
-1. Create SQL file in `supabase/migrations/` with timestamp prefix (YYYYMMDDHHMMSS)
-2. Apply locally: `npx supabase db push`
-3. Verify: Check Supabase Studio or `npx supabase db remote commit`
-4. Regenerate Dart types if needed
-
-**CRITICAL: PostgreSQL Type Casting Rules**
-- **NEVER** cast UUID to TEXT when comparing UUID columns: `WHERE patient_id = NEW.patient_id::TEXT` ❌
-- **ALWAYS** compare UUID columns directly: `WHERE patient_id = NEW.patient_id` ✅
-- PostgreSQL error: "operator does not exist: uuid = text" indicates improper casting
-- All 22 EHR sync trigger functions fixed in migration `20251103200001_fix_all_sync_functions_comprehensive.sql`
-- Pattern affects queries against `electronic_health_records` table where `patient_id` is UUID type
-
-## PowerSync Integration (Offline-First)
-
-**Use for all medical data operations.** Offline writes never fail, auto-sync when online, HIPAA-compliant, supports all 4 roles.
-
-**Files:**
-- `lib/powersync/{schema,supabase_connector,database}.dart` (implementation files)
-- `supabase/functions/powersync-token/index.ts`
-- `POWERSYNC_SYNC_RULES.yaml` (deploy to PowerSync dashboard)
-
-**Important:** PowerSync IS in `pubspec.yaml` (v1.11.1) along with required dependencies (sqflite, path_provider). The implementation files in `lib/powersync/` define the schema, connector, and database interface.
-
-**Quick Health Check:**
-```bash
-# Make scripts executable if needed
-chmod +x *.sh
-
-# Test system connections
-./test_system_connections.sh          # Comprehensive test suite
-./test_system_connections_simple.sh   # Quick connectivity check
-./verify_powersync_setup.sh           # PowerSync-specific validation
-```
-
-**Docs:** POWERSYNC_MULTI_ROLE_GUIDE.md (roles), POWERSYNC_QUICK_START.md (setup)
-
-### PowerSync Setup (Quick)
-
-**1. Account:** Create at powersync.journeyapps.com → save instance URL + generate RSA keys (Key ID + Private Key)
-
-**2. Sync Rules:** Copy `POWERSYNC_SYNC_RULES.yaml` → PowerSync Dashboard → paste → deploy (auto role detection for 4 roles)
-
-**3. Deploy Token Function:**
-```bash
-npx supabase secrets set POWERSYNC_URL=... POWERSYNC_KEY_ID=... POWERSYNC_PRIVATE_KEY="..."
-npx supabase functions deploy powersync-token
-```
-
-**4. Verify Token Function:**
-```bash
-npx supabase functions logs powersync-token
-# Or test: curl with Authorization header
-```
-
-**5. Initialize (FlutterFlow):** Landing page → On Page Load → Custom Action:
+### Supabase Queries
 ```dart
-import 'package:medzen_iwani/powersync/database.dart';
-Future<void> initializePowerSyncAction() async {
-  await initializePowerSync();
-}
-```
-Place AFTER Supabase init (critical order: Firebase → Supabase → PowerSync).
+// Single record
+final result = await SupaFlow.client
+  .from('users')
+  .select()
+  .eq('id', userId)
+  .single();
 
-**6. Use PowerSync (not direct Supabase):**
-```dart
-// ✅ PowerSync (offline-safe)
-import 'package:medzen_iwani/powersync/database.dart';
-await db.execute('INSERT INTO vital_signs (patient_id, systolic_bp, diastolic_bp) VALUES (?, ?, ?)', [userId, 120, 80]);
-
-// ❌ Direct Supabase (fails offline)
-await SupaFlow.client.from('vital_signs').insert({'patient_id': userId, 'systolic_bp': 120});
+// With joins
+final appts = await SupaFlow.client
+  .from('appointment_overview')
+  .select('*')
+  .eq('provider_id', providerId)
+  .order('appointment_start_date', ascending: false);
 ```
 
-### PowerSync Operations (FlutterFlow Custom Actions)
-
+### Video Call Initialization
 ```dart
-import 'package:medzen_iwani/powersync/database.dart';
-
-// Query (one-time)
-Future<List<Map<String, dynamic>>> getVitalSigns(String userId) async {
-  return await executeQuery(
-    'SELECT * FROM vital_signs WHERE patient_id = ? ORDER BY recorded_at DESC LIMIT 50',
-    [userId]
-  );
-}
-
-// Query (real-time via StreamBuilder)
-Stream<List<Map<String, dynamic>>> watchVitalSigns(String userId) {
-  return watchQuery(
-    'SELECT * FROM vital_signs WHERE patient_id = ? ORDER BY recorded_at DESC',
-    [userId]
-  );
-}
-
-// Insert
-await db.execute(
-  'INSERT INTO vital_signs (patient_id, systolic_bp, diastolic_bp, heart_rate) VALUES (?, ?, ?, ?)',
-  [userId, 120, 80, 72]
+await joinRoom(
+  context,
+  sessionId,
+  providerId,
+  patientId,
+  appointmentId,
+  isProvider,
+  userName,
+  profileImage,
 );
+```
 
-// Update
-await db.execute(
-  'UPDATE vital_signs SET systolic_bp = ?, diastolic_bp = ? WHERE id = ?',
-  [130, 85, recordId]
+### Calling Edge Functions
+```dart
+final response = await SupaFlow.client.functions.invoke(
+  'chime-meeting-token',
+  body: {
+    'appointmentId': appointmentId,
+    'userId': userId,
+  },
 );
-
-// Delete
-await db.execute('DELETE FROM vital_signs WHERE id = ?', [recordId]);
-
-// Sync status monitoring
-final status = getPowerSyncStatus();
-bool isConnected = isPowerSyncConnected();
-db.statusStream.listen((status) {
-  print('PowerSync status: ${status.connected}');
-});
 ```
 
-**Data Flow:** User Action → PowerSync SQLite (✅ immediate, never fails) → (when online) → Supabase → `ehrbase_sync_queue` (DB trigger) → Edge function → EHRbase
+## Documentation References
 
-**Troubleshoot:**
-- Check secrets: `npx supabase secrets list` (verify POWERSYNC_*)
-- Debug stream: `db.statusStream` for connection status
-- Ensure init order: Firebase → Supabase → PowerSync
-- Check logs: `npx supabase functions logs powersync-token`
+For comprehensive information, see:
+- `QUICK_START.md` - Setup and deployment guide
+- `TESTING_GUIDE.md` - Testing procedures and workflows
+- `SYSTEM_INTEGRATION_STATUS.md` - Architecture and integration details
+- `CHIME_VIDEO_TESTING_GUIDE.md` - Video call testing procedures
+- `PRODUCTION_DEPLOYMENT_GUIDE.md` - Production deployment checklist
+- `4_SYSTEM_INTEGRATION_SUMMARY.md` - System integration overview
+- `DEPLOYMENT_COMPLETE.md` - AWS Chime SDK deployment guide
 
-**Use PowerSync For:** Medical records, patient profiles, appointments, prescriptions, all UI reads, real-time queries
+## Environment Variables
 
-**Use Direct Supabase For:** File uploads to Storage only (PowerSync doesn't sync Storage, only database tables)
+Configuration is managed through:
+- **Flutter:** `assets/environment_values/environment.json` (managed by FlutterFlow, DO NOT edit manually)
+- **Firebase Functions:** `firebase functions:config:set key.subkey="value"`
+- **Supabase Edge Functions:** `npx supabase secrets set KEY=value`
+- **AWS Lambda:** CloudFormation parameters and environment variables
 
-## System Testing
+**NEVER commit:**
+- `.env` files
+- `.runtimeconfig.json`
+- `firebase-adminsdk-*.json`
+- Any files with credentials or API keys
 
-**Docs:** TESTING_GUIDE.md, SYSTEM_INTEGRATION_STATUS.md
+## Debugging
 
-**Test Actions** (`lib/custom_code/actions/` - may need to be created):
-- `test_signup_flow.dart` - Tests all 4 systems (Firebase, Supabase, PowerSync, EHRbase)
-- `test_login_flow.dart` - Online/offline login validation
-- `test_data_operations.dart` - CRUD operations in both modes
-- See TESTING_GUIDE.md for implementation details
-
-**Test Scripts (bash):**
-- `test_system_connections.sh` - Comprehensive integration test (all 4 systems)
-- `test_system_connections_simple.sh` - Quick connectivity check (Firebase, Supabase, PowerSync, EHRbase)
-- `verify_powersync_setup.sh` - Validates PowerSync configuration and token function
-- `test_live_connections.sh` - Tests live production endpoints
-- `test_auth_flow.sh` - Tests authentication flow with all systems
-- `test_production_auth.sh` - Tests production authentication endpoints
-- All scripts output color-coded results and JSON reports
-
-**Note:** Test scripts require actual credentials/API keys to be configured. Make executable with `chmod +x *.sh` before first use.
-
-**Test UI:** `lib/test_page/connection_test_page_widget.dart` (interactive, color-coded status, clipboard export)
-
-**Access:** `context.pushNamed('ConnectionTestPage')` or navigate to `/connectionTest` URL
-
-**5 System Tests:**
-1. **Signup Flow** (10-15s, dev only) - Creates test user in all 4 systems, validates EHR creation
-2. **Login Online** (5-8s) - Validates Firebase auth, Supabase connection, PowerSync sync
-3. **Login Offline** (3-5s) - Validates cached Firebase auth, local PowerSync DB
-4. **Data Ops Online** (5-8s) - Tests CRUD operations, validates sync queue creation
-5. **Data Ops Offline** (3-5s) - Tests local CRUD, validates queue preparation
-
-**Status Indicators:**
-- 🟢 Green - Test passed
-- 🔴 Red - Test failed
-- 🟡 Yellow - Test in progress
-- ⚪ Gray - Test not run
-
-**Troubleshoot:**
-- **Signup fails:**
-  - Check Cloud Functions: `firebase functions:log --only onUserCreated`
-  - Verify config: `firebase functions:config:get`
-  - Check Supabase edge function: `npx supabase functions logs sync-to-ehrbase`
-- **Offline fails:**
-  - Enable airplane mode
-  - Ensure PowerSync initialized (check `db.statusStream`)
-  - Run online test first to seed local database
-- **Sync queue missing:**
-  - Check DB triggers: `SELECT * FROM pg_trigger WHERE tgname LIKE '%ehrbase%'`
-  - Reapply migrations: `npx supabase db push`
-
-**Pre-Production Checklist:** All 5 tests pass, System Status component shows all green, no console errors, test data cleaned from databases
-
-## MCP Server Integration
-
-This project has several MCP (Model Context Protocol) servers configured for enhanced AI-assisted development:
-
-**Available MCP Servers:**
-- **FlutterFlow** (`mcp__flutterflow__*`) - Programmatic access to FlutterFlow projects, custom actions, components, and app state
-- **Proxmox** (`mcp__proxmox-main__*` & `mcp__proxmox-legacy__*`) - Manage VMs, nodes, storage, and execute commands in VMs
-- **pfSense** (`mcp__pfsense__*`) - Firewall rules, NAT configuration, DNS management, system monitoring
-- **Supabase** (native integration) - Database operations, migrations, edge functions
-- **PowerSync** (`mcp__powersync__*`) - Sync status monitoring, instance health checks
-- **OpenEHR** (`mcp__openEHR__*`) - EHRbase template management, composition operations, AQL queries
-- **Cloudflare** (`mcp__cloudflare-*`) - Browser automation, Workers Builds debugging, container execution
-
-**Local MCP Servers (in project):**
-- `openehr-mcp-server/` - OpenEHR/EHRbase integration server
-- `powersync-mcp-server/` - PowerSync monitoring and diagnostics server
-
-**FlutterFlow MCP Usage:**
+### Firebase Functions
 ```bash
-# List all MCP servers and status
-claude mcp list
-
-# FlutterFlow server location
-/Users/alainbagmi/MCP_DETAILS/flutterflow-mcp-server
-
-# API token configured in ~/.claude.json
-# Interact using natural language: "List custom actions in MedZen-Iwani"
-```
-
-**Common MCP Operations:**
-- Query project structure and custom code via FlutterFlow MCP
-- Verify PowerSync custom actions exist in FlutterFlow
-- Generate documentation for components and pages
-- Check sync status and health via PowerSync MCP
-- Manage firewall rules and DNS via pfSense MCP
-- Query EHRbase templates and compositions via OpenEHR MCP
-
-**Troubleshoot MCP Issues:**
-```bash
-# Check server status
-claude mcp list
-
-# Remove and re-add server if connection fails
-claude mcp remove flutterflow
-claude mcp add flutterflow --env FLUTTERFLOW_API_TOKEN=... -- node /path/to/build/index.js
-
-# Verify server responds
-# Ask: "List my FlutterFlow projects"
-```
-
-**Docs:** FLUTTERFLOW_MCP_SETUP.md (FlutterFlow setup), `~/MCP_DETAILS/` (server installations)
-
-## Critical Rules
-
-- **DO NOT** edit `lib/flutter_flow/` (FlutterFlow-managed, changes will be overwritten)
-- **NEVER** write medical data to Firestore (Firebase for auth only, Supabase for data)
-- **NEVER** use direct Supabase for medical CRUD (use PowerSync `db` for offline support)
-- **Init Order:** Firebase → Supabase → PowerSync (CRITICAL - violating this breaks the app)
-- **Firebase Config:** Server-side only via `firebase functions:config:set` (NEVER in code or .env)
-- **EHR Creation:** Auto via `onUserCreated` (don't create manually, will cause duplicates)
-- **Secure Storage:** `flutter_secure_storage` for sensitive data (tokens, keys, credentials)
-- **Credentials Rotation:** If `lib/backend/supabase/supabase.dart` is ever exposed publicly, rotate all Supabase keys immediately
-- **File Uploads:** Use direct Supabase Storage (PowerSync only syncs database tables, not Storage)
-- **Testing:** Always test offline mode with airplane mode enabled
-- **Migrations:** Never edit existing migration files, always create new ones
-- **Secrets:** Never commit `.runtimeconfig.json`, `.env`, or any files with credentials
-
-**Additional Constraints:**
-- **i18n:** Supports en/fr/af (use `FFLocalizations` for all user-facing strings)
-- **Material:** Material Design v2 (not v3)
-- **Payments:** Stripe, Razorpay, Braintree (handled via Cloud Functions, never client-side)
-- **Node.js:** Functions require Node.js 20
-- **Flutter Version:** >=3.0.0 (check `flutter --version` matches)
-
-## Code Protection & Safety
-
-**Protection Status:** ✅ ACTIVE (Implemented 2025-11-11)
-
-This project has comprehensive protection measures to prevent accidental deletion or overwriting of critical code, particularly the `onUserCreated` Firebase Cloud Function and custom implementations.
-
-### Version Control (Git)
-
-**Status:** ✅ Initialized and Active
-
-```bash
-# Repository initialized with comprehensive .gitignore
-git init
-git add firebase/functions/index.js firebase/functions/package.json
-git commit -m "Protect onUserCreated function"
-
-# Check repository status
-git status
-git log --oneline
-```
-
-**Protected in .gitignore:**
-- `firebase/functions/.runtimeconfig.json` (sensitive config)
-- `firebase/functions/node_modules/` (dependencies)
-- `**/*.env` (all environment files)
-- `supabase/.env*` (Supabase secrets)
-- All credential files (*.key, *.pem, *credentials*.json)
-
-### Automated Backups
-
-**Status:** ✅ Scripts Created (Cron Setup Required)
-
-**Manual Backup:** Run anytime before risky operations
-```bash
-./create-backup.sh
-# Creates timestamped backup in ~/backups-medzen/backup_YYYYMMDD_HHMMSS/
-# Includes: Firebase functions, Supabase migrations, PowerSync config, documentation, Git bundle
-```
-
-**Automated Backup:** Daily backups via cron (30-day retention)
-```bash
-# Setup automated backups (one-time)
-./setup-automated-backups.sh
-# Choose schedule: Daily 2 AM (recommended) or custom
-
-# View backup log
-tail -f ~/backups-medzen/backup.log
-
-# List all backups
-ls -lh ~/backups-medzen/
-```
-
-**Backup Locations:**
-- `~/backups-medzen/backup_*/` - Timestamped backups (kept 30 days)
-- `~/backups-medzen/backup.log` - Automated backup log
-
-**What's Backed Up:**
-- Firebase Cloud Functions (`firebase/functions/index.js`, `package.json`)
-- Firebase config (`firebase.json`, `firestore.rules`, `storage.rules`)
-- Supabase migrations (`supabase/migrations/*.sql`)
-- Supabase edge functions (`supabase/functions/`)
-- PowerSync configuration (`POWERSYNC_SYNC_RULES.yaml`, `lib/powersync/`)
-- Critical documentation (CLAUDE.md, ONUSERCREATED_COMPLETE_IMPLEMENTATION.md, etc.)
-- Git repository bundle (full history)
-
-### Pre-Deployment Verification
-
-**Status:** ✅ Script Ready
-
-**Always run before deploying functions:**
-```bash
+# Local debugging
 cd firebase/functions
-./pre-deploy-check.sh
+npm run serve  # starts emulator
+
+# View real-time logs
+firebase functions:log --limit 50
+
+# Check function config
+firebase functions:config:get
 ```
 
-**Checks Performed:**
-1. ✅ Node.js version (20 or higher)
-2. ✅ npm dependencies installed
-3. ✅ Firebase Functions config set (Supabase, EHRbase)
-4. ✅ onUserCreated function exists with EHRbase integration
-5. ✅ No hardcoded credentials in code
-6. ✅ Linting passes
-7. ✅ .runtimeconfig.json in .gitignore
-8. ✅ Git tracking status
-
-**Deploy only if all checks pass:**
+### Supabase Edge Functions
 ```bash
-# If pre-deploy-check.sh passes
-firebase deploy --only functions:onUserCreated
+# View logs (real-time)
+npx supabase functions logs [function-name] --tail
+
+# Test locally (if Deno installed)
+deno run --allow-net --allow-env supabase/functions/[function-name]/index.ts
 ```
 
-### Safe FlutterFlow Re-Export
-
-**Status:** ✅ Script Ready
-
-**Critical:** FlutterFlow re-export can overwrite custom code. ALWAYS use the safe re-export script:
-
+### Flutter App
 ```bash
-# 1. Export from FlutterFlow web interface
-#    - Download Code → Export as ZIP
-#    - Save to ~/Downloads/
+# Enable verbose logging
+flutter run -v
 
-# 2. Run safe re-export script
-./safe-reexport.sh ~/Downloads/medzen-iwani-export.zip
+# View device logs
+flutter logs
 
-# Script will:
-# ✓ Create automatic backup
-# ✓ Extract ZIP to temp directory
-# ✓ Analyze changes
-# ✓ Show diff summary
-# ✓ Ask for confirmation
-# ✓ Copy ONLY safe directories (lib/flutter_flow/)
-# ✓ PROTECT critical directories (lib/powersync/, lib/custom_code/, firebase/, supabase/)
-# ✓ Verify protected files still exist
-# ✓ Run flutter pub get
+# Check for issues
+flutter doctor -v
+flutter analyze
 ```
 
-**Protected Directories (NEVER overwritten):**
-- 🔒 `lib/powersync/` - Offline-first database implementation
-- 🔒 `lib/custom_code/` - Custom actions and widgets
-- 🔒 `firebase/` - Cloud Functions and configuration
-- 🔒 `supabase/` - Migrations and edge functions
-- 🔒 `graphql_queries/` - Custom GraphQL queries
-
-**Safe Directories (Updated from FlutterFlow):**
-- ✓ `lib/flutter_flow/` - FlutterFlow-managed utilities
-- ✓ Generated page widgets (lib/*_page/)
-
-### Recovery Procedures
-
-**If Function Gets Deleted/Corrupted:**
-
-1. **From Git (Fastest):**
-   ```bash
-   git status  # Check what changed
-   git diff firebase/functions/index.js  # Review changes
-   git checkout firebase/functions/index.js  # Restore from last commit
-   git log --oneline  # View commit history
-   ```
-
-2. **From Backup:**
-   ```bash
-   # List backups
-   ls -lh ~/backups-medzen/
-
-   # Restore from specific backup
-   BACKUP_DIR=~/backups-medzen/backup_20251111_130510
-   cp $BACKUP_DIR/firebase/functions/index.js firebase/functions/
-   cp $BACKUP_DIR/firebase/functions/package.json firebase/functions/
-
-   # Verify and redeploy
-   cd firebase/functions
-   npm install
-   ./pre-deploy-check.sh
-   firebase deploy --only functions:onUserCreated
-   ```
-
-3. **From Documentation:**
-   ```bash
-   # Reference implementation in documentation
-   cat ONUSERCREATED_COMPLETE_IMPLEMENTATION.md
-   # Contains complete function code and configuration
-   ```
-
-**If FlutterFlow Re-Export Breaks Things:**
-
-1. **Check what was overwritten:**
-   ```bash
-   git status
-   git diff
-   ```
-
-2. **Restore from Git:**
-   ```bash
-   git checkout lib/powersync/
-   git checkout lib/custom_code/
-   git checkout firebase/
-   git checkout supabase/
-   ```
-
-3. **Or restore from backup:**
-   ```bash
-   BACKUP_DIR=~/backups-medzen/backup_YYYYMMDD_HHMMSS
-   cp -r $BACKUP_DIR/lib/powersync lib/
-   cp -r $BACKUP_DIR/firebase/functions/ firebase/
-   ```
-
-### Verification After Recovery
-
-After any recovery operation:
-
+### AWS Lambda
 ```bash
-# 1. Verify critical files exist
-ls -lh firebase/functions/index.js
-ls -lh lib/powersync/
-ls -lh supabase/migrations/
+# View CloudWatch logs
+aws logs tail /aws/lambda/[function-name] --follow
 
-# 2. Check function is correct
-grep "exports.onUserCreated" firebase/functions/index.js
-grep "electronic_health_records" firebase/functions/index.js
-
-# 3. Run pre-deployment check
-cd firebase/functions && ./pre-deploy-check.sh
-
-# 4. Deploy and verify
-firebase deploy --only functions:onUserCreated
-firebase functions:list | grep onUserCreated
-
-# 5. Test function
-firebase functions:log --only onUserCreated
+# Invoke function directly
+aws lambda invoke \
+  --function-name medzen-CreateChimeMeeting \
+  --payload '{"body":"{}"}' \
+  response.json
 ```
 
-### Protection Maintenance
+## Multi-Region Architecture
 
-**Weekly:**
-- ✅ Verify automated backups running: `tail ~/backups-medzen/backup.log`
-- ✅ Check Git status: `git status` (commit any changes)
+**MIGRATION IN PROGRESS:** Consolidating to eu-central-1 as primary region. See `EU_CENTRAL_1_MIGRATION_PLAN.md` for details.
 
-**Before Major Changes:**
-- ✅ Run manual backup: `./create-backup.sh`
-- ✅ Commit to Git: `git add . && git commit -m "Checkpoint before X"`
+The system is deployed across two AWS regions for high availability and compliance:
 
-**Before FlutterFlow Re-Export:**
-- ✅ Run safe re-export script: `./safe-reexport.sh /path/to/export.zip`
-- ✅ NEVER manually extract and copy FlutterFlow exports
+### Production Regions
 
-**Before Deploying Functions:**
-- ✅ Run pre-deployment check: `cd firebase/functions && ./pre-deploy-check.sh`
+**`eu-central-1` (Frankfurt) - PRIMARY REGION FOR ALL SERVICES**
+- ✅ **Chime SDK** (deployed Dec 11, 2025)
+  - Stack: `medzen-chime-sdk-eu-central-1`
+  - API Gateway: `https://156da6e3xb.execute-api.eu-central-1.amazonaws.com`
+  - Lambda Functions (7): meeting-manager, recording-processor, transcription-processor, messaging-handler, polly-tts, health-check, ai-chat-handler
+  - DynamoDB: `medzen-meeting-audit`
+  - S3 Buckets: recordings, transcripts, medical-data
+  - Security: KMS encryption, IAM least privilege, bucket policies
+- ✅ **Bedrock AI** (deployed Dec 11, 2025)
+  - Stack: `medzen-bedrock-ai-eu-central-1`
+  - Model: `eu.amazon.nova-pro-v1:0`
+  - Lambda: `medzen-ai-chat-handler`
+  - Multi-language support with auto-translation
+- 🔄 **EHRbase** (migration planned from eu-west-1)
+  - Target: RDS PostgreSQL Multi-AZ
+  - Target: ECS Fargate cluster
+  - Target: Application Load Balancer
+  - Domain: `ehr.medzenhealth.app`
+- Primary API services for EU/Global users
+- Serves: Video consultations, real-time messaging, medical transcription, AI chat, health records
 
-**Monthly:**
-- ✅ Test recovery procedures (restore from backup to temp directory)
-- ✅ Review backup retention (30 days default)
+**`eu-west-1` (Ireland) - SECONDARY/DR REGION**
+- ✅ **EHRbase production** (deployed, Multi-AZ high availability) - **MIGRATING TO eu-central-1**
+  - RDS PostgreSQL Multi-AZ (current primary, will become read replica)
+  - Application Load Balancer
+  - ECS Fargate cluster
+  - Domain: `ehr.medzenhealth.app`
+- 🔄 **DR Infrastructure** (hot standby for failover)
+  - RDS read replica (target)
+  - Standby Lambda functions (3): auth-send-otp, auth-verify-otp, sms-notification-handler
+  - Route53 health checks and automatic failover
+- ✅ **S3 Storage** (cross-region replication from eu-central-1)
+  - Versioning enabled
+  - Lifecycle policies configured
+- GDPR compliant data residency
+- ~50ms latency for EU users
 
-## Infrastructure & Deployment
+**`af-south-1` (Cape Town) - DECOMMISSIONED**
+- ❌ **Status:** All resources deleted/planned for deletion
+- ⚠️ **Legacy Chime SDK** (deleted - replaced by eu-central-1)
+- ⚠️ **Bedrock AI** (deleted - replaced by eu-central-1)
+- **Cost Savings:** $290/month from decommissioning
+- **Rationale:** Duplicated resources, low African user base (<5%), cost optimization
 
-**EHRbase Deployment:** AWS ECS (Production)
-- `aws-deployment/` - CloudFormation templates for EHRbase on AWS ECS
-- Stack: ECS Fargate, RDS PostgreSQL, Application Load Balancer, VPC
-- Endpoint: `https://ehr.medzenhealth.app/ehrbase`
-- Access: EHRbase REST API, Web UI at `/ehrbase/`
-- See AWS_MCP_INSTALLATION_SUMMARY.md and AWS_EHRBASE_DEPLOYMENT_GUIDE.md
+### Current Deployment Status (December 12, 2025)
 
-**Alternative Deployment:** Kubernetes on Proxmox (Development/Testing)
-- `proxmox-deployment/k8s/` - Kubernetes manifests for EHRbase, PostgreSQL, Studio
-- `ehrbase-admin/kubernetes/` - Admin dashboard deployment
-- Access via MCP: `mcp__proxmox-main__*` tools for VM/node management
-- Note: Currently not in use for production
+| Service | eu-central-1 | eu-west-1 | af-south-1 | Status |
+|---------|--------------|-----------|------------|--------|
+| Chime SDK | ✅ Primary | ⬜ Not deployed | ❌ Decommissioned | Production |
+| EHRbase | 🔄 Migration in progress | ✅ Current Primary | ⬜ Not deployed | Migration |
+| Bedrock AI | ✅ Primary | ⬜ Not deployed | ❌ Decommissioned | Production |
+| Lambda Functions | ✅ 7 deployed | 🔄 3 DR functions | ❌ Decommissioned | Production |
+| S3 Storage | ✅ Primary | 🔄 Replication target | ⬜ Not deployed | Production |
 
-**OpenEHR MCP Server:** `openehr-mcp-server/` - Local MCP server for EHRbase interaction
-- Templates, compositions, AQL queries
-- Docker setup: `docker-compose/docker-compose.yml`
+**Legend:**
+- ✅ Deployed and active
+- 🔄 Migration/configuration in progress
+- ❌ Decommissioned/deleted
+- ⬜ Not deployed
 
-**OpenEHR Templates:** `ehrbase-templates/` - Template conversion and deployment
-- **ADL Templates**: 26 source templates in `proper-templates/` (specialty + core templates)
-- **OPT Templates**: Target directory `opt-templates/` (awaiting ADL-to-OPT conversion)
-- **Automation Scripts**:
-  - `track_conversion_progress.sh` - Real-time conversion status tracker
-  - `upload_all_templates.sh` - Batch upload to EHRbase (ready)
-  - `verify_templates.sh` - Post-upload verification (ready)
-- **Documentation**: `TEMPLATE_CONVERSION_STATUS.md` - Complete status and procedures
-- **Current Status**: ⏳ Awaiting manual conversion (6-13 hours estimated)
-- **Integration Ready**: Edge function mappings and DB triggers configured
+### Failover & High Availability
 
-**Network Configuration:** pfSense firewall (NAT, DNS overrides)
-- Access via MCP: `mcp__pfsense__*` tools for firewall/DNS management
+- **Route 53**: Health checks and automatic failover to eu-west-1
+- **Multi-AZ**: All RDS instances span multiple availability zones
+- **Cross-Region Replication**: S3 data replicated eu-central-1 → eu-west-1
+- **RDS Read Replica**: Hot standby in eu-west-1 for disaster recovery
+- **Testing**: Run `./aws-deployment/scripts/failover-test.sh` to validate
 
-## FlutterFlow Re-Export Process
+### Migration Roadmap (In Progress)
 
-**When package warnings appear:**
-1. Open FlutterFlow web interface → Load project fully (30-60s)
-2. Download Code → Export as ZIP
-3. Extract and copy ONLY FlutterFlow-managed files (`lib/flutter_flow/`, generated widgets)
-4. NEVER overwrite: `lib/powersync/`, `lib/custom_code/`, `firebase/`, `supabase/`
-5. Run `flutter pub get` and verify with test suite
+**See `EU_CENTRAL_1_MIGRATION_PLAN.md` for complete details.**
 
-**Docs:** FOLLOW_THESE_STEPS.md, FLUTTERFLOW_REEXPORT_GUIDE.md, REEXPORT_CHECKLIST.md
+**Phase 1:** Preparation & Validation ✅ COMPLETE
+- [x] Infrastructure audit complete
+- [x] Migration plan created
+- [x] Rollback procedures documented
 
-## Common Gotchas
+**Phase 2:** Deploy EHRbase to eu-central-1 (Week 1)
+- [ ] CloudFormation stack deployed
+- [ ] RDS restored from snapshot
+- [ ] ECS cluster running
+- [ ] Read replica in eu-west-1
 
-1. **Script permissions** - Many bash scripts may not be executable by default. Run `chmod +x *.sh` in project root before using test/deployment scripts
-2. **FlutterFlow re-exports** - NEVER overwrite custom code directories when re-exporting from FlutterFlow (`lib/powersync/`, `lib/custom_code/`, `firebase/`, `supabase/`)
-3. **Firebase config in code** - Config MUST be set server-side via `firebase functions:config:set`, never in code
-4. **Offline testing** - Must run online tests FIRST to seed local PowerSync database before offline tests work
-5. **EHRbase sync timing** - Check `ehrbase_sync_queue.sync_status` - don't assume data is in EHRbase immediately
-6. **Init order violations** - App will fail silently or with cryptic errors if Firebase → Supabase → PowerSync order is violated
-7. **Direct Supabase writes** - Medical data written directly to Supabase (bypassing PowerSync) won't work offline
-8. **PowerSync initialization timing** - PowerSync initializes in landing pages (not `main.dart`) to support role-based sync rules
-9. **Test script credentials** - All test scripts require actual credentials/keys to be configured. They test live systems, not mocks
-10. **FlutterFlow custom code imports** - NEVER remove auto-generated imports in custom actions/widgets even if Flutter analyzer shows them as unused. FlutterFlow platform requires these imports for validation and will reject pushes without them
+**Phase 3:** Bedrock AI ✅ COMPLETE
+- [x] Already deployed in eu-central-1
 
-## Quick Troubleshooting Reference
+**Phase 4:** Lambda Migration (Week 1-2)
+- [ ] Unique functions migrated to eu-central-1
+- [ ] DR functions kept in eu-west-1
 
-**Common Issues:**
+**Phase 5:** Production Cutover (Week 2)
+- [ ] DNS updated to eu-central-1
+- [ ] Zero downtime achieved
+- [ ] Monitoring confirms health
 
-| Issue | Quick Fix | Command/Action |
-|-------|----------|----------------|
-| Build fails | Clean and rebuild | `flutter clean && flutter pub get && flutter build <platform>` |
-| PowerSync not connecting | Check token function | `npx supabase functions logs powersync-token` |
-| Firebase auth fails | Check Firebase config | `firebase functions:config:get` |
-| Supabase connection fails | Verify project link | `npx supabase link --project-ref YOUR_REF` |
-| EHRbase sync stuck | Check sync queue | Query `ehrbase_sync_queue` table for failures |
-| Offline mode broken | Verify init order | Check `lib/main.dart` - Firebase → Supabase → PowerSync |
-| MCP server offline | Check server status | `claude mcp list` |
-| Package version warnings | Re-export from FlutterFlow | See FLUTTERFLOW_REEXPORT_GUIDE.md |
-| Scripts not executable | Fix permissions | `chmod +x *.sh` |
+**Phase 6:** Decommission af-south-1 (Week 3)
+- [ ] 7-day monitoring complete
+- [ ] All resources deleted
+- [ ] Cost savings validated
 
-**Diagnostic Scripts:**
-- `./test_system_connections.sh` - Full system integration test
-- `./test_system_connections_simple.sh` - Quick connectivity check
-- `./verify_powersync_setup.sh` - PowerSync validation
-- `./verify_reexport.sh` - FlutterFlow re-export verification
-- `./test_auth_flow.sh` - Complete authentication flow test
-- `./test_production_auth.sh` - Production authentication test
-- `./verify_specialties_count.sh` - Verify Supabase data integrity
+**Phase 7:** DR Configuration (Week 2-3)
+- [ ] Route53 failover configured
+- [ ] DR tested and validated
 
-**OpenEHR Template Scripts:**
-- `./ehrbase-templates/track_conversion_progress.sh` - Check ADL-to-OPT conversion status
-- `./ehrbase-templates/upload_all_templates.sh` - Batch upload OPT templates to EHRbase
-- `./ehrbase-templates/verify_templates.sh` - Verify templates uploaded successfully
+**Timeline:** 2-3 weeks
+**Cost Savings:** $135/month ($1,620/year)
+**Expected Downtime:** < 5 minutes (during cutover)
 
-**Note:** All scripts require proper credentials. Make executable: `chmod +x *.sh` or `chmod +x ehrbase-templates/*.sh`
+## Regional Deployment Rationale
 
-**Debug Logs:**
-- Firebase: `firebase functions:log [--only functionName]`
-- Supabase Edge Functions: `npx supabase functions logs <function-name>`
-- Flutter: Check console output during `flutter run`
-- PowerSync: Monitor `db.statusStream` in code
+**Why eu-central-1 (Frankfurt) as Primary:**
+- ✅ Central European location - optimal for EU/Global users
+- ✅ 20-30ms lower latency compared to eu-west-1
+- ✅ All AWS services available (Chime SDK, Bedrock, RDS, ECS)
+- ✅ GDPR compliant (EU data residency)
+- ✅ Cost-effective for consolidated architecture
+- ✅ Better inter-service communication (same region)
 
-## Documentation Reference
+**Why eu-west-1 (Ireland) as DR:**
+- ✅ Geographic diversity (different region, same EU)
+- ✅ GDPR compliant
+- ✅ Proven infrastructure for EHRbase
+- ✅ Automatic failover capability
+- ✅ Low-cost hot standby (read replica model)
 
-**Quick Start:** QUICK_START.md (30-minute setup guide)
-**Architecture:** EHR_SYSTEM_README.md, IMPLEMENTATION_SUMMARY.md
-**Deployment:** EHR_SYSTEM_DEPLOYMENT.md, PRODUCTION_DEPLOYMENT_GUIDE.md, DEPLOYMENT_CHECKLIST.md
-**PowerSync:** POWERSYNC_QUICK_START.md, POWERSYNC_MULTI_ROLE_GUIDE.md (+ 13 other PowerSync docs)
-**Testing:** TESTING_GUIDE.md, SYSTEM_INTEGRATION_STATUS.md
-**FlutterFlow:** FLUTTERFLOW_MCP_SETUP.md, FLUTTERFLOW_INTEGRATION_SUMMARY.md, FLUTTERFLOW_POWERSYNC_GUIDE.md
-**OpenEHR Templates:**
-- `ehrbase-templates/TEMPLATE_CONVERSION_STATUS.md` - ⭐ Template conversion tracking and procedures
-- `ehrbase-templates/README.md` - Quick reference and script documentation
-- `OPENEHR_TEMPLATE_DEPLOYMENT_GUIDE.md` - Comprehensive deployment guide
-- `ehrbase-templates/TEMPLATE_DESIGN_OVERVIEW.md` - Template architecture
-**Troubleshooting:** Each major doc has a dedicated troubleshooting section
+**Why Decommission af-south-1:**
+- ❌ Low African user base (<5% of total)
+- ❌ High latency from Europe (250ms+)
+- ❌ Duplicate resources = wasted costs ($290/month)
+- ❌ Complexity of managing 3 regions
+- ✅ African users still served adequately from eu-central-1 (200ms avg)
 
-Total documentation: 13,000+ lines across 50+ files
+**Future Consideration:**
+- Will reconsider af-south-1 deployment if African users exceed 40% of user base
+- Alternative: Deploy edge caching/CDN in Africa for static content
