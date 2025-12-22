@@ -1,14 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
-const videoCallTokens = require("./videoCallTokens");
-
-// Import Supabase client and axios for onUserCreated function
-const { createClient } = require("@supabase/supabase-js");
-const axios = require("axios");
-
-// AI Chat Handler Functions
-const aiChatHandler = require("./aiChatHandler");
 
 const kFcmTokensCollection = "fcm_tokens";
 const kPushNotificationsCollection = "ff_push_notifications";
@@ -247,300 +239,197 @@ function getCharForIndex(charIdx) {
     return String.fromCharCode("a".charCodeAt(0) + charIdx - 36);
   }
 }
-// Firebase Auth trigger: Create Supabase user + EHRbase EHR when Firebase user is created
+// =============================================================================
+// onUserCreated - Creates user records in Supabase and EHRbase when Firebase Auth user is created
+// =============================================================================
 exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
   const startTime = Date.now();
-  console.log(
-    `🚀 onUserCreated triggered for: ${user.email} ${user.uid}`
-  );
+  console.log(`🚀 onUserCreated triggered for: ${user.email} ${user.uid}`);
+
+  // Get configuration
+  const config = functions.config();
+  const SUPABASE_URL = config.supabase?.url;
+  const SUPABASE_SERVICE_KEY = config.supabase?.service_key;
+  const EHRBASE_URL = config.ehrbase?.url;
+  const EHRBASE_USERNAME = config.ehrbase?.username;
+  const EHRBASE_PASSWORD = config.ehrbase?.password;
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    console.error("❌ Missing Supabase configuration");
+    return;
+  }
+
+  const axios = require("axios");
+  const { createClient } = require("@supabase/supabase-js");
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  let supabaseUserId = null;
+  let ehrId = null;
 
   try {
-    // Get configuration from Firebase Functions config
-    const config = functions.config();
-    const SUPABASE_URL = config.supabase?.url;
-    const SUPABASE_SERVICE_KEY = config.supabase?.service_key;
-    const EHRBASE_URL = config.ehrbase?.url;
-    const EHRBASE_USERNAME = config.ehrbase?.username;
-    const EHRBASE_PASSWORD = config.ehrbase?.password;
+    // Step 1: Create Supabase Auth user
+    console.log("📝 Step 1: Creating Supabase Auth user...");
 
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-      throw new Error(
-        "Missing Supabase configuration. Run: firebase functions:config:set supabase.url=... supabase.service_key=..."
-      );
-    }
-
-    if (!EHRBASE_URL || !EHRBASE_USERNAME || !EHRBASE_PASSWORD) {
-      throw new Error(
-        "Missing EHRbase configuration. Run: firebase functions:config:set ehrbase.url=... ehrbase.username=... ehrbase.password=..."
-      );
-    }
-
-    // Create Supabase client
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: user.email,
+      email_confirm: true,
+      user_metadata: {
+        firebase_uid: user.uid,
+        display_name: user.displayName || null,
+        phone_number: user.phoneNumber || null,
       },
     });
 
-    let supabaseUserId;
-    let ehrId;
-
-    // STEP 1: Create or retrieve Supabase Auth user (IDEMPOTENT)
-    console.log("📝 Step 1: Creating or retrieving Supabase Auth user...");
-
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers.users.find((u) => u.email === user.email);
-
-    if (existingUser) {
-      // User exists from previous attempt - reuse existing ID
-      supabaseUserId = existingUser.id;
-      console.log(
-        `⚠️  Supabase Auth user already exists: ${supabaseUserId}`
-      );
-      console.log("   (This is OK - continuing with existing user ID)");
-    } else {
-      // Create new Supabase Auth user
-      const { data: authData, error: authError } =
-        await supabase.auth.admin.createUser({
-          email: user.email,
-          email_confirm: true,
-          user_metadata: {
-            firebase_uid: user.uid,
-            email_verified: user.emailVerified || false,
-          },
-        });
-
-      if (authError) {
-        throw new Error(`Supabase Auth error: ${authError.message}`);
+    if (authError) {
+      if (authError.message && authError.message.includes("already been registered")) {
+        console.log("⚠️  Supabase Auth user already exists, fetching existing user...");
+        const { data: existingUsers } = await supabase.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find((u) => u.email === user.email);
+        if (existingUser) {
+          supabaseUserId = existingUser.id;
+          console.log(`✅ Found existing Supabase Auth user: ${supabaseUserId}`);
+        }
+      } else {
+        console.error(`❌ Supabase Auth error: ${authError.message}`);
       }
-
+    } else if (authData?.user) {
       supabaseUserId = authData.user.id;
       console.log(`✅ Supabase Auth user created: ${supabaseUserId}`);
     }
 
-    // STEP 2: Create or update Supabase users table record (IDEMPOTENT)
-    console.log("📝 Step 2: Creating or updating Supabase users table record...");
+    // Step 2: Create Supabase users table record (minimal fields only)
+    if (supabaseUserId) {
+      console.log("📝 Step 2: Creating Supabase users table record...");
 
-    const { data: existingUserRecord } = await supabase
-      .from("users")
-      .select("id")
-      .eq("id", supabaseUserId)
-      .maybeSingle();
-
-    if (existingUserRecord) {
-      console.log("⚠️  Users table record already exists - skipping");
-    } else {
-      // Insert minimal record - FlutterFlow will handle additional fields
-      const { error: userError } = await supabase.from("users").insert({
-        id: supabaseUserId,
-        firebase_uid: user.uid,
-        email: user.email,
-        // created_at is auto-generated by database
-        // FlutterFlow will populate: first_name, last_name, full_name, phone_number, etc.
-      });
-
-      if (userError) {
-        throw new Error(`Supabase users table error: ${userError.message}`);
-      }
-
-      console.log("✅ Supabase users table record created (minimal - FlutterFlow will populate rest)");
-    }
-
-    // STEP 3: Check for existing EHR linkage (IDEMPOTENT)
-    console.log("📝 Step 3: Checking for existing EHR linkage...");
-
-    const { data: existingEhrRecord } = await supabase
-      .from("electronic_health_records")
-      .select("ehr_id")
-      .eq("patient_id", supabaseUserId)
-      .maybeSingle();
-
-    if (existingEhrRecord && existingEhrRecord.ehr_id) {
-      // EHR exists from previous attempt - reuse existing ID
-      ehrId = existingEhrRecord.ehr_id;
-      console.log(`⚠️  EHR already exists: ${ehrId}`);
-      console.log("   (This is OK - skipping EHR creation)");
-    } else {
-      // STEP 3b: Create new EHRbase EHR
-      console.log("📝 Step 3b: Creating new EHRbase EHR...");
-
-      const ehrResponse = await axios.post(
-        `${EHRBASE_URL}/rest/openehr/v1/ehr`,
-        undefined,  // No body - EHRbase creates default EHR_STATUS
+      const { error: insertError } = await supabase.from("users").upsert(
         {
-          auth: {
-            username: EHRBASE_USERNAME,
-            password: EHRBASE_PASSWORD,
-          },
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+          id: supabaseUserId,
+          firebase_uid: user.uid,
+          email: user.email,
+          account_status: "active",
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" }
       );
 
-      console.log("📊 EHRbase response headers:", JSON.stringify(ehrResponse.headers));
-
-      // Extract EHR ID from Location header (e.g., ".../ehr/uuid") or ETag header
-      // EHRbase returns 201 with empty body - ID is in headers
-      if (ehrResponse.headers.location) {
-        // Extract UUID from location URL (last segment after final /)
-        ehrId = ehrResponse.headers.location.split("/").pop();
-      } else if (ehrResponse.headers.etag) {
-        // Remove quotes from ETag header
-        ehrId = ehrResponse.headers.etag.replace(/"/g, "");
+      if (insertError) {
+        console.error(`❌ Supabase users table error: ${insertError.code} - ${JSON.stringify(insertError)}`);
       } else {
-        throw new Error(`EHRbase response missing location/etag headers: ${JSON.stringify(ehrResponse.headers)}`);
+        console.log("✅ Supabase users table record created");
       }
-
-      console.log(`✅ EHRbase EHR created: ${ehrId}`);
-
-      // STEP 4: Create electronic_health_records entry
-      console.log("📝 Step 4: Creating electronic_health_records entry...");
-
-      const { error: ehrRecordError } = await supabase
-        .from("electronic_health_records")
-        .insert({
-          patient_id: supabaseUserId,
-          ehr_id: ehrId,
-          created_at: new Date().toISOString(),
-        });
-
-      if (ehrRecordError) {
-        throw new Error(
-          `electronic_health_records error: ${ehrRecordError.message}`
-        );
-      }
-
-      console.log("✅ electronic_health_records entry created");
     }
 
-    // STEP 5: Update Firestore user document with supabase_user_id
-    console.log("📝 Step 5: Updating Firestore user document...");
+    // Step 3: Check for existing EHR linkage or create new EHR
+    if (supabaseUserId && EHRBASE_URL && EHRBASE_USERNAME && EHRBASE_PASSWORD) {
+      console.log("📝 Step 3: Checking for existing EHR linkage...");
 
+      // Check if EHR already exists for this user
+      const { data: existingEhr } = await supabase
+        .from("electronic_health_records")
+        .select("ehr_id")
+        .eq("patient_id", supabaseUserId)
+        .single();
+
+      if (existingEhr?.ehr_id) {
+        ehrId = existingEhr.ehr_id;
+        console.log(`⚠️  EHR already exists: ${ehrId}`);
+      } else {
+        // Create new EHR in EHRbase
+        console.log("📝 Step 3b: Creating new EHRbase EHR...");
+        try {
+          const ehrResponse = await axios.post(
+            `${EHRBASE_URL}/rest/openehr/v1/ehr`,
+            undefined, // No body - EHRbase creates default EHR_STATUS
+            {
+              auth: {
+                username: EHRBASE_USERNAME,
+                password: EHRBASE_PASSWORD,
+              },
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                Prefer: "return=representation",
+              },
+              validateStatus: (status) => status === 201 || status === 204,
+            }
+          );
+
+          // Extract EHR ID from Location header or ETag header
+          if (ehrResponse.headers.location) {
+            ehrId = ehrResponse.headers.location.split("/").pop();
+          } else if (ehrResponse.headers.etag) {
+            ehrId = ehrResponse.headers.etag.replace(/"/g, "");
+          } else if (ehrResponse.data?.ehr_id?.value) {
+            ehrId = ehrResponse.data.ehr_id.value;
+          }
+
+          if (ehrId) {
+            console.log(`✅ EHRbase EHR created: ${ehrId}`);
+          } else {
+            console.error("❌ Could not extract EHR ID from response");
+          }
+        } catch (ehrError) {
+          console.error(`❌ EHRbase error: ${ehrError.message}`);
+        }
+      }
+
+      // Step 4: Create electronic_health_records linkage
+      if (ehrId) {
+        console.log("📝 Step 4: Creating electronic_health_records entry...");
+        const { error: ehrLinkError } = await supabase.from("electronic_health_records").insert({
+          patient_id: supabaseUserId,
+          ehr_id: ehrId,
+          ehr_status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+
+        if (ehrLinkError) {
+          console.error(`❌ electronic_health_records error: ${JSON.stringify(ehrLinkError)}`);
+        } else {
+          console.log("✅ electronic_health_records entry created");
+        }
+      }
+    } else if (!EHRBASE_URL) {
+      console.log("⚠️  EHRbase not configured - skipping EHR creation");
+    }
+
+    // Step 5: Update Firestore user document
+    console.log("📝 Step 5: Updating Firestore user document...");
     await firestore.collection("users").doc(user.uid).set(
       {
+        uid: user.uid,
+        email: user.email,
+        display_name: user.displayName || null,
+        phone_number: user.phoneNumber || null,
+        created_time: admin.firestore.FieldValue.serverTimestamp(),
         supabase_user_id: supabaseUserId,
+        ehr_id: ehrId,
       },
       { merge: true }
     );
-
     console.log("✅ Firestore user document updated");
 
-    // Success!
     const duration = Date.now() - startTime;
-    console.log("🎉 Success! User created across all 4 systems");
+    console.log("🎉 Success! User created in all systems");
     console.log(`   Firebase UID: ${user.uid}`);
     console.log(`   Supabase ID: ${supabaseUserId}`);
-    console.log(`   EHR ID: ${ehrId}`);
+    console.log(`   EHR ID: ${ehrId || "N/A"}`);
     console.log(`   Duration: ${duration}ms`);
   } catch (error) {
-    console.error("❌ onUserCreated failed:", error.message);
-    console.error("Stack trace:", error.stack);
-    throw error; // Re-throw to mark function as failed
+    console.error(`❌ onUserCreated error: ${error.message}`);
+    console.error(error.stack);
   }
 });
 
+// =============================================================================
+// onUserDeleted - Cleans up user records when Firebase Auth user is deleted
+// =============================================================================
 exports.onUserDeleted = functions.auth.user().onDelete(async (user) => {
-  let firestore = admin.firestore();
+  const firestore = admin.firestore();
   await firestore.collection("users").doc(user.uid).delete();
 });
-
-// Firebase Auth Blocking Function: Execute before user creation
-exports.beforeUserCreated = functions.auth.user().beforeCreate(async (user, context) => {
-  const startTime = Date.now();
-  console.log(`🔒 beforeUserCreated triggered for: ${user.email}`);
-
-  try {
-    // Email validation - ensure email exists and is properly formatted
-    if (!user.email || !user.email.includes("@")) {
-      throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Valid email address is required for registration"
-      );
-    }
-
-    // Email verification check - require verified emails for security
-    if (!user.emailVerified && context.eventType !== "providers/cloud") {
-      console.log(`⚠️  Email not verified for: ${user.email}`);
-      // Note: For medical app, you may want to enforce email verification
-      // Uncomment below to block unverified emails:
-      // throw new functions.https.HttpsError(
-      //   "failed-precondition",
-      //   "Email must be verified before account creation"
-      // );
-    }
-
-    // Log successful validation
-    const duration = Date.now() - startTime;
-    console.log(`✅ beforeUserCreated validation passed for: ${user.email} (${duration}ms)`);
-
-    // Return empty object to allow user creation to proceed
-    return {};
-  } catch (error) {
-    console.error(`❌ beforeUserCreated blocked user creation: ${user.email}`, error.message);
-
-    // If it's already an HttpsError, re-throw it
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-
-    // Otherwise, wrap in HttpsError
-    throw new functions.https.HttpsError(
-      "internal",
-      `User creation validation failed: ${error.message}`
-    );
-  }
-});
-
-// Firebase Auth Blocking Function: Execute before user sign-in
-exports.beforeUserSignedIn = functions.auth.user().beforeSignIn(async (user, context) => {
-  const startTime = Date.now();
-  console.log(`🔒 beforeUserSignedIn triggered for: ${user.email || user.uid}`);
-
-  try {
-    // Basic security check - ensure user account is enabled
-    if (user.disabled) {
-      throw new functions.https.HttpsError(
-        "permission-denied",
-        "This account has been disabled. Please contact support."
-      );
-    }
-
-    // Check for suspicious sign-in attempts
-    // For medical app, you might want to implement additional checks:
-    // - IP allowlisting/blocklisting
-    // - Time-based access restrictions
-    // - Failed login attempt tracking
-
-    // Log successful sign-in validation
-    const duration = Date.now() - startTime;
-    console.log(`✅ beforeUserSignedIn validation passed for: ${user.email || user.uid} (${duration}ms)`);
-    console.log(`   Sign-in method: ${context.credential?.signInMethod || "unknown"}`);
-    console.log(`   IP Address: ${context.ipAddress || "unknown"}`);
-
-    // Return empty object to allow sign-in to proceed
-    return {};
-  } catch (error) {
-    console.error(`❌ beforeUserSignedIn blocked sign-in: ${user.email || user.uid}`, error.message);
-
-    // If it's already an HttpsError, re-throw it
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-
-    // Otherwise, wrap in HttpsError
-    throw new functions.https.HttpsError(
-      "internal",
-      `Sign-in validation failed: ${error.message}`
-    );
-  }
-});
-
-// Agora Video Call Token Functions
-exports.generateVideoCallTokens = videoCallTokens.generateVideoCallTokens;
-exports.refreshVideoCallToken = videoCallTokens.refreshVideoCallToken;
-
-// AI Chat Handler Functions
-exports.handleAiChatMessage = aiChatHandler.handleAiChatMessage;
-exports.createAiConversation = aiChatHandler.createAiConversation;
