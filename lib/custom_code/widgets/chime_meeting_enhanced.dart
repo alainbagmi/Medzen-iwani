@@ -11,10 +11,7 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io' show Platform;
@@ -37,7 +34,7 @@ import 'package:permission_handler/permission_handler.dart';
 /// Chime SDK v3.19.0 (loaded from CDN)
 class ChimeMeetingEnhanced extends StatefulWidget {
   const ChimeMeetingEnhanced({
-    Key? key,
+    super.key,
     this.width,
     this.height,
     required this.meetingData,
@@ -53,7 +50,9 @@ class ChimeMeetingEnhanced extends StatefulWidget {
     this.showAttendeeRoster = true,
     this.showChat = true,
     this.isProvider = false,
-  }) : super(key: key);
+    this.initialMicEnabled = true,
+    this.initialCameraEnabled = true,
+  });
 
   final double? width;
   final double? height;
@@ -71,40 +70,46 @@ class ChimeMeetingEnhanced extends StatefulWidget {
   final bool showChat;
   final bool
       isProvider; // true = provider (can end call), false = patient (can only leave)
+  final bool initialMicEnabled; // Initial mic state from pre-joining dialog
+  final bool
+      initialCameraEnabled; // Initial camera state from pre-joining dialog
 
   @override
   _ChimeMeetingEnhancedState createState() => _ChimeMeetingEnhancedState();
 }
 
 class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
-  WebViewController? _webViewController;
+  InAppWebViewController? _webViewController;
+  final GlobalKey webViewKey = GlobalKey();
   bool _isLoading = true;
   bool _sdkReady = false;
   Timer? _sdkLoadTimeout;
 
   // Enhanced state management (matching AWS demo)
-  Map<String, Map<String, dynamic>> _attendees = {};
-  Map<int, String> _videoTiles = {};
+  final Map<String, Map<String, dynamic>> _attendees = {};
+  final Map<int, String> _videoTiles = {};
   String? _activeSpeakerId;
   bool _isMuted = false;
   bool _isVideoOff = false;
-  bool _showRoster = false;
+  final bool _showRoster = false;
   bool _showChat = false;
   int _participantCount = 0;
   String? _meetingId;
   RealtimeChannel? _messageChannel;
   bool _messagesLoaded = false; // Track if messages have been loaded
   DateTime? _subscriptionStartTime; // Track when subscription starts
-  Set<String> _processedMessageIds = {}; // Track processed message IDs
+  final Set<String> _processedMessageIds = {}; // Track processed message IDs
+  static const int _maxProcessedMessageIds =
+      500; // Limit to prevent memory leak
   int _unreadMessageCount = 0; // Track unread messages when chat is closed
 
   // === TRANSCRIPTION STATE VARIABLES ===
   bool _isTranscriptionEnabled = false;
   bool _isTranscriptionStarting = false;
-  String _transcriptionLanguage = 'en-US';
+  final String _transcriptionLanguage = 'en-US';
   String? _sessionId; // Video call session ID for transcription
   RealtimeChannel? _captionChannel; // Realtime channel for live captions
-  List<Map<String, dynamic>> _liveCaptions = []; // Recent live captions
+  final List<Map<String, dynamic>> _liveCaptions = []; // Recent live captions
   String? _currentCaption; // Currently displayed caption text
   String? _currentSpeaker; // Currently speaking person's name
   Timer? _captionFadeTimer; // Timer to fade out old captions
@@ -114,6 +119,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   void initState() {
     super.initState();
     debugPrint('🚀 Initializing Enhanced Chime Meeting (AWS Demo Features)');
+
+    // Initialize mic/camera state from widget parameters (set by pre-joining dialog)
+    _isMuted = !widget.initialMicEnabled;
+    _isVideoOff = !widget.initialCameraEnabled;
+    debugPrint(
+        '📹 Initial mic enabled: ${widget.initialMicEnabled} (muted: $_isMuted)');
+    debugPrint(
+        '📹 Initial camera enabled: ${widget.initialCameraEnabled} (video off: $_isVideoOff)');
+
     _extractMeetingId();
     _checkPermissionsAndInitialize();
   }
@@ -238,12 +252,25 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   void _extractMeetingId() {
     try {
+      debugPrint('🔍 Extracting meeting ID from meetingData...');
+      debugPrint('   meetingData length: ${widget.meetingData.length}');
       final meetingMap = jsonDecode(widget.meetingData);
+      debugPrint('   meetingMap keys: ${meetingMap.keys.toList()}');
       _meetingId =
           meetingMap['MeetingId'] ?? meetingMap['Meeting']?['MeetingId'];
-      debugPrint('📋 Meeting ID: $_meetingId');
+      debugPrint('📋 Meeting ID extracted: $_meetingId');
+      if (_meetingId == null) {
+        debugPrint('⚠️ MeetingId not found in meetingData');
+        debugPrint('   Available keys: ${meetingMap.keys.toList()}');
+        if (meetingMap.containsKey('Meeting')) {
+          debugPrint(
+              '   Meeting object keys: ${meetingMap['Meeting']?.keys?.toList()}');
+        }
+      }
     } catch (e) {
-      debugPrint('⚠️ Could not extract meeting ID: $e');
+      debugPrint('❌ Could not extract meeting ID: $e');
+      debugPrint(
+          '   meetingData: ${widget.meetingData.substring(0, widget.meetingData.length.clamp(0, 200))}...');
     }
   }
 
@@ -267,6 +294,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     if (_messageChannel != null) {
       SupaFlow.client.removeChannel(_messageChannel!);
     }
+
+    // Clear processed message IDs to free memory
+    _processedMessageIds.clear();
+
     super.dispose();
   }
 
@@ -318,7 +349,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           onTap: () {
             // Open chat when tapping the notification
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            _webViewController?.runJavaScript('toggleChat(true);');
+            _webViewController?.evaluateJavascript(source: 'toggleChat(true);');
             setState(() {
               _showChat = true;
               _unreadMessageCount = 0;
@@ -409,66 +440,125 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   }
 
   void _initializeWebView() {
-    // Configure Android-specific settings
-    if (!kIsWeb && Platform.isAndroid) {
-      debugPrint('🔧 Configuring Android WebView');
-      AndroidWebViewController.enableDebugging(true);
+    // With flutter_inappwebview, the WebView is initialized in the build method
+    // The controller is obtained via onWebViewCreated callback
+    debugPrint('🔧 InAppWebView initialization will occur in build method');
+    // Just trigger a rebuild to show the WebView
+    if (mounted) {
+      setState(() {});
     }
+  }
 
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int progress) {
-            if (progress == 100 && _isLoading) {
-              setState(() => _isLoading = false);
-            }
-          },
-          onPageStarted: (String url) {
-            setState(() => _isLoading = true);
-          },
-          onPageFinished: (String url) {
-            setState(() => _isLoading = false);
-          },
-          onWebResourceError: (WebResourceError error) {
-            debugPrint('🌐 WebView Error: ${error.description}');
-          },
-        ),
-      )
-      ..addJavaScriptChannel(
-        'FlutterChannel',
-        onMessageReceived: (JavaScriptMessage message) {
-          _handleMessageFromWebView(message.message);
-        },
-      )
-      ..addJavaScriptChannel(
-        'ConsoleLog',
-        onMessageReceived: (JavaScriptMessage message) {
-          debugPrint('🌐 JS: ${message.message}');
-        },
-      )
-      ..loadHtmlString(
-        _getEnhancedChimeHTML(),
-        baseUrl: 'https://medzenhealth.app',
-      );
+  /// Get InAppWebView settings with full WebRTC support for video calls
+  InAppWebViewSettings _getWebViewSettings() {
+    return InAppWebViewSettings(
+      // Core JavaScript settings
+      javaScriptEnabled: true,
+      javaScriptCanOpenWindowsAutomatically: true,
 
-    // Configure Android-specific permissions
-    if (!kIsWeb && Platform.isAndroid && _webViewController != null) {
-      final androidController =
-          _webViewController!.platform as AndroidWebViewController;
-      androidController.setMediaPlaybackRequiresUserGesture(false);
-      androidController.setOnPlatformPermissionRequest(
-          (PlatformWebViewPermissionRequest request) {
-        debugPrint('📹 WebView permission request: ${request.types}');
-        request.grant();
-      });
-      androidController.setGeolocationPermissionsPromptCallbacks(
-        onShowPrompt: (request) async {
-          return GeolocationPermissionsResponse(allow: true, retain: true);
-        },
-      );
+      // WebRTC and Media settings - CRITICAL for video calls
+      mediaPlaybackRequiresUserGesture: false,
+      allowsInlineMediaPlayback: true,
+
+      // Android-specific settings
+      useHybridComposition: true, // Better WebRTC support on Android
+      useShouldOverrideUrlLoading: true,
+      allowFileAccess: true,
+      allowContentAccess: true,
+      geolocationEnabled: true,
+
+      // iOS-specific settings
+      allowsAirPlayForMediaPlayback: true,
+      allowsPictureInPictureMediaPlayback: true,
+
+      // General settings
+      transparentBackground: false,
+      supportZoom: false,
+      verticalScrollBarEnabled: false,
+      horizontalScrollBarEnabled: false,
+      disableContextMenu: false,
+
+      // Security settings
+      mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+
+      // Enable debugging on Android
+      isInspectable: true, // Allows debugging in Chrome DevTools
+    );
+  }
+
+  /// Handle WebView creation - called when InAppWebView is ready
+  void _onWebViewCreated(InAppWebViewController controller) {
+    debugPrint('✅ InAppWebView created');
+    _webViewController = controller;
+
+    // Add JavaScript handlers for Flutter communication
+    controller.addJavaScriptHandler(
+      handlerName: 'FlutterChannel',
+      callback: (args) {
+        if (args.isNotEmpty) {
+          _handleMessageFromWebView(args[0].toString());
+        }
+        return null;
+      },
+    );
+
+    controller.addJavaScriptHandler(
+      handlerName: 'ConsoleLog',
+      callback: (args) {
+        if (args.isNotEmpty) {
+          debugPrint('🌐 JS: ${args[0]}');
+        }
+        return null;
+      },
+    );
+  }
+
+  /// Handle permission requests from WebView (camera, microphone)
+  Future<PermissionResponse> _onPermissionRequest(
+    InAppWebViewController controller,
+    PermissionRequest permissionRequest,
+  ) async {
+    debugPrint('📹 Permission request: ${permissionRequest.resources}');
+    // Grant all media permissions - we've already checked device permissions
+    return PermissionResponse(
+      resources: permissionRequest.resources,
+      action: PermissionResponseAction.GRANT,
+    );
+  }
+
+  /// Handle progress updates
+  void _onProgressChanged(InAppWebViewController controller, int progress) {
+    if (progress == 100 && _isLoading) {
+      setState(() => _isLoading = false);
     }
+  }
+
+  /// Handle page load start
+  void _onLoadStart(InAppWebViewController controller, WebUri? url) {
+    setState(() => _isLoading = true);
+  }
+
+  /// Handle page load finish
+  void _onLoadStop(InAppWebViewController controller, WebUri? url) {
+    setState(() => _isLoading = false);
+  }
+
+  /// Handle console messages from JavaScript
+  void _onConsoleMessage(
+    InAppWebViewController controller,
+    ConsoleMessage consoleMessage,
+  ) {
+    debugPrint(
+        '🌐 Console [${consoleMessage.messageLevel}]: ${consoleMessage.message}');
+  }
+
+  /// Handle web resource errors
+  void _onReceivedError(
+    InAppWebViewController controller,
+    WebResourceRequest request,
+    WebResourceError error,
+  ) {
+    debugPrint('🌐 WebView Error: ${error.description} (${error.type})');
   }
 
   void _handleMessageFromWebView(String message) {
@@ -577,7 +667,21 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   void _handleMeetingJoined() {
     debugPrint('✅ Successfully joined meeting');
-    setState(() => _participantCount = 1);
+
+    // Register self-attendee if not already in the attendees map
+    final selfAttendeeId = _getSelfAttendeeId();
+    if (selfAttendeeId != null && !_attendees.containsKey(selfAttendeeId)) {
+      _attendees[selfAttendeeId] = {
+        'name': widget.userName ?? 'You',
+        'isMuted': _isMuted,
+        'videoEnabled': !_isVideoOff,
+        'joinedAt': DateTime.now().toIso8601String(),
+        'isSelf': true,
+      };
+    }
+
+    setState(() =>
+        _participantCount = _attendees.isNotEmpty ? _attendees.length : 1);
 
     // Auto-start transcription for providers after a short delay
     // to ensure the meeting is fully established
@@ -649,6 +753,55 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       case 'DEVICE_WARNING':
         _handleDeviceWarning(data['message'] ?? 'Some devices unavailable');
         break;
+      case 'JS_ERROR':
+        _handleJsError(data);
+        break;
+      case 'PROMISE_REJECTION':
+        _handlePromiseRejection(data);
+        break;
+    }
+  }
+
+  /// Handle JavaScript errors caught by global error handler
+  void _handleJsError(Map<String, dynamic> data) {
+    final errorType = data['errorType'] ?? 'Unknown';
+    final message = data['message'] ?? 'No message';
+    final line = data['line'] ?? 0;
+    final column = data['column'] ?? 0;
+    final stack = data['stack'] ?? '';
+
+    debugPrint('🚨 [JS_ERROR] [$errorType] $message');
+    debugPrint('   Location: line $line, column $column');
+    if (stack.isNotEmpty) {
+      debugPrint('   Stack: ${stack.toString().split('\n').take(3).join(' | ')}');
+    }
+
+    // For TypeErrors, log additional diagnostic info
+    if (errorType == 'TypeError') {
+      debugPrint('   ⚠️ TypeError detected - this may indicate:');
+      debugPrint('      • Accessing undefined/null object property');
+      debugPrint('      • Calling method on undefined/null object');
+      debugPrint('      • API method not supported in WebView');
+    }
+  }
+
+  /// Handle unhandled promise rejections
+  void _handlePromiseRejection(Map<String, dynamic> data) {
+    final errorType = data['errorType'] ?? 'Unknown';
+    final message = data['message'] ?? 'No message';
+    final stack = data['stack'] ?? '';
+
+    debugPrint('🚨 [PROMISE_REJECTION] [$errorType] $message');
+    if (stack.isNotEmpty) {
+      debugPrint('   Stack: ${stack.toString().split('\n').take(3).join(' | ')}');
+    }
+
+    // For TypeErrors in async code, log additional diagnostic info
+    if (errorType == 'TypeError') {
+      debugPrint('   ⚠️ Async TypeError detected - this may indicate:');
+      debugPrint('      • Failed await on undefined promise');
+      debugPrint('      • API returned unexpected type');
+      debugPrint('      • Device API compatibility issue');
     }
   }
 
@@ -1049,7 +1202,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             .replaceAll("'", "\\'")
             .replaceAll('\n', '\\n');
 
-        await _webViewController?.runJavaScript('''
+        await _webViewController?.evaluateJavascript(source: '''
           receiveMessage({
             id: '${msg['id']}',
             sender: '${metadata['sender'] ?? 'Unknown'}',
@@ -1115,7 +1268,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           debugPrint('⏭️ Skipping already processed message: $msgId');
           return;
         }
+
+        // Add to processed set with size limit to prevent memory leak
         _processedMessageIds.add(msgId);
+        if (_processedMessageIds.length > _maxProcessedMessageIds) {
+          // Remove oldest entries (first 100) when limit exceeded
+          final toRemove = _processedMessageIds.take(100).toList();
+          _processedMessageIds.removeAll(toRemove);
+        }
 
         // Check if it's own message
         final senderId = msg['sender_id']?.toString();
@@ -1176,7 +1336,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
               });
             ''';
 
-        _webViewController?.runJavaScript(js);
+        _webViewController?.evaluateJavascript(source: js);
         debugPrint('✅ Message displayed from other user: $msgId');
       },
     )
@@ -1202,19 +1362,39 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       return null;
     }
 
+    debugPrint(
+        '🔍 Looking up session for appointment: ${widget.appointmentId}');
+
     try {
       final result = await SupaFlow.client
           .from('video_call_sessions')
-          .select('id')
+          .select('id, meeting_id, status')
           .eq('appointment_id', widget.appointmentId!)
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
 
+      debugPrint('🔍 Query result: $result');
+
       if (result != null) {
         _sessionId = result['id'] as String;
-        debugPrint('📋 Video session ID: $_sessionId');
+        final dbMeetingId = result['meeting_id'];
+        final status = result['status'];
+        debugPrint('📋 Video session found:');
+        debugPrint('   Session ID: $_sessionId');
+        debugPrint('   Meeting ID (from DB): $dbMeetingId');
+        debugPrint('   Status: $status');
+
+        // If _meetingId is null but we have it from DB, use that
+        if (_meetingId == null && dbMeetingId != null) {
+          _meetingId = dbMeetingId as String;
+          debugPrint('   ✓ Set _meetingId from database: $_meetingId');
+        }
+
         return _sessionId;
+      } else {
+        debugPrint(
+            '⚠️ No session found for appointment: ${widget.appointmentId}');
       }
     } catch (e) {
       debugPrint('❌ Error fetching session ID: $e');
@@ -1237,13 +1417,44 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     setState(() => _isTranscriptionStarting = true);
 
     try {
-      // Ensure we have session ID
-      if (_sessionId == null) {
-        await _fetchSessionId();
+      // Debug: Log current state
+      debugPrint('🔍 Transcription pre-check:');
+      debugPrint('   appointmentId: ${widget.appointmentId}');
+      debugPrint('   _meetingId: $_meetingId');
+      debugPrint('   _sessionId: $_sessionId');
+
+      // Re-extract meeting ID if null (in case JSON parsing failed earlier)
+      if (_meetingId == null) {
+        debugPrint('🔄 Re-extracting meeting ID...');
+        _extractMeetingId();
+        debugPrint('   _meetingId after re-extract: $_meetingId');
       }
 
+      // Fetch session ID with retry (database might not be ready immediately)
+      if (_sessionId == null) {
+        debugPrint('🔄 Fetching session ID...');
+        for (int attempt = 1; attempt <= 3; attempt++) {
+          await _fetchSessionId();
+          if (_sessionId != null) {
+            debugPrint('   ✓ Session ID found on attempt $attempt');
+            break;
+          }
+          if (attempt < 3) {
+            debugPrint(
+                '   ⏳ Session not found, retrying in 1 second (attempt $attempt/3)...');
+            await Future.delayed(const Duration(seconds: 1));
+          }
+        }
+      }
+
+      // Debug: Log final state
+      debugPrint('🔍 Transcription final check:');
+      debugPrint('   _meetingId: $_meetingId');
+      debugPrint('   _sessionId: $_sessionId');
+
       if (_sessionId == null || _meetingId == null) {
-        debugPrint('❌ Missing session ID or meeting ID for transcription');
+        debugPrint(
+            '❌ Missing session ID ($_sessionId) or meeting ID ($_meetingId) for transcription');
         setState(() => _isTranscriptionStarting = false);
         return;
       }
@@ -1313,10 +1524,27 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content:
-                  Text('Failed to start transcription: ${result['error']}'),
+              content: Row(
+                children: [
+                  const Icon(Icons.warning_amber, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Failed to start transcription: ${result['error'] ?? 'Unknown error'}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'Retry',
+                textColor: Colors.white,
+                onPressed: _startTranscription,
+              ),
             ),
           );
         }
@@ -1324,6 +1552,45 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     } catch (e) {
       debugPrint('❌ Transcription start error: $e');
       setState(() => _isTranscriptionStarting = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Transcription Error',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        e.toString().length > 50
+                            ? '${e.toString().substring(0, 50)}...'
+                            : e.toString(),
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _startTranscription,
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -1352,11 +1619,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         null,
       );
 
-      setState(() {
+      if (mounted) {
+        setState(() {
+          _isTranscriptionEnabled = false;
+          _currentCaption = null;
+          _currentSpeaker = null;
+        });
+      } else {
         _isTranscriptionEnabled = false;
         _currentCaption = null;
         _currentSpeaker = null;
-      });
+      }
 
       // Unsubscribe from captions
       if (_captionChannel != null) {
@@ -1521,6 +1794,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
       final callTitleJson = jsonEncode(titleText);
 
+      // Pass initial mic/camera state from pre-joining dialog
+      final initialMicOff = !widget.initialMicEnabled;
+      final initialVideoOff = !widget.initialCameraEnabled;
+
       final script = '''
         console.log('=== Joining Enhanced Meeting ===');
         console.log('Meeting:', $meetingJson);
@@ -1531,6 +1808,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         console.log('Call Title:', $callTitleJson);
         console.log('Is Provider:', $isProvider);
         console.log('Meeting ID:', $meetingIdForApi);
+        console.log('Initial Mic Off:', $initialMicOff);
+        console.log('Initial Video Off:', $initialVideoOff);
 
         currentAttendeeName = $userName;
         currentUserRole = $userRole;
@@ -1538,6 +1817,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         callTitle = $callTitleJson;
         isProviderUser = $isProvider;
         currentMeetingId = $meetingIdForApi;
+
+        // Store initial device state from pre-joining dialog
+        const shouldStartMuted = $initialMicOff;
+        const shouldStartVideoOff = $initialVideoOff;
 
         // Update leave button title based on user role (icon stays the same)
         const leaveBtn = document.getElementById('leave-btn');
@@ -1548,6 +1831,37 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         joinMeeting($meetingJson, $attendeeJson)
           .then(() => {
             console.log('✅ Meeting joined successfully');
+
+            // Apply initial mic/camera state from pre-joining dialog
+            if (shouldStartMuted && audioVideo) {
+              console.log('🔇 Applying initial mute state from pre-joining dialog');
+              audioVideo.realtimeMuteLocalAudio();
+              isMuted = true;
+              const muteBtn = document.getElementById('mute-btn');
+              if (muteBtn) {
+                muteBtn.classList.add('active');
+                muteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+              }
+            }
+
+            if (shouldStartVideoOff && audioVideo) {
+              console.log('📹 Applying initial video off state from pre-joining dialog');
+              audioVideo.stopLocalVideoTile();
+              isVideoOff = true;
+              const videoBtn = document.getElementById('video-btn');
+              if (videoBtn) {
+                videoBtn.classList.add('active');
+                videoBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M21 21l-8.5-8.5L23 7v10z"></path><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>';
+              }
+              // Show profile picture in local tile since camera is off
+              const localTiles = document.querySelectorAll('.video-tile');
+              localTiles.forEach(tile => {
+                if (tile.querySelector('.local-tile')) {
+                  tile.classList.add('camera-off');
+                }
+              });
+            }
+
             if (window.FlutterChannel) {
               window.FlutterChannel.postMessage('MEETING_JOINED');
             }
@@ -1560,7 +1874,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           });
       ''';
 
-      await _webViewController?.runJavaScript(script);
+      await _webViewController?.evaluateJavascript(source: script);
       debugPrint('✅ Join meeting script executed');
     } catch (e) {
       debugPrint('❌ Error joining meeting: $e');
@@ -1578,6 +1892,69 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     <title>Enhanced Chime Meeting</title>
 
     <script>
+        // ============================================
+        // FLUTTER_INAPPWEBVIEW COMPATIBILITY SHIM
+        // Creates FlutterChannel object that maps to flutter_inappwebview.callHandler
+        // This allows existing FlutterChannel.postMessage() calls to work
+        // ============================================
+        (function() {
+            // Create FlutterChannel shim for flutter_inappwebview
+            window.FlutterChannel = {
+                postMessage: function(msg) {
+                    // Use flutter_inappwebview's callHandler
+                    if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+                        window.flutter_inappwebview.callHandler('FlutterChannel', msg);
+                    } else {
+                        // Fallback: queue message and retry when handler is available
+                        console.log('⏳ flutter_inappwebview not ready, queueing message');
+                        setTimeout(() => {
+                            if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
+                                window.flutter_inappwebview.callHandler('FlutterChannel', msg);
+                            }
+                        }, 100);
+                    }
+                }
+            };
+            console.log('✅ FlutterChannel shim installed for flutter_inappwebview');
+        })();
+
+        // ============================================
+        // DEVICE ENUMERATION CACHE PATCH
+        // Prevents repeated permission check loops on Android WebView
+        // The Chromium "CheckMediaAccessPermission: Not supported" error
+        // is caused by repeated calls to enumerateDevices()
+        // ============================================
+        (function() {
+            let cachedDevices = null;
+            let cacheTime = 0;
+            const CACHE_DURATION = 30000; // Cache for 30 seconds
+
+            const originalEnumerateDevices = navigator.mediaDevices?.enumerateDevices?.bind(navigator.mediaDevices);
+
+            if (originalEnumerateDevices) {
+                navigator.mediaDevices.enumerateDevices = async function() {
+                    const now = Date.now();
+                    // Return cached result if fresh
+                    if (cachedDevices && (now - cacheTime) < CACHE_DURATION) {
+                        console.log('📹 Using cached device list');
+                        return cachedDevices;
+                    }
+                    // Call original and cache result
+                    try {
+                        cachedDevices = await originalEnumerateDevices();
+                        cacheTime = now;
+                        console.log('📹 Device list refreshed and cached');
+                        return cachedDevices;
+                    } catch (e) {
+                        console.error('📹 Device enumeration error:', e.name);
+                        // Return empty array on error to prevent loops
+                        return cachedDevices || [];
+                    }
+                };
+                console.log('✅ Device enumeration cache patch applied');
+            }
+        })();
+
         // SDK Load State Tracking
         let sdkLoadAttempts = 0;
         const maxAttempts = 3;
@@ -2424,6 +2801,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     </div>
 
     <div id="container" style="display: none;">
+        <!-- Hidden audio sink for Chime WebRTC (required for remote audio playback) -->
+        <audio id="meeting-audio" autoplay playsinline style="display:none"></audio>
         <div id="video-grid" class="count-1"></div>
         <div id="controls">
             <button id="mute-btn" class="control-btn" title="Mute/Unmute">
@@ -2438,6 +2817,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="23 7 16 12 23 17 23 7"></polygon>
                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+            </button>
+            <button id="switch-camera-btn" class="control-btn" title="Switch Camera">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 19H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path>
+                    <path d="M13 5h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-5"></path>
+                    <polyline points="10 9 13 12 10 15"></polyline>
+                    <polyline points="14 9 11 12 14 15"></polyline>
                 </svg>
             </button>
             <button id="chat-btn" class="control-btn" title="Chat">
@@ -2477,34 +2864,104 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     </div>
 
     <script>
-        // Redirect console to Flutter for debugging
+        // Enhanced error logging for TypeErrors and debugging
         (function() {
             const originalLog = console.log;
             const originalError = console.error;
             const originalWarn = console.warn;
 
+            // Helper to extract detailed error info
+            function formatError(err) {
+                if (!err) return 'Unknown error';
+                let msg = '';
+                if (err instanceof TypeError) {
+                    msg += '[TypeError] ';
+                } else if (err instanceof Error) {
+                    msg += '[' + err.name + '] ';
+                }
+                msg += err.message || String(err);
+                if (err.stack) {
+                    // Get first 3 lines of stack trace
+                    const stackLines = err.stack.split('\\n').slice(0, 4).join(' | ');
+                    msg += ' Stack: ' + stackLines;
+                }
+                return msg;
+            }
+
+            // Helper to format console arguments with enhanced error handling
+            function formatArgs(args) {
+                return args.map(a => {
+                    if (a instanceof TypeError) {
+                        return '[TypeError] ' + a.message + (a.stack ? ' Stack: ' + a.stack.split('\\n').slice(0, 3).join(' | ') : '');
+                    } else if (a instanceof Error) {
+                        return formatError(a);
+                    } else if (typeof a === 'object') {
+                        try { return JSON.stringify(a); } catch(e) { return String(a); }
+                    }
+                    return String(a);
+                }).join(' ');
+            }
+
             console.log = function(...args) {
                 originalLog.apply(console, args);
                 try {
-                    window.ConsoleLog?.postMessage('LOG: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+                    window.ConsoleLog?.postMessage('LOG: ' + formatArgs(args));
                 } catch(e) {}
             };
             console.error = function(...args) {
                 originalError.apply(console, args);
                 try {
-                    window.ConsoleLog?.postMessage('ERROR: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+                    window.ConsoleLog?.postMessage('ERROR: ' + formatArgs(args));
                 } catch(e) {}
             };
             console.warn = function(...args) {
                 originalWarn.apply(console, args);
                 try {
-                    window.ConsoleLog?.postMessage('WARN: ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+                    window.ConsoleLog?.postMessage('WARN: ' + formatArgs(args));
                 } catch(e) {}
+            };
+
+            // Global error handler to catch uncaught TypeErrors and other exceptions
+            window.onerror = function(message, source, lineno, colno, error) {
+                const errorType = error instanceof TypeError ? 'TypeError' : (error?.name || 'Error');
+                const errorDetail = '[UNCAUGHT ' + errorType + '] ' + message + ' at line ' + lineno + ':' + colno;
+                window.ConsoleLog?.postMessage('CRITICAL: ' + errorDetail);
+                if (error?.stack) {
+                    window.ConsoleLog?.postMessage('STACK: ' + error.stack.split('\\n').slice(0, 5).join(' | '));
+                }
+                // Send to Flutter for debugging
+                window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'JS_ERROR',
+                    errorType: errorType,
+                    message: message,
+                    source: source,
+                    line: lineno,
+                    column: colno,
+                    stack: error?.stack || ''
+                }));
+                return false; // Don't prevent default handling
+            };
+
+            // Catch unhandled promise rejections (common with async TypeErrors)
+            window.onunhandledrejection = function(event) {
+                const error = event.reason;
+                const errorType = error instanceof TypeError ? 'TypeError' : (error?.name || 'PromiseRejection');
+                window.ConsoleLog?.postMessage('UNHANDLED_REJECTION: [' + errorType + '] ' + (error?.message || String(error)));
+                if (error?.stack) {
+                    window.ConsoleLog?.postMessage('REJECTION_STACK: ' + error.stack.split('\\n').slice(0, 5).join(' | '));
+                }
+                // Send to Flutter for debugging
+                window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'PROMISE_REJECTION',
+                    errorType: errorType,
+                    message: error?.message || String(error),
+                    stack: error?.stack || ''
+                }));
             };
         })();
 
         // Immediate test - this should appear in Flutter logs
-        console.log('🚀 Video call HTML loaded - JS is running');
+        console.log('🚀 Video call HTML loaded - JS is running (enhanced error logging enabled)');
 
         // Global variables
         let meetingSession;
@@ -2525,6 +2982,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         let unreadCount = 0; // Track unread messages
         let hasMessages = false; // Track if conversation has started (provider sent first message)
         let messageCount = 0; // Track total messages in chat
+
+        // Permission caching to prevent repeated permission checks
+        // This helps reduce the "CheckMediaAccessPermission: Not supported" loop
+        let permissionsGranted = false;
+        let permissionCheckInProgress = false;
+        let cachedAudioDevices = null;
+        let cachedVideoDevices = null;
+        let noCameraMode = false; // Flag to disable video operations when no camera found
+        let lastPermissionCheckTime = 0; // Throttle permission checks
+        const PERMISSION_CHECK_THROTTLE_MS = 2000; // Only check permissions every 2 seconds
+        let preAcquiredStream = null; // Store pre-acquired media stream to prevent device release
 
         // Update notification badge
         function updateChatBadge(count) {
@@ -2577,6 +3045,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             try {
                 console.log('🎬 Joining meeting...');
 
+                // IMPORTANT: Request media permissions FIRST, before creating SDK objects
+                // This ensures the device is fully released before Chime SDK tries to access it
+                // Fixes "microphone is used by another application" error on Android
+                console.log('📹 Step 1: Pre-requesting media permissions before SDK initialization...');
+                await requestMediaPermissions();
+
+                // Now create SDK objects after permissions are granted and streams released
+                console.log('📦 Step 2: Creating Chime SDK objects...');
                 const logger = new ChimeSDK.ConsoleLogger('SDK', ChimeSDK.LogLevel.WARN);
                 const deviceController = new ChimeSDK.DefaultDeviceController(logger);
                 const configuration = new ChimeSDK.MeetingSessionConfiguration(
@@ -2592,10 +3068,43 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
                 audioVideo = meetingSession.audioVideo;
 
+                // Bind remote audio to a hidden sink so speakers work on WebView/mobile
+                const audioElement = document.getElementById('meeting-audio');
+                if (audioElement) {
+                  audioElement.muted = false;
+                  audioElement.autoplay = true;
+                  audioElement.playsInline = true;
+                  audioElement.volume = 1.0; // Ensure full volume
+                  audioVideo.bindAudioElement(audioElement);
+                  console.log('🔊 Audio element bound for speaker output (volume: 1.0)');
+                  // Music profile reduces aggressive noise suppression that can mute speech on mobile
+                  // Note: AudioProfile API varies by SDK version - make it optional
+                  try {
+                    if (ChimeSDK.AudioProfile) {
+                      if (typeof ChimeSDK.AudioProfile.fullbandMusicStereo === 'function') {
+                        // SDK 3.x API
+                        audioVideo.setAudioProfile(ChimeSDK.AudioProfile.fullbandMusicStereo());
+                        console.log('🎵 Audio profile set: fullbandMusicStereo');
+                      } else if (typeof ChimeSDK.AudioProfile.music === 'function') {
+                        // Older SDK API
+                        audioVideo.setAudioProfile(ChimeSDK.AudioProfile.music());
+                        console.log('🎵 Audio profile set: music');
+                      } else {
+                        console.log('🎵 Using default audio profile (no music profile available)');
+                      }
+                    }
+                  } catch (profileError) {
+                    console.warn('⚠️ Could not set audio profile:', profileError.message);
+                  }
+                } else {
+                  console.warn('⚠️ meeting-audio element not found; remote audio may stay muted');
+                }
+
                 // Set up observers
                 setupObservers();
 
-                // Request permissions and start
+                // Setup devices for Chime SDK (no need to re-request permissions)
+                console.log('🎤 Step 3: Setting up audio/video devices for Chime SDK...');
                 await setupDevices();
 
                 // Start meeting
@@ -2613,18 +3122,194 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 console.log('✅ Meeting started successfully');
             } catch (error) {
                 console.error('❌ Failed to join meeting:', error);
+                // Enhanced TypeError detection for meeting join
+                if (error instanceof TypeError || error.name === 'TypeError') {
+                    console.error('🚨 [TypeError] during meeting join');
+                    console.error('   Message:', error.message);
+                    console.error('   This may indicate: ChimeSDK not loaded, meeting data malformed, or API compatibility issue');
+                    console.error('   Stack:', error.stack ? error.stack.split('\\n').slice(0, 5).join(' | ') : 'No stack');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'JS_ERROR',
+                        errorType: 'TypeError',
+                        message: 'Meeting join error: ' + error.message,
+                        context: 'joinMeeting',
+                        stack: error.stack || ''
+                    }));
+                }
                 throw error;
             }
         }
 
+        // Pre-request media permissions using navigator.mediaDevices.getUserMedia
+        // This triggers the browser/WebView permission prompt before Chime SDK tries to access devices
+        // Uses caching to prevent repeated permission checks which cause the
+        // "CheckMediaAccessPermission: Not supported" loop on Android WebView
+        async function requestMediaPermissions() {
+            // Skip if permissions already granted (prevents looping)
+            if (permissionsGranted) {
+                console.log('📹 Permissions already granted (cached), skipping request');
+                return true;
+            }
+
+            // Prevent concurrent permission checks
+            if (permissionCheckInProgress) {
+                console.log('📹 Permission check already in progress, waiting...');
+                // Wait for existing check to complete
+                while (permissionCheckInProgress) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                return permissionsGranted;
+            }
+
+            permissionCheckInProgress = true;
+            console.log('📹 Pre-requesting camera and microphone permissions...');
+
+            try {
+                // Request both audio and video permissions in a single call
+                // to minimize permission check events
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: true,
+                    video: { facingMode: 'user' } // Request front camera by default
+                });
+
+                console.log('✅ Media permissions granted');
+                console.log('   Audio tracks:', stream.getAudioTracks().length);
+                console.log('   Video tracks:', stream.getVideoTracks().length);
+
+                // Log available cameras for debugging
+                stream.getVideoTracks().forEach((track, i) => {
+                    console.log('   Camera ' + i + ':', track.label);
+                });
+
+                // IMPORTANT: On real Android devices, we MUST release the stream immediately
+                // and wait for hardware to fully release before Chime SDK tries to acquire
+                // Keeping the stream causes "device in use" errors on real hardware
+                console.log('📹 Releasing stream immediately to free device for Chime SDK');
+                stream.getTracks().forEach(track => {
+                    console.log('   Stopping track:', track.kind, track.label);
+                    track.stop();
+                });
+
+                // Real Android hardware needs significant time to release device locks
+                // Emulators work with 100ms, but real devices need 2000ms+
+                console.log('📹 Waiting 2000ms for hardware to release device locks...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                console.log('📹 Device locks should be released, ready for Chime SDK');
+
+                // Cache permission state to prevent future checks
+                permissionsGranted = true;
+                permissionCheckInProgress = false;
+                return true;
+            } catch (error) {
+                console.error('❌ Media permission request failed:', error.name, error.message);
+                permissionCheckInProgress = false;
+
+                // Enhanced TypeError detection with diagnostic info
+                if (error instanceof TypeError || error.name === 'TypeError') {
+                    console.error('🚨 [TypeError] in media permission request');
+                    console.error('   Message:', error.message);
+                    console.error('   This may indicate: navigator.mediaDevices API not available or undefined');
+                    console.error('   Stack:', error.stack ? error.stack.split('\\n').slice(0, 3).join(' | ') : 'No stack');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'JS_ERROR',
+                        errorType: 'TypeError',
+                        message: 'Camera API error: ' + error.message,
+                        context: 'requestMediaPermissions',
+                        stack: error.stack || ''
+                    }));
+                }
+
+                // Provide helpful error messages
+                if (error.name === 'NotAllowedError') {
+                    console.error('⚠️ User denied camera/microphone permission');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'DEVICE_ERROR',
+                        message: 'Camera and microphone permission denied. Please allow access in your device settings.'
+                    }));
+                } else if (error.name === 'NotFoundError') {
+                    console.error('⚠️ No camera or microphone found');
+                    // Set no camera mode to prevent repeated permission checks
+                    noCameraMode = true;
+                    console.log('📹 No camera mode enabled from permission check');
+
+                    // Try audio-only as fallback
+                    try {
+                        const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        console.log('✅ Audio-only permissions granted');
+                        // Release immediately to free device for Chime SDK
+                        audioOnlyStream.getTracks().forEach(track => {
+                            console.log('   Stopping audio track:', track.label);
+                            track.stop();
+                        });
+                        console.log('📹 Waiting 2000ms for audio device to release...');
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        console.log('📹 Audio device should be released');
+                        permissionsGranted = true; // Audio works at least
+                        window.FlutterChannel?.postMessage(JSON.stringify({
+                            type: 'DEVICE_WARNING',
+                            message: 'Camera not found. Audio-only mode enabled.',
+                            audioEnabled: true,
+                            videoEnabled: false
+                        }));
+                        return true;
+                    } catch (audioError) {
+                        console.error('❌ Audio-only also failed:', audioError.name);
+                        window.FlutterChannel?.postMessage(JSON.stringify({
+                            type: 'DEVICE_ERROR',
+                            message: 'No camera or microphone found on this device.'
+                        }));
+                    }
+                } else if (error.name === 'NotReadableError') {
+                    console.error('⚠️ Camera/microphone is in use by another app');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'DEVICE_ERROR',
+                        message: 'Camera or microphone is being used by another app. Please close other apps and try again.'
+                    }));
+                } else if (error.name === 'OverconstrainedError') {
+                    console.warn('⚠️ Camera constraints not satisfiable, trying without constraints');
+                    // Try again without video constraints
+                    try {
+                        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+                            audio: true,
+                            video: true
+                        });
+                        console.log('✅ Fallback media permissions granted');
+                        // Release immediately to free device for Chime SDK
+                        fallbackStream.getTracks().forEach(track => {
+                            console.log('   Stopping fallback track:', track.label);
+                            track.stop();
+                        });
+                        console.log('📹 Waiting 2000ms for device to release...');
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        console.log('📹 Fallback device released');
+                        permissionsGranted = true;
+                        return true;
+                    } catch (fallbackError) {
+                        console.error('❌ Fallback also failed:', fallbackError.name);
+                    }
+                }
+
+                // Continue anyway - Chime SDK will handle missing devices
+                return false;
+            }
+        }
+
         // Setup audio/video devices with retry logic
+        // Uses cached devices when available to minimize permission checks
         async function setupDevices() {
             let audioSuccess = false;
             let videoSuccess = false;
 
-            // Try to setup audio first
+            // NOTE: We no longer store pre-acquired streams - permissions are verified and streams
+            // are released immediately with a 2000ms delay in requestMediaPermissions()
+            // This ensures device locks are fully released on real Android hardware before
+            // Chime SDK tries to acquire them
+            console.log('📹 Starting Chime SDK device setup (devices should be free)');
+
+            // Try to setup audio first (use cached devices if available)
             try {
-                const audioInputDevices = await audioVideo.listAudioInputDevices();
+                const audioInputDevices = cachedAudioDevices || await audioVideo.listAudioInputDevices();
+                cachedAudioDevices = audioInputDevices; // Cache for future use
                 console.log('🎤 Audio devices found:', audioInputDevices.length);
 
                 if (audioInputDevices.length > 0) {
@@ -2637,6 +3322,23 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                             break;
                         } catch (audioErr) {
                             console.warn('⚠️ Audio device ' + i + ' failed:', audioErr.name);
+                            // Enhanced TypeError detection for audio device selection
+                            if (audioErr instanceof TypeError || audioErr.name === 'TypeError') {
+                                console.error('🚨 [TypeError] during audio device selection');
+                                console.error('   Device ID:', audioInputDevices[i].deviceId);
+                                console.error('   Device Label:', audioInputDevices[i].label);
+                                console.error('   Message:', audioErr.message);
+                                console.error('   Stack:', audioErr.stack ? audioErr.stack.split('\\n').slice(0, 3).join(' | ') : 'No stack');
+                                window.FlutterChannel?.postMessage(JSON.stringify({
+                                    type: 'JS_ERROR',
+                                    errorType: 'TypeError',
+                                    message: 'Audio device error: ' + audioErr.message,
+                                    context: 'startAudioInput',
+                                    deviceIndex: i,
+                                    deviceLabel: audioInputDevices[i].label || 'Unknown',
+                                    stack: audioErr.stack || ''
+                                }));
+                            }
                             if (i === audioInputDevices.length - 1) {
                                 console.error('❌ All audio devices failed');
                             }
@@ -2647,24 +3349,132 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 }
             } catch (error) {
                 console.error('❌ Audio setup error:', error.name, error.message);
+                // Enhanced TypeError detection for audio setup
+                if (error instanceof TypeError || error.name === 'TypeError') {
+                    console.error('🚨 [TypeError] during audio device setup');
+                    console.error('   Message:', error.message);
+                    console.error('   This may indicate: audioVideo API not ready or audio device enumeration failed');
+                    console.error('   Stack:', error.stack ? error.stack.split('\\n').slice(0, 3).join(' | ') : 'No stack');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'JS_ERROR',
+                        errorType: 'TypeError',
+                        message: 'Audio setup error: ' + error.message,
+                        context: 'setupDevices.audio',
+                        stack: error.stack || ''
+                    }));
+                }
             }
 
-            // Try to setup video
+            // Setup audio OUTPUT device (speaker) for hearing remote participants
+            // Note: Android WebView doesn't support setSinkId() API used by chooseAudioOutputDevice
+            // Audio output typically works by default on mobile, so we skip explicit selection
+            let speakerSuccess = false;
             try {
-                const videoInputDevices = await audioVideo.listVideoInputDevices();
+                // Check if chooseAudioOutputDevice is supported (requires setSinkId API)
+                const supportsAudioOutputSelection = typeof audioVideo.chooseAudioOutputDevice === 'function' &&
+                    typeof HTMLMediaElement !== 'undefined' &&
+                    typeof HTMLMediaElement.prototype.setSinkId === 'function';
+
+                if (!supportsAudioOutputSelection) {
+                    console.log('🔊 Audio output device selection not supported in this WebView - using default (this is normal on Android)');
+                    speakerSuccess = true; // Audio output works via default system routing
+                } else {
+                    const audioOutputDevices = await audioVideo.listAudioOutputDevices();
+                    console.log('🔊 Audio output devices (speakers) found:', audioOutputDevices.length);
+
+                    if (audioOutputDevices.length > 0) {
+                        // Try each speaker device until one works
+                        for (let i = 0; i < audioOutputDevices.length; i++) {
+                            try {
+                                await audioVideo.chooseAudioOutputDevice(audioOutputDevices[i].deviceId);
+                                console.log('✅ Speaker device selected:', audioOutputDevices[i].label || 'Default Speaker');
+                                speakerSuccess = true;
+                                break;
+                            } catch (speakerErr) {
+                                // TypeError means API not supported, break immediately
+                                if (speakerErr instanceof TypeError || speakerErr.name === 'TypeError') {
+                                    console.log('🔊 setSinkId not supported - using default audio output (this is normal on Android)');
+                                    speakerSuccess = true;
+                                    break;
+                                }
+                                console.warn('⚠️ Speaker device ' + i + ' failed:', speakerErr.name);
+                                if (i === audioOutputDevices.length - 1) {
+                                    console.warn('⚠️ All speaker devices failed - using default');
+                                    speakerSuccess = true; // Still proceed with default
+                                }
+                            }
+                        }
+                    } else {
+                        console.log('🔊 No audio output devices enumerated - using default (normal on Android WebView)');
+                        // On mobile WebView, audio output is often handled automatically
+                        speakerSuccess = true; // Assume default works
+                    }
+                }
+            } catch (error) {
+                console.log('🔊 Audio output setup skipped (unsupported in WebView):', error.name);
+                // Audio output device selection may not be supported in all WebViews
+                // The bindAudioElement call should still work for playback
+                speakerSuccess = true; // Proceed anyway
+            }
+
+            if (speakerSuccess) {
+                console.log('🔊 Speaker output configured successfully');
+            }
+
+            // Try to setup video (use cached devices if available)
+            // Skip video setup entirely if we're already in no camera mode
+            if (noCameraMode) {
+                console.log('📹 Skipping video setup - no camera mode already active');
+                // Still report the warning
+                window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'DEVICE_WARNING',
+                    message: 'Camera unavailable. You can speak but others cannot see you.',
+                    audioEnabled: audioSuccess,
+                    videoEnabled: false
+                }));
+                return;
+            }
+
+            try {
+                // Throttle video device enumeration to prevent permission check loop
+                const now = Date.now();
+                if (now - lastPermissionCheckTime < PERMISSION_CHECK_THROTTLE_MS && cachedVideoDevices !== null) {
+                    console.log('📹 Using cached video devices (throttled)');
+                }
+                lastPermissionCheckTime = now;
+
+                const videoInputDevices = cachedVideoDevices || await audioVideo.listVideoInputDevices();
+                cachedVideoDevices = videoInputDevices; // Cache for future use
                 console.log('📹 Video devices found:', videoInputDevices.length);
 
                 if (videoInputDevices.length > 0) {
                     // Try each video device until one works
                     for (let i = 0; i < videoInputDevices.length; i++) {
                         try {
-                            await audioVideo.chooseVideoInputDevice(videoInputDevices[i].deviceId);
+                            await audioVideo.startVideoInput(videoInputDevices[i].deviceId);
                             audioVideo.startLocalVideoTile();
                             console.log('✅ Video device selected:', videoInputDevices[i].label);
                             videoSuccess = true;
                             break;
                         } catch (videoErr) {
                             console.warn('⚠️ Video device ' + i + ' failed:', videoErr.name);
+                            // Enhanced TypeError detection for video device selection
+                            if (videoErr instanceof TypeError || videoErr.name === 'TypeError') {
+                                console.error('🚨 [TypeError] during video device selection');
+                                console.error('   Device ID:', videoInputDevices[i].deviceId);
+                                console.error('   Device Label:', videoInputDevices[i].label);
+                                console.error('   Message:', videoErr.message);
+                                console.error('   Stack:', videoErr.stack ? videoErr.stack.split('\\n').slice(0, 3).join(' | ') : 'No stack');
+                                window.FlutterChannel?.postMessage(JSON.stringify({
+                                    type: 'JS_ERROR',
+                                    errorType: 'TypeError',
+                                    message: 'Video device error: ' + videoErr.message,
+                                    context: 'startVideoInput',
+                                    deviceIndex: i,
+                                    deviceLabel: videoInputDevices[i].label || 'Unknown',
+                                    stack: videoErr.stack || ''
+                                }));
+                            }
                             // NotReadableError = device busy, NotAllowedError = permission denied
                             if (videoErr.name === 'NotReadableError') {
                                 console.warn('📹 Camera may be in use by another app');
@@ -2676,9 +3486,28 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     }
                 } else {
                     console.warn('⚠️ No video input devices found');
+                    // Set noCameraMode immediately when no video devices found
+                    noCameraMode = true;
+                    console.log('📹 No camera mode enabled - no video devices detected');
                 }
             } catch (error) {
                 console.error('❌ Video setup error:', error.name, error.message);
+                // Enhanced TypeError detection for video setup
+                if (error instanceof TypeError || error.name === 'TypeError') {
+                    console.error('🚨 [TypeError] during video device setup');
+                    console.error('   Message:', error.message);
+                    console.error('   This may indicate: audioVideo API not ready or device enumeration failed');
+                    console.error('   Stack:', error.stack ? error.stack.split('\\n').slice(0, 3).join(' | ') : 'No stack');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'JS_ERROR',
+                        errorType: 'TypeError',
+                        message: 'Video setup error: ' + error.message,
+                        context: 'setupDevices.video',
+                        stack: error.stack || ''
+                    }));
+                }
+                // Also set noCameraMode on error to prevent repeated permission checks
+                noCameraMode = true;
             }
 
             // Report status to Flutter
@@ -2700,21 +3529,36 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 }));
             } else if (!videoSuccess) {
                 console.warn('⚠️ Video device unavailable - audio only mode');
+                // Set noCameraMode to prevent any further video device polling
+                noCameraMode = true;
                 window.FlutterChannel?.postMessage(JSON.stringify({
                     type: 'DEVICE_WARNING',
                     message: 'Camera unavailable. You can speak but others cannot see you.',
                     audioEnabled: true,
                     videoEnabled: false
                 }));
-                // Update video button state to show camera is off
+                // Update video button state to show camera is off and disable it
                 isVideoOff = true;
                 const videoBtn = document.getElementById('video-btn');
                 if (videoBtn) {
                     videoBtn.classList.add('active');
+                    videoBtn.disabled = true;
+                    videoBtn.style.opacity = '0.5';
+                    videoBtn.style.cursor = 'not-allowed';
                 }
+                // Also disable camera switch button
+                const switchCameraBtn = document.getElementById('switch-camera-btn');
+                if (switchCameraBtn) {
+                    switchCameraBtn.disabled = true;
+                    switchCameraBtn.style.opacity = '0.5';
+                    switchCameraBtn.style.cursor = 'not-allowed';
+                    switchCameraBtn.style.display = 'none'; // Hide completely since no camera
+                }
+                console.log('📹 No camera mode enabled - video controls disabled');
             } else {
                 console.log('✅ All devices configured successfully');
             }
+
         }
 
         // Setup event observers
@@ -2998,6 +3842,12 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         document.getElementById('video-btn').addEventListener('click', () => {
             if (!audioVideo) return;
 
+            // Skip if in no camera mode - prevents permission check loop
+            if (noCameraMode) {
+                console.log('📹 Video toggle skipped - no camera mode active');
+                return;
+            }
+
             isVideoOff = !isVideoOff;
             const btn = document.getElementById('video-btn');
 
@@ -3024,6 +3874,60 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 localTiles.forEach(tile => {
                     tile.classList.remove('camera-off');
                 });
+            }
+        });
+
+        // Camera switch button - toggles between front and back camera
+        // Uses cached video devices to minimize permission checks
+        let currentCameraIndex = 0;
+        let availableCameras = [];
+        document.getElementById('switch-camera-btn').addEventListener('click', async () => {
+            if (!audioVideo || isVideoOff) {
+                console.log('📷 Cannot switch camera - video is off');
+                return;
+            }
+
+            // Skip if in no camera mode - prevents permission check loop
+            if (noCameraMode) {
+                console.log('📷 Camera switch skipped - no camera mode active');
+                return;
+            }
+
+            try {
+                // Get available video devices (use cached if available)
+                const videoDevices = cachedVideoDevices || await audioVideo.listVideoInputDevices();
+                if (!cachedVideoDevices) {
+                    cachedVideoDevices = videoDevices; // Cache for future use
+                }
+                console.log('📷 Available cameras:', videoDevices.length);
+
+                if (videoDevices.length < 2) {
+                    console.log('📷 Only one camera available, cannot switch');
+                    return;
+                }
+
+                // Store available cameras
+                availableCameras = videoDevices;
+
+                // Switch to next camera
+                currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+                const nextCamera = availableCameras[currentCameraIndex];
+
+                console.log('📷 Switching to camera:', nextCamera.label || 'Camera ' + currentCameraIndex);
+
+                // Switch the video input device (Chime SDK v3 API)
+                await audioVideo.startVideoInput(nextCamera.deviceId);
+
+                // Briefly show camera switch feedback
+                const btn = document.getElementById('switch-camera-btn');
+                btn.style.backgroundColor = 'rgba(37, 211, 102, 0.3)';
+                setTimeout(() => {
+                    btn.style.backgroundColor = '';
+                }, 300);
+
+                console.log('✅ Camera switched successfully');
+            } catch (error) {
+                console.error('❌ Failed to switch camera:', error);
             }
         });
 
@@ -3057,6 +3961,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     audioVideo.stop();
                 }
 
+                // Ensure pre-acquired stream is released
+                if (preAcquiredStream) {
+                    console.log('📹 Releasing pre-acquired stream on call end');
+                    preAcquiredStream.getTracks().forEach(track => track.stop());
+                    preAcquiredStream = null;
+                }
+
                 // Update call state
                 callState = 'ended';
                 console.log('📞 Call state: ended by provider');
@@ -3075,6 +3986,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         function leaveMeeting() {
             if (audioVideo) {
                 audioVideo.stop();
+            }
+
+            // Ensure pre-acquired stream is released
+            if (preAcquiredStream) {
+                console.log('📹 Releasing pre-acquired stream on leave');
+                preAcquiredStream.getTracks().forEach(track => track.stop());
+                preAcquiredStream = null;
             }
 
             // For patients, call state is 'left' not 'ended' (they can rejoin)
@@ -3642,12 +4560,27 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       color: const Color(0xFFFFFFFF), // White background
       child: Stack(
         children: [
-          // WebView - only show when controller is initialized
-          if (_webViewController != null)
-            WebViewWidget(controller: _webViewController!),
+          // InAppWebView with full WebRTC support for video calls
+          InAppWebView(
+            key: webViewKey,
+            initialData: InAppWebViewInitialData(
+              data: _getEnhancedChimeHTML(),
+              baseUrl: WebUri('https://medzenhealth.app'),
+              mimeType: 'text/html',
+              encoding: 'utf-8',
+            ),
+            initialSettings: _getWebViewSettings(),
+            onWebViewCreated: _onWebViewCreated,
+            onLoadStart: _onLoadStart,
+            onLoadStop: _onLoadStop,
+            onProgressChanged: _onProgressChanged,
+            onConsoleMessage: _onConsoleMessage,
+            onReceivedError: _onReceivedError,
+            onPermissionRequest: _onPermissionRequest,
+          ),
 
           // Loading indicator - show while WebView is initializing or loading
-          if (_isLoading || _webViewController == null)
+          if (_isLoading)
             Container(
               color: const Color(0xFFFFFFFF),
               child: const Center(
