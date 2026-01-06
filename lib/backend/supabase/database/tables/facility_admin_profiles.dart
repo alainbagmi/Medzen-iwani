@@ -25,10 +25,6 @@ class FacilityAdminProfilesRow extends SupabaseDataRow {
   String get adminNumber => getField<String>('admin_number')!;
   set adminNumber(String value) => setField<String>('admin_number', value);
 
-  String? get primaryFacilityId => getField<String>('primary_facility_id');
-  set primaryFacilityId(String? value) =>
-      setField<String>('primary_facility_id', value);
-
   List<String> get managedFacilities =>
       getListField<String>('managed_facilities');
   set managedFacilities(List<String>? value) =>
@@ -221,4 +217,12 @@ class FacilityAdminProfilesRow extends SupabaseDataRow {
   String? get applicationStatus => getField<String>('application_status');
   set applicationStatus(String? value) =>
       setField<String>('application_status', value);
+
+  String? get rejectionReason => getField<String>('rejection_reason');
+  set rejectionReason(String? value) =>
+      setField<String>('rejection_reason', value);
+
+  String? get primaryFacilityId => getField<String>('primary_facility_id');
+  set primaryFacilityId(String? value) =>
+      setField<String>('primary_facility_id', value);
 }

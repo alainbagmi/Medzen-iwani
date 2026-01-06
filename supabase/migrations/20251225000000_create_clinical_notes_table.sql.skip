@@ -1,0 +1,282 @@
+-- ============================================================================
+-- MedZen Clinical Notes Table
+-- Part of Medical Transcription Feature - Phase 4
+--
+-- Stores AI-generated and provider-edited clinical notes (SOAP format)
+-- linked to video call sessions and transcriptions
+-- ============================================================================
+
+-- Create clinical_notes table
+CREATE TABLE IF NOT EXISTS clinical_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    -- Relationships
+    appointment_id UUID REFERENCES appointments(id) ON DELETE CASCADE NOT NULL,
+    session_id UUID REFERENCES video_call_sessions(id) ON DELETE SET NULL,
+    provider_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    patient_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+
+    -- SOAP Note Content
+    subjective TEXT,                          -- Patient's chief complaint, history
+    objective TEXT,                           -- Physical exam findings, vitals
+    assessment TEXT,                          -- Diagnosis, clinical impression
+    plan TEXT,                                -- Treatment plan, follow-up
+
+    -- Additional Clinical Data
+    chief_complaint TEXT,                     -- Primary reason for visit
+    history_of_present_illness TEXT,          -- Detailed HPI
+    review_of_systems JSONB DEFAULT '{}'::jsonb,  -- ROS checklist
+    physical_examination JSONB DEFAULT '{}'::jsonb, -- PE findings by system
+
+    -- Coding
+    icd10_codes JSONB DEFAULT '[]'::jsonb,    -- Diagnosis codes
+    cpt_codes JSONB DEFAULT '[]'::jsonb,      -- Procedure codes
+
+    -- Note Metadata
+    note_type VARCHAR(50) DEFAULT 'soap',     -- 'soap', 'progress', 'consultation', 'procedure'
+    status VARCHAR(20) DEFAULT 'draft',       -- 'draft', 'pending_review', 'signed', 'amended'
+
+    -- Signature
+    signed_at TIMESTAMPTZ,
+    signed_by UUID REFERENCES users(id),
+    signature_hash VARCHAR(255),              -- For digital signature verification
+
+    -- AI Generation Metadata
+    ai_generated BOOLEAN DEFAULT false,
+    ai_model VARCHAR(100),                    -- Model used (e.g., 'anthropic.claude-3-7-sonnet-20250219')
+    ai_confidence_score DECIMAL(3,2),         -- AI confidence in generated content
+    ai_generation_time_ms INTEGER,            -- Time taken to generate
+
+    -- Source Transcription
+    original_transcript_id UUID,              -- Reference to video_call_sessions for transcript
+    transcript_language VARCHAR(10),          -- Language of source transcript
+
+    -- Medical Entities Extracted
+    medical_entities JSONB DEFAULT '[]'::jsonb,  -- Symptoms, diagnoses, medications, etc.
+
+    -- EHRbase/OpenEHR Sync
+    ehrbase_composition_uid VARCHAR(255),     -- OpenEHR composition UID
+    ehrbase_synced_at TIMESTAMPTZ,
+    ehrbase_sync_status VARCHAR(20) DEFAULT 'pending', -- 'pending', 'synced', 'failed'
+    ehrbase_sync_error TEXT,
+
+    -- Audit Trail
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_by UUID REFERENCES users(id),
+    last_edited_by UUID REFERENCES users(id),
+
+    -- Version Control
+    version INTEGER DEFAULT 1,
+    previous_version_id UUID REFERENCES clinical_notes(id)
+);
+
+-- Create indexes for efficient querying
+CREATE INDEX idx_clinical_notes_appointment ON clinical_notes(appointment_id);
+CREATE INDEX idx_clinical_notes_session ON clinical_notes(session_id);
+CREATE INDEX idx_clinical_notes_provider ON clinical_notes(provider_id);
+CREATE INDEX idx_clinical_notes_patient ON clinical_notes(patient_id);
+CREATE INDEX idx_clinical_notes_status ON clinical_notes(status);
+CREATE INDEX idx_clinical_notes_created ON clinical_notes(created_at DESC);
+CREATE INDEX idx_clinical_notes_ehrbase_sync ON clinical_notes(ehrbase_sync_status) WHERE ehrbase_sync_status != 'synced';
+
+-- Enable RLS
+ALTER TABLE clinical_notes ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+
+-- Providers can view and manage notes they created
+CREATE POLICY "providers_manage_own_notes" ON clinical_notes
+    FOR ALL
+    USING (
+        auth.uid() IS NULL  -- Allow service role / edge functions
+        OR provider_id = auth.uid()
+    )
+    WITH CHECK (
+        auth.uid() IS NULL
+        OR provider_id = auth.uid()
+    );
+
+-- Patients can view signed notes for their appointments
+CREATE POLICY "patients_view_signed_notes" ON clinical_notes
+    FOR SELECT
+    USING (
+        auth.uid() IS NULL
+        OR (patient_id = auth.uid() AND status = 'signed')
+    );
+
+-- System admins can view all notes (read-only for compliance)
+CREATE POLICY "admins_view_all_notes" ON clinical_notes
+    FOR SELECT
+    USING (
+        auth.uid() IS NULL
+        OR EXISTS (
+            SELECT 1 FROM users
+            WHERE id = auth.uid()
+            AND role IN ('system_admin', 'facility_admin')
+        )
+    );
+
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_clinical_notes_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    IF NEW.subjective IS DISTINCT FROM OLD.subjective
+       OR NEW.objective IS DISTINCT FROM OLD.objective
+       OR NEW.assessment IS DISTINCT FROM OLD.assessment
+       OR NEW.plan IS DISTINCT FROM OLD.plan THEN
+        NEW.version = OLD.version + 1;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_clinical_notes_updated
+    BEFORE UPDATE ON clinical_notes
+    FOR EACH ROW
+    EXECUTE FUNCTION update_clinical_notes_updated_at();
+
+-- Function to sign a clinical note
+CREATE OR REPLACE FUNCTION sign_clinical_note(
+    p_note_id UUID,
+    p_provider_id UUID
+)
+RETURNS clinical_notes AS $$
+DECLARE
+    v_note clinical_notes;
+BEGIN
+    -- Verify the provider owns this note
+    SELECT * INTO v_note FROM clinical_notes
+    WHERE id = p_note_id AND provider_id = p_provider_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Note not found or unauthorized';
+    END IF;
+
+    IF v_note.status = 'signed' THEN
+        RAISE EXCEPTION 'Note is already signed';
+    END IF;
+
+    -- Sign the note
+    UPDATE clinical_notes SET
+        status = 'signed',
+        signed_at = NOW(),
+        signed_by = p_provider_id,
+        signature_hash = encode(sha256(
+            (COALESCE(subjective, '') || COALESCE(objective, '') ||
+             COALESCE(assessment, '') || COALESCE(plan, '') ||
+             NOW()::text)::bytea
+        ), 'hex')
+    WHERE id = p_note_id
+    RETURNING * INTO v_note;
+
+    RETURN v_note;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- View for clinical notes with patient/provider names
+CREATE OR REPLACE VIEW clinical_notes_overview AS
+SELECT
+    cn.id,
+    cn.appointment_id,
+    cn.session_id,
+    cn.provider_id,
+    cn.patient_id,
+
+    -- Provider info
+    pu.first_name || ' ' || pu.last_name AS provider_name,
+    mp.provider_type,
+    mp.specialty,
+
+    -- Patient info
+    pau.first_name || ' ' || pau.last_name AS patient_name,
+
+    -- Note content summary
+    cn.note_type,
+    cn.status,
+    LEFT(cn.chief_complaint, 100) AS chief_complaint_preview,
+    LEFT(cn.assessment, 200) AS assessment_preview,
+
+    -- Coding
+    cn.icd10_codes,
+    cn.cpt_codes,
+
+    -- AI metadata
+    cn.ai_generated,
+    cn.ai_model,
+    cn.ai_confidence_score,
+
+    -- EHRbase sync
+    cn.ehrbase_composition_uid,
+    cn.ehrbase_sync_status,
+
+    -- Timestamps
+    cn.created_at,
+    cn.updated_at,
+    cn.signed_at,
+
+    -- Version
+    cn.version
+
+FROM clinical_notes cn
+JOIN users pu ON cn.provider_id = pu.id
+LEFT JOIN medical_provider_profiles mp ON cn.provider_id = mp.user_id
+JOIN users pau ON cn.patient_id = pau.id;
+
+-- Grant access to the view
+GRANT SELECT ON clinical_notes_overview TO authenticated;
+GRANT SELECT ON clinical_notes_overview TO anon;
+
+-- Add to EHRbase sync queue when note is signed
+CREATE OR REPLACE FUNCTION queue_clinical_note_for_ehrbase()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Only queue when status changes to 'signed'
+    IF NEW.status = 'signed' AND (OLD.status IS NULL OR OLD.status != 'signed') THEN
+        INSERT INTO ehrbase_sync_queue (
+            record_type,
+            record_id,
+            patient_id,
+            data_snapshot,
+            sync_status,
+            created_at
+        ) VALUES (
+            'clinical_note',
+            NEW.id,
+            NEW.patient_id,
+            jsonb_build_object(
+                'note_id', NEW.id,
+                'appointment_id', NEW.appointment_id,
+                'provider_id', NEW.provider_id,
+                'subjective', NEW.subjective,
+                'objective', NEW.objective,
+                'assessment', NEW.assessment,
+                'plan', NEW.plan,
+                'icd10_codes', NEW.icd10_codes,
+                'signed_at', NEW.signed_at
+            ),
+            'pending',
+            NOW()
+        );
+
+        -- Update note sync status
+        NEW.ehrbase_sync_status = 'pending';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_queue_clinical_note_sync
+    BEFORE UPDATE ON clinical_notes
+    FOR EACH ROW
+    EXECUTE FUNCTION queue_clinical_note_for_ehrbase();
+
+-- Comment on table
+COMMENT ON TABLE clinical_notes IS 'Stores AI-generated and provider-edited clinical notes in SOAP format, linked to video call transcriptions';
+COMMENT ON COLUMN clinical_notes.subjective IS 'Patient''s chief complaint, symptoms, and history in their own words';
+COMMENT ON COLUMN clinical_notes.objective IS 'Provider''s observations, physical exam findings, vitals, test results';
+COMMENT ON COLUMN clinical_notes.assessment IS 'Clinical impression, diagnoses, differential diagnosis';
+COMMENT ON COLUMN clinical_notes.plan IS 'Treatment plan, medications, follow-up instructions';
+COMMENT ON COLUMN clinical_notes.ehrbase_composition_uid IS 'OpenEHR composition UID for EHRbase sync';

@@ -31,8 +31,19 @@ class PaymentAnalyticsRow extends SupabaseDataRow {
   String? get recipientId => getField<String>('recipient_id');
   set recipientId(String? value) => setField<String>('recipient_id', value);
 
+  String? get recipientProfileId => getField<String>('recipient_profile_id');
+  set recipientProfileId(String? value) =>
+      setField<String>('recipient_profile_id', value);
+
+  String? get recipientUserId => getField<String>('recipient_user_id');
+  set recipientUserId(String? value) =>
+      setField<String>('recipient_user_id', value);
+
   String? get recipientName => getField<String>('recipient_name');
   set recipientName(String? value) => setField<String>('recipient_name', value);
+
+  String? get recipientRole => getField<String>('recipient_role');
+  set recipientRole(String? value) => setField<String>('recipient_role', value);
 
   String? get facilityId => getField<String>('facility_id');
   set facilityId(String? value) => setField<String>('facility_id', value);

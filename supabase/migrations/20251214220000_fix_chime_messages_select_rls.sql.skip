@@ -1,0 +1,94 @@
+-- Migration: Fix SELECT RLS policy for chime_messages to work with video calls
+-- Problem: SELECT policy still requires chime_messaging_channels lookup, causing video call messaging to fail
+-- Solution: Allow authenticated users to view messages in their video call sessions
+-- Date: 2025-12-14 22:00:00
+
+-- Drop the old SELECT policy that requires chime_messaging_channels
+DROP POLICY IF EXISTS "Users can view messages in their channels" ON chime_messages;
+
+-- Create new SELECT policy for video call messaging
+-- Users can view messages if:
+-- 1. They are authenticated
+-- 2. They are a participant in the video call session (check video_call_sessions table)
+-- 3. OR the message is in a channel they have access to (backward compatible)
+CREATE POLICY "video_call_messaging_select"
+ON chime_messages
+FOR SELECT
+TO authenticated
+USING (
+    auth.uid() IS NOT NULL
+    AND (
+        -- Option 1: User is participant in the video call session
+        -- channel_arn is mapped to meeting_id in video calls
+        EXISTS (
+            SELECT 1 FROM video_call_sessions vcs
+            WHERE vcs.meeting_id = chime_messages.channel_arn
+            AND (vcs.provider_id::uuid = auth.uid() OR vcs.patient_id::uuid = auth.uid())
+            AND vcs.status IN ('active', 'in_progress', 'initializing', 'scheduled')
+        )
+        OR
+        -- Option 2: User has access via chime_messaging_channels (backward compatible)
+        EXISTS (
+            SELECT 1 FROM chime_messaging_channels c
+            WHERE c.channel_arn = chime_messages.channel_arn
+            AND (c.provider_id = auth.uid() OR c.patient_id = auth.uid())
+        )
+        OR
+        -- Option 3: User is the sender (can always see own messages)
+        (
+            (user_id IS NOT NULL AND user_id = auth.uid())
+            OR
+            (sender_id IS NOT NULL AND sender_id = auth.uid())
+        )
+    )
+);
+
+-- Update UPDATE policy to also work with video calls
+DROP POLICY IF EXISTS "Users can update their own messages" ON chime_messages;
+
+CREATE POLICY "video_call_messaging_update"
+ON chime_messages
+FOR UPDATE
+TO authenticated
+USING (
+    auth.uid() IS NOT NULL
+    AND (
+        (user_id IS NOT NULL AND user_id = auth.uid())
+        OR
+        (sender_id IS NOT NULL AND sender_id = auth.uid())
+    )
+)
+WITH CHECK (
+    auth.uid() IS NOT NULL
+    AND (
+        (user_id IS NOT NULL AND user_id = auth.uid())
+        OR
+        (sender_id IS NOT NULL AND sender_id = auth.uid())
+    )
+);
+
+-- Update DELETE policy to also work with video calls
+DROP POLICY IF EXISTS "Users can delete their own messages" ON chime_messages;
+
+CREATE POLICY "video_call_messaging_delete"
+ON chime_messages
+FOR DELETE
+TO authenticated
+USING (
+    auth.uid() IS NOT NULL
+    AND (
+        (user_id IS NOT NULL AND user_id = auth.uid())
+        OR
+        (sender_id IS NOT NULL AND sender_id = auth.uid())
+    )
+);
+
+-- Add helpful comments
+COMMENT ON POLICY "video_call_messaging_select" ON chime_messages IS
+'Allows authenticated users to view messages in video call sessions. Checks video_call_sessions table for active participants. Falls back to chime_messaging_channels for backward compatibility. Users can always see their own messages.';
+
+COMMENT ON POLICY "video_call_messaging_update" ON chime_messages IS
+'Allows authenticated users to update their own messages. Validates that user_id or sender_id matches auth.uid().';
+
+COMMENT ON POLICY "video_call_messaging_delete" ON chime_messages IS
+'Allows authenticated users to delete their own messages. Validates that user_id or sender_id matches auth.uid().';

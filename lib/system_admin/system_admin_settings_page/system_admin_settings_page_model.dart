@@ -1,13 +1,23 @@
+import '/auth/firebase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
+import '/backend/backend.dart';
+import '/backend/supabase/supabase.dart';
+import '/components/main_bottom_nav/main_bottom_nav_widget.dart';
 import '/components/password_reset_for_settings_page/password_reset_for_settings_page_widget.dart';
+import '/components/side_nav/side_nav_widget.dart';
+import '/components/top_bar/top_bar_widget.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_language_selector.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/flutter_flow/upload_data.dart';
 import 'dart:ui';
+import '/index.dart';
 import 'system_admin_settings_page_widget.dart'
     show SystemAdminSettingsPageWidget;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +27,17 @@ class SystemAdminSettingsPageModel
   ///  State fields for stateful widgets in this page.
 
   final formKey = GlobalKey<FormState>();
+  // Model for SideNav component.
+  late SideNavModel sideNavModel;
+  bool isDataUploading_uploadDataL4r = false;
+  FFUploadedFile uploadedLocalFile_uploadDataL4r =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+  String uploadedFileUrl_uploadDataL4r = '';
+
+  // State field(s) for phonenumber widget.
+  FocusNode? phonenumberFocusNode;
+  TextEditingController? phonenumberTextController;
+  String? Function(BuildContext, String?)? phonenumberTextControllerValidator;
   // State field(s) for insuranceprovider widget.
   FocusNode? insuranceproviderFocusNode;
   TextEditingController? insuranceproviderTextController;
@@ -49,13 +70,27 @@ class SystemAdminSettingsPageModel
   // State field(s) for Switch widget.
   bool? switchValue4;
   // State field(s) for Checkbox widget.
-  bool? checkboxValue;
+  bool? checkboxValue1;
+  // State field(s) for Checkbox widget.
+  bool? checkboxValue2;
+  // Model for main_bottom_nav component.
+  late MainBottomNavModel mainBottomNavModel;
+  // Model for TopBar component.
+  late TopBarModel topBarModel;
 
   @override
-  void initState(BuildContext context) {}
+  void initState(BuildContext context) {
+    sideNavModel = createModel(context, () => SideNavModel());
+    mainBottomNavModel = createModel(context, () => MainBottomNavModel());
+    topBarModel = createModel(context, () => TopBarModel());
+  }
 
   @override
   void dispose() {
+    sideNavModel.dispose();
+    phonenumberFocusNode?.dispose();
+    phonenumberTextController?.dispose();
+
     insuranceproviderFocusNode?.dispose();
     insuranceproviderTextController?.dispose();
 
@@ -70,5 +105,8 @@ class SystemAdminSettingsPageModel
 
     emergencyPhoneFocusNode?.dispose();
     emergencyPhoneTextController?.dispose();
+
+    mainBottomNavModel.dispose();
+    topBarModel.dispose();
   }
 }

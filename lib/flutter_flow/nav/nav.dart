@@ -88,353 +88,477 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
       refreshListenable: appStateNotifier,
       navigatorKey: appNavigatorKey,
       errorBuilder: (context, state) =>
-          appStateNotifier.loggedIn ? HomePageWidget() : SplashScreenWidget(),
+          appStateNotifier.loggedIn ? SignInWidget() : HomePageWidget(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
-          builder: (context, _) => appStateNotifier.loggedIn
-              ? HomePageWidget()
-              : SplashScreenWidget(),
-        ),
-        FFRoute(
-          name: ProviderConfirmationPageWidget.routeName,
-          path: ProviderConfirmationPageWidget.routePath,
-          builder: (context, params) => ProviderConfirmationPageWidget(),
-        ),
-        FFRoute(
-          name: VideoCallWidget.routeName,
-          path: VideoCallWidget.routePath,
-          builder: (context, params) => VideoCallWidget(),
-        ),
-        FFRoute(
-          name: JoinCallWidget.routeName,
-          path: JoinCallWidget.routePath,
-          builder: (context, params) => JoinCallWidget(),
-        ),
-        FFRoute(
-          name: ProviderLandingPageWidget.routeName,
-          path: ProviderLandingPageWidget.routePath,
-          builder: (context, params) => ProviderLandingPageWidget(),
-        ),
-        FFRoute(
-          name: RolePageWidget.routeName,
-          path: RolePageWidget.routePath,
-          builder: (context, params) => RolePageWidget(),
-        ),
-        FFRoute(
-          name: PatientAccountCreationWidget.routeName,
-          path: PatientAccountCreationWidget.routePath,
-          builder: (context, params) => PatientAccountCreationWidget(),
-        ),
-        FFRoute(
-          name: SystemAdminLandingPageWidget.routeName,
-          path: SystemAdminLandingPageWidget.routePath,
-          builder: (context, params) => SystemAdminLandingPageWidget(),
-        ),
-        FFRoute(
-          name: FacilityAdminLandingPageWidget.routeName,
-          path: FacilityAdminLandingPageWidget.routePath,
-          builder: (context, params) => FacilityAdminLandingPageWidget(),
-        ),
-        FFRoute(
-          name: PatientProfilePageWidget.routeName,
-          path: PatientProfilePageWidget.routePath,
-          builder: (context, params) => PatientProfilePageWidget(
-            patientAuthUser: params.getParam(
-              'patientAuthUser',
-              ParamType.String,
+          builder: (context, _) =>
+              appStateNotifier.loggedIn ? SignInWidget() : HomePageWidget(),
+          routes: [
+            FFRoute(
+              name: ProviderConfirmationPageWidget.routeName,
+              path: ProviderConfirmationPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProviderConfirmationPageWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: HomePageWidget.routeName,
-          path: HomePageWidget.routePath,
-          builder: (context, params) => HomePageWidget(),
-        ),
-        FFRoute(
-          name: FeaturesWidget.routeName,
-          path: FeaturesWidget.routePath,
-          builder: (context, params) => FeaturesWidget(),
-        ),
-        FFRoute(
-          name: AboutUsWidget.routeName,
-          path: AboutUsWidget.routePath,
-          builder: (context, params) => AboutUsWidget(),
-        ),
-        FFRoute(
-          name: SplashScreenWidget.routeName,
-          path: SplashScreenWidget.routePath,
-          builder: (context, params) => SplashScreenWidget(),
-        ),
-        FFRoute(
-          name: PublicationsWidget.routeName,
-          path: PublicationsWidget.routePath,
-          builder: (context, params) => PublicationsWidget(),
-        ),
-        FFRoute(
-          name: FacilityStatusPageWidget.routeName,
-          path: FacilityStatusPageWidget.routePath,
-          builder: (context, params) => FacilityStatusPageWidget(),
-        ),
-        FFRoute(
-          name: SystemAdminAccountCreationWidget.routeName,
-          path: SystemAdminAccountCreationWidget.routePath,
-          builder: (context, params) => SystemAdminAccountCreationWidget(),
-        ),
-        FFRoute(
-          name: FacilityAdminAccountCreationWidget.routeName,
-          path: FacilityAdminAccountCreationWidget.routePath,
-          builder: (context, params) => FacilityAdminAccountCreationWidget(),
-        ),
-        FFRoute(
-          name: AdminPatientStatusPageWidget.routeName,
-          path: AdminPatientStatusPageWidget.routePath,
-          builder: (context, params) => AdminPatientStatusPageWidget(),
-        ),
-        FFRoute(
-          name: AppoitmentStatusPageWidget.routeName,
-          path: AppoitmentStatusPageWidget.routePath,
-          builder: (context, params) => AppoitmentStatusPageWidget(),
-        ),
-        FFRoute(
-          name: ProviderStatusPageWidget.routeName,
-          path: ProviderStatusPageWidget.routePath,
-          builder: (context, params) => ProviderStatusPageWidget(),
-        ),
-        FFRoute(
-          name: PaymentStatusPageWidget.routeName,
-          path: PaymentStatusPageWidget.routePath,
-          builder: (context, params) => PaymentStatusPageWidget(),
-        ),
-        FFRoute(
-          name: FacilityDetailsPageWidget.routeName,
-          path: FacilityDetailsPageWidget.routePath,
-          builder: (context, params) => FacilityDetailsPageWidget(),
-        ),
-        FFRoute(
-          name: PatientLandingPageWidget.routeName,
-          path: PatientLandingPageWidget.routePath,
-          builder: (context, params) => PatientLandingPageWidget(),
-        ),
-        FFRoute(
-          name: AppointmentsWidget.routeName,
-          path: AppointmentsWidget.routePath,
-          builder: (context, params) => AppointmentsWidget(
-            username: params.getParam(
-              'username',
-              ParamType.String,
+            FFRoute(
+              name: RolePageWidget.routeName,
+              path: RolePageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => RolePageWidget(),
             ),
-            usernumber: params.getParam(
-              'usernumber',
-              ParamType.String,
+            FFRoute(
+              name: PatientAccountCreationWidget.routeName,
+              path: PatientAccountCreationWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientAccountCreationWidget(),
             ),
-            avatarUrl: params.getParam(
-              'avatarUrl',
-              ParamType.String,
+            FFRoute(
+              name: SystemAdminLandingPageWidget.routeName,
+              path: SystemAdminLandingPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => SystemAdminLandingPageWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: FacilityRegistrationPageWidget.routeName,
-          path: FacilityRegistrationPageWidget.routePath,
-          builder: (context, params) => FacilityRegistrationPageWidget(
-            departmentsChosen: params.getParam(
-              'departmentsChosen',
-              ParamType.String,
+            FFRoute(
+              name: FacilityAdminLandingPageWidget.routeName,
+              path: FacilityAdminLandingPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => FacilityAdminLandingPageWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: AdminStatusPageWidget.routeName,
-          path: AdminStatusPageWidget.routePath,
-          builder: (context, params) => AdminStatusPageWidget(),
-        ),
-        FFRoute(
-          name: TermsAndCOnditionsPageWidget.routeName,
-          path: TermsAndCOnditionsPageWidget.routePath,
-          builder: (context, params) => TermsAndCOnditionsPageWidget(),
-        ),
-        FFRoute(
-          name: PaymentHistoryWidget.routeName,
-          path: PaymentHistoryWidget.routePath,
-          requireAuth: true,
-          builder: (context, params) => PaymentHistoryWidget(
-            username: params.getParam(
-              'username',
-              ParamType.String,
+            FFRoute(
+              name: PatientProfilePageWidget.routeName,
+              path: PatientProfilePageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientProfilePageWidget(
+                patientAuthUser: params.getParam(
+                  'patientAuthUser',
+                  ParamType.String,
+                ),
+              ),
             ),
-            userNumber: params.getParam(
-              'userNumber',
-              ParamType.String,
+            FFRoute(
+              name: HomePageWidget.routeName,
+              path: HomePageWidget.routePath,
+              builder: (context, params) => HomePageWidget(),
             ),
-            avatar: params.getParam(
-              'avatar',
-              ParamType.String,
+            FFRoute(
+              name: FeaturesWidget.routeName,
+              path: FeaturesWidget.routePath,
+              builder: (context, params) => FeaturesWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: MedicalPractitionersWidget.routeName,
-          path: MedicalPractitionersWidget.routePath,
-          requireAuth: true,
-          builder: (context, params) => MedicalPractitionersWidget(),
-        ),
-        FFRoute(
-          name: PractionerDetailWidget.routeName,
-          path: PractionerDetailWidget.routePath,
-          builder: (context, params) => PractionerDetailWidget(
-            providerid: params.getParam(
-              'providerid',
-              ParamType.String,
+            FFRoute(
+              name: AboutUsWidget.routeName,
+              path: AboutUsWidget.routePath,
+              builder: (context, params) => AboutUsWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: FacilitySearchPageWidget.routeName,
-          path: FacilitySearchPageWidget.routePath,
-          builder: (context, params) => FacilitySearchPageWidget(),
-        ),
-        FFRoute(
-          name: PatientsNotificationsPageWidget.routeName,
-          path: PatientsNotificationsPageWidget.routePath,
-          builder: (context, params) => PatientsNotificationsPageWidget(),
-        ),
-        FFRoute(
-          name: ProviderProfilePageWidget.routeName,
-          path: ProviderProfilePageWidget.routePath,
-          builder: (context, params) => ProviderProfilePageWidget(),
-        ),
-        FFRoute(
-          name: PatientsMedicationPageWidget.routeName,
-          path: PatientsMedicationPageWidget.routePath,
-          builder: (context, params) => PatientsMedicationPageWidget(),
-        ),
-        FFRoute(
-          name: PatientDiagnosticsWidget.routeName,
-          path: PatientDiagnosticsWidget.routePath,
-          builder: (context, params) => PatientDiagnosticsWidget(),
-        ),
-        FFRoute(
-          name: AdminPatientsAdminEditPageWidget.routeName,
-          path: AdminPatientsAdminEditPageWidget.routePath,
-          builder: (context, params) => AdminPatientsAdminEditPageWidget(),
-        ),
-        FFRoute(
-          name: FacilitySettingsPageWidget.routeName,
-          path: FacilitySettingsPageWidget.routePath,
-          builder: (context, params) => FacilitySettingsPageWidget(),
-        ),
-        FFRoute(
-          name: SignInWidget.routeName,
-          path: SignInWidget.routePath,
-          builder: (context, params) => SignInWidget(),
-        ),
-        FFRoute(
-          name: PatientsSettingsPageWidget.routeName,
-          path: PatientsSettingsPageWidget.routePath,
-          builder: (context, params) => PatientsSettingsPageWidget(),
-        ),
-        FFRoute(
-          name: FacilityAdminSettingsPageWidget.routeName,
-          path: FacilityAdminSettingsPageWidget.routePath,
-          builder: (context, params) => FacilityAdminSettingsPageWidget(),
-        ),
-        FFRoute(
-          name: ProviderSettingsPageWidget.routeName,
-          path: ProviderSettingsPageWidget.routePath,
-          builder: (context, params) => ProviderSettingsPageWidget(),
-        ),
-        FFRoute(
-          name: SystemAdminSettingsPageWidget.routeName,
-          path: SystemAdminSettingsPageWidget.routePath,
-          builder: (context, params) => SystemAdminSettingsPageWidget(),
-        ),
-        FFRoute(
-          name: ProviderNotificationsPageWidget.routeName,
-          path: ProviderNotificationsPageWidget.routePath,
-          builder: (context, params) => ProviderNotificationsPageWidget(),
-        ),
-        FFRoute(
-          name: FacilityNotificationsPageWidget.routeName,
-          path: FacilityNotificationsPageWidget.routePath,
-          builder: (context, params) => FacilityNotificationsPageWidget(),
-        ),
-        FFRoute(
-          name: SystemAdminNotificationsPageWidget.routeName,
-          path: SystemAdminNotificationsPageWidget.routePath,
-          builder: (context, params) => SystemAdminNotificationsPageWidget(),
-        ),
-        FFRoute(
-          name: SystemAdminProfilePageWidget.routeName,
-          path: SystemAdminProfilePageWidget.routePath,
-          builder: (context, params) => SystemAdminProfilePageWidget(
-            patientAuthUser: params.getParam(
-              'patientAuthUser',
-              ParamType.String,
+            FFRoute(
+              name: PublicationsWidget.routeName,
+              path: PublicationsWidget.routePath,
+              builder: (context, params) => PublicationsWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: FacilityAdminProfilePageWidget.routeName,
-          path: FacilityAdminProfilePageWidget.routePath,
-          builder: (context, params) => FacilityAdminProfilePageWidget(
-            patientAuthUser: params.getParam(
-              'patientAuthUser',
-              ParamType.String,
+            FFRoute(
+              name: SystemAdminAccountCreationWidget.routeName,
+              path: SystemAdminAccountCreationWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => SystemAdminAccountCreationWidget(),
             ),
-          ),
-        ),
-        FFRoute(
-          name: ProvidersDocumentPageWidget.routeName,
-          path: ProvidersDocumentPageWidget.routePath,
-          builder: (context, params) => ProvidersDocumentPageWidget(),
-        ),
-        FFRoute(
-          name: PatientsDocumentPageWidget.routeName,
-          path: PatientsDocumentPageWidget.routePath,
-          builder: (context, params) => PatientsDocumentPageWidget(),
-        ),
-        FFRoute(
-          name: ProviderAccountCreationWidget.routeName,
-          path: ProviderAccountCreationWidget.routePath,
-          builder: (context, params) => ProviderAccountCreationWidget(
-            eMCPhone: params.getParam(
-              'eMCPhone',
-              ParamType.String,
+            FFRoute(
+              name: FacilityAdminAccountCreationWidget.routeName,
+              path: FacilityAdminAccountCreationWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) =>
+                  FacilityAdminAccountCreationWidget(),
             ),
-          ),
+            FFRoute(
+              name: PatientLandingPageWidget.routeName,
+              path: PatientLandingPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientLandingPageWidget(),
+            ),
+            FFRoute(
+              name: AppointmentsWidget.routeName,
+              path: AppointmentsWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => AppointmentsWidget(
+                facilityid: params.getParam(
+                  'facilityid',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: CareCenterRegistrationPageWidget.routeName,
+              path: CareCenterRegistrationPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCenterRegistrationPageWidget(
+                departmentsChosen: params.getParam(
+                  'departmentsChosen',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: AdminStatusPageWidget.routeName,
+              path: AdminStatusPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => AdminStatusPageWidget(),
+            ),
+            FFRoute(
+              name: PaymentHistoryWidget.routeName,
+              path: PaymentHistoryWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PaymentHistoryWidget(
+                facilityid: params.getParam(
+                  'facilityid',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: MedicalPractitionersWidget.routeName,
+              path: MedicalPractitionersWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => MedicalPractitionersWidget(
+                gender: params.getParam(
+                  'gender',
+                  ParamType.String,
+                ),
+                specialty: params.getParam(
+                  'specialty',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: PractionerDetailWidget.routeName,
+              path: PractionerDetailWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PractionerDetailWidget(
+                providerid: params.getParam(
+                  'providerid',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: CareCenterSearchPageWidget.routeName,
+              path: CareCenterSearchPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCenterSearchPageWidget(),
+            ),
+            FFRoute(
+              name: ProviderProfilePageWidget.routeName,
+              path: ProviderProfilePageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProviderProfilePageWidget(),
+            ),
+            FFRoute(
+              name: PatientsMedicationPageWidget.routeName,
+              path: PatientsMedicationPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientsMedicationPageWidget(),
+            ),
+            FFRoute(
+              name: PatientDiagnosticsWidget.routeName,
+              path: PatientDiagnosticsWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientDiagnosticsWidget(),
+            ),
+            FFRoute(
+              name: SignInWidget.routeName,
+              path: SignInWidget.routePath,
+              builder: (context, params) => SignInWidget(),
+            ),
+            FFRoute(
+              name: PatientsSettingsPageWidget.routeName,
+              path: PatientsSettingsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientsSettingsPageWidget(),
+            ),
+            FFRoute(
+              name: FacilityAdminSettingsPageWidget.routeName,
+              path: FacilityAdminSettingsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => FacilityAdminSettingsPageWidget(),
+            ),
+            FFRoute(
+              name: ProviderSettingsPageWidget.routeName,
+              path: ProviderSettingsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProviderSettingsPageWidget(),
+            ),
+            FFRoute(
+              name: SystemAdminSettingsPageWidget.routeName,
+              path: SystemAdminSettingsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => SystemAdminSettingsPageWidget(),
+            ),
+            FFRoute(
+              name: SystemAdminProfilePageWidget.routeName,
+              path: SystemAdminProfilePageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => SystemAdminProfilePageWidget(
+                patientAuthUser: params.getParam(
+                  'patientAuthUser',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: FacilityAdminProfilePageWidget.routeName,
+              path: FacilityAdminProfilePageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => FacilityAdminProfilePageWidget(
+                patientAuthUser: params.getParam(
+                  'patientAuthUser',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: ProvidersDocumentPageWidget.routeName,
+              path: ProvidersDocumentPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProvidersDocumentPageWidget(),
+            ),
+            FFRoute(
+              name: PatientsDocumentPageWidget.routeName,
+              path: PatientsDocumentPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => PatientsDocumentPageWidget(),
+            ),
+            FFRoute(
+              name: ProviderAccountCreationWidget.routeName,
+              path: ProviderAccountCreationWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProviderAccountCreationWidget(
+                eMCPhone: params.getParam(
+                  'eMCPhone',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: FacilityAdminDocumentPageWidget.routeName,
+              path: FacilityAdminDocumentPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => FacilityAdminDocumentPageWidget(),
+            ),
+            FFRoute(
+              name: CareCentersTypesWidget.routeName,
+              path: CareCentersTypesWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCentersTypesWidget(),
+            ),
+            FFRoute(
+              name: CareCentersWidget.routeName,
+              path: CareCentersWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCentersWidget(
+                facilitytype: params.getParam(
+                  'facilitytype',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: CareCenterDetailsWidget.routeName,
+              path: CareCenterDetailsWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCenterDetailsWidget(
+                facilityID: params.getParam(
+                  'facilityID',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: ChatWidget.routeName,
+              path: ChatWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ChatWidget(
+                conversationId: params.getParam(
+                  'conversationId',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: AIChatHistoryPageWidget.routeName,
+              path: AIChatHistoryPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => AIChatHistoryPageWidget(),
+            ),
+            FFRoute(
+              name: AdminPatientsPageWidget.routeName,
+              path: AdminPatientsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => AdminPatientsPageWidget(),
+            ),
+            FFRoute(
+              name: ProviderLandingPageWidget.routeName,
+              path: ProviderLandingPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProviderLandingPageWidget(),
+            ),
+            FFRoute(
+              name: CareCenterStatusPageWidget.routeName,
+              path: CareCenterStatusPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCenterStatusPageWidget(
+                facilityID: params.getParam(
+                  'facilityID',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: AdminProviderStatusPageWidget.routeName,
+              path: AdminProviderStatusPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => AdminProviderStatusPageWidget(
+                facilityID: params.getParam(
+                  'facilityID',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: ResetPasswordFromLinkWidget.routeName,
+              path: ResetPasswordFromLinkWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ResetPasswordFromLinkWidget(
+                token: params.getParam(
+                  'token',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: FinanceWidget.routeName,
+              path: FinanceWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => FinanceWidget(),
+            ),
+            FFRoute(
+              name: NotificationsWidget.routeName,
+              path: NotificationsWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => NotificationsWidget(),
+            ),
+            FFRoute(
+              name: ProviderSummaryPageWidget.routeName,
+              path: ProviderSummaryPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ProviderSummaryPageWidget(
+                providerID: params.getParam(
+                  'providerID',
+                  ParamType.String,
+                ),
+                image: params.getParam(
+                  'image',
+                  ParamType.String,
+                ),
+                name: params.getParam(
+                  'name',
+                  ParamType.String,
+                ),
+                specialty: params.getParam(
+                  'specialty',
+                  ParamType.String,
+                ),
+                licenseNumb: params.getParam(
+                  'licenseNumb',
+                  ParamType.String,
+                ),
+                phone: params.getParam(
+                  'phone',
+                  ParamType.String,
+                ),
+                eMCName: params.getParam(
+                  'eMCName',
+                  ParamType.String,
+                ),
+                eMCRelationship: params.getParam(
+                  'eMCRelationship',
+                  ParamType.String,
+                ),
+                eMCPhone: params.getParam(
+                  'eMCPhone',
+                  ParamType.String,
+                ),
+                licenseExpiration: params.getParam(
+                  'licenseExpiration',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: ChatHistoryPageWidget.routeName,
+              path: ChatHistoryPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ChatHistoryPageWidget(
+                userRole: params.getParam(
+                  'userRole',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: ChatHistoryDetailWidget.routeName,
+              path: ChatHistoryDetailWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => ChatHistoryDetailWidget(
+                appointmentID: params.getParam(
+                  'appointmentID',
+                  ParamType.String,
+                ),
+                appointmentDate: params.getParam(
+                  'appointmentDate',
+                  ParamType.DateTime,
+                ),
+                username: params.getParam(
+                  'username',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: TermsAndConditionsWidget.routeName,
+              path: TermsAndConditionsWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => TermsAndConditionsWidget(),
+            ),
+            FFRoute(
+              name: AboutUsPageWidget.routeName,
+              path: AboutUsPageWidget.routePath,
+              builder: (context, params) => AboutUsPageWidget(),
+            ),
+            FFRoute(
+              name: FacilityadminPatientsPageWidget.routeName,
+              path: FacilityadminPatientsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => FacilityadminPatientsPageWidget(
+                facilityID: params.getParam(
+                  'facilityID',
+                  ParamType.String,
+                ),
+              ),
+            ),
+            FFRoute(
+              name: CareCenterSettingsPageWidget.routeName,
+              path: CareCenterSettingsPageWidget.routePath,
+              requireAuth: true,
+              builder: (context, params) => CareCenterSettingsPageWidget(
+                facilityID: params.getParam(
+                  'facilityID',
+                  ParamType.String,
+                ),
+              ),
+            )
+          ].map((r) => r.toRoute(appStateNotifier)).toList(),
         ),
-        FFRoute(
-          name: FacilityAdminDocumentPageWidget.routeName,
-          path: FacilityAdminDocumentPageWidget.routePath,
-          builder: (context, params) => FacilityAdminDocumentPageWidget(),
-        ),
-        FFRoute(
-          name: SystAdminDocumentPageWidget.routeName,
-          path: SystAdminDocumentPageWidget.routePath,
-          builder: (context, params) => SystAdminDocumentPageWidget(),
-        ),
-        FFRoute(
-          name: SystAdminPaymentPageWidget.routeName,
-          path: SystAdminPaymentPageWidget.routePath,
-          builder: (context, params) => SystAdminPaymentPageWidget(),
-        ),
-        FFRoute(
-          name: FacilityAdminPaymentPageWidget.routeName,
-          path: FacilityAdminPaymentPageWidget.routePath,
-          builder: (context, params) => FacilityAdminPaymentPageWidget(),
-        ),
-        FFRoute(
-          name: ProvidersWalletWidget.routeName,
-          path: ProvidersWalletWidget.routePath,
-          builder: (context, params) => ProvidersWalletWidget(),
-        ),
-        FFRoute(
-          name: AvailabilityWidget.routeName,
-          path: AvailabilityWidget.routePath,
-          builder: (context, params) => AvailabilityWidget(),
-        )
       ].map((r) => r.toRoute(appStateNotifier)).toList(),
     );
 
@@ -606,7 +730,7 @@ class FFRoute {
 
           if (requireAuth && !appStateNotifier.loggedIn) {
             appStateNotifier.setRedirectLocationIfUnset(state.uri.toString());
-            return '/splashScreen';
+            return '/homePage';
           }
           return null;
         },
@@ -621,10 +745,14 @@ class FFRoute {
               : builder(context, ffParams);
           final child = appStateNotifier.loading
               ? Container(
-                  color: Colors.transparent,
-                  child: Image.asset(
-                    'assets/images/medzen.logo.png',
-                    fit: BoxFit.contain,
+                  color: FlutterFlowTheme.of(context).primaryBackground,
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/medzen.logo.png',
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 )
               : PushNotificationsHandler(child: page);

@@ -1,12 +1,22 @@
+import '/auth/firebase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
+import '/backend/backend.dart';
+import '/backend/supabase/supabase.dart';
+import '/components/main_bottom_nav/main_bottom_nav_widget.dart';
 import '/components/password_reset_for_settings_page/password_reset_for_settings_page_widget.dart';
+import '/components/side_nav/side_nav_widget.dart';
+import '/components/top_bar/top_bar_widget.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_language_selector.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/flutter_flow/upload_data.dart';
 import 'dart:ui';
+import '/index.dart';
 import 'provider_settings_page_widget.dart' show ProviderSettingsPageWidget;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,11 +26,28 @@ class ProviderSettingsPageModel
     extends FlutterFlowModel<ProviderSettingsPageWidget> {
   ///  State fields for stateful widgets in this page.
 
-  final formKey = GlobalKey<FormState>();
-  // State field(s) for phonenumber widget.
-  FocusNode? phonenumberFocusNode;
-  TextEditingController? phonenumberTextController;
-  String? Function(BuildContext, String?)? phonenumberTextControllerValidator;
+  // Model for TopBar component.
+  late TopBarModel topBarModel;
+  // Model for SideNav component.
+  late SideNavModel sideNavModel;
+  bool isDataUploading_uploadDataGr8 = false;
+  FFUploadedFile uploadedLocalFile_uploadDataGr8 =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+  String uploadedFileUrl_uploadDataGr8 = '';
+
+  // State field(s) for LicenseNumber widget.
+  FocusNode? licenseNumberFocusNode;
+  TextEditingController? licenseNumberTextController;
+  String? Function(BuildContext, String?)? licenseNumberTextControllerValidator;
+  // State field(s) for phoneNumber widget.
+  FocusNode? phoneNumberFocusNode;
+  TextEditingController? phoneNumberTextController;
+  String? Function(BuildContext, String?)? phoneNumberTextControllerValidator;
+  // State field(s) for consultationFee widget.
+  FocusNode? consultationFeeFocusNode;
+  TextEditingController? consultationFeeTextController;
+  String? Function(BuildContext, String?)?
+      consultationFeeTextControllerValidator;
   // State field(s) for insuranceprovider widget.
   FocusNode? insuranceproviderFocusNode;
   TextEditingController? insuranceproviderTextController;
@@ -124,14 +151,28 @@ class ProviderSettingsPageModel
   bool? switchValue4;
   // State field(s) for Checkbox widget.
   bool? checkboxValue;
+  // Model for main_bottom_nav component.
+  late MainBottomNavModel mainBottomNavModel;
 
   @override
-  void initState(BuildContext context) {}
+  void initState(BuildContext context) {
+    topBarModel = createModel(context, () => TopBarModel());
+    sideNavModel = createModel(context, () => SideNavModel());
+    mainBottomNavModel = createModel(context, () => MainBottomNavModel());
+  }
 
   @override
   void dispose() {
-    phonenumberFocusNode?.dispose();
-    phonenumberTextController?.dispose();
+    topBarModel.dispose();
+    sideNavModel.dispose();
+    licenseNumberFocusNode?.dispose();
+    licenseNumberTextController?.dispose();
+
+    phoneNumberFocusNode?.dispose();
+    phoneNumberTextController?.dispose();
+
+    consultationFeeFocusNode?.dispose();
+    consultationFeeTextController?.dispose();
 
     insuranceproviderFocusNode?.dispose();
     insuranceproviderTextController?.dispose();
@@ -189,5 +230,7 @@ class ProviderSettingsPageModel
 
     endTimeFocusNode8?.dispose();
     endTimeTextController8?.dispose();
+
+    mainBottomNavModel.dispose();
   }
 }

@@ -1,4 +1,5 @@
 import '/auth/firebase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
 import '/backend/backend.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_choice_chips.dart';
@@ -286,6 +287,10 @@ class PatientAccountCreationModel
   bool? checkboxValue;
   // Stores action output result for [Backend Call - Query Rows] action in Button widget.
   List<UsersRow>? aUthUser;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<PatientProfilesRow>? paprofile;
+  // Stores action output result for [Backend Call - API (AWS SMS)] action in Button widget.
+  ApiCallResponse? apiResultv2o;
 
   @override
   void initState(BuildContext context) {

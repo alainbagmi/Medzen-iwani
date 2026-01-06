@@ -443,7 +443,7 @@ Resources:
           HealthCheck:
             Command:
               - CMD-SHELL
-              - 'curl -f http://localhost:8080/ehrbase/rest/status || exit 1'
+              - 'curl -f http://localhost:8080/management/health || exit 1'
             Interval: 30
             Timeout: 5
             Retries: 3
@@ -476,7 +476,7 @@ Resources:
       Protocol: HTTP
       TargetType: ip
       HealthCheckEnabled: true
-      HealthCheckPath: '/ehrbase/rest/status'
+      HealthCheckPath: '/management/health'
       HealthCheckProtocol: HTTP
       HealthCheckIntervalSeconds: 30
       HealthCheckTimeoutSeconds: 5

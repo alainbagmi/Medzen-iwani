@@ -1,5 +1,6 @@
 import '/backend/api_requests/api_calls.dart';
 import '/backend/supabase/supabase.dart';
+import '/components/payment_progress/payment_progress_widget.dart';
 import '/components/payment_referal/payment_referal_widget.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_credit_card_form.dart';
@@ -37,10 +38,16 @@ class PaymentModel extends FlutterFlowModel<PaymentWidget> {
   CreditCardModel creditCardInfo = emptyCreditCard();
   // Stores action output result for [Backend Call - API (Initialize Payment)] action in Button widget.
   ApiCallResponse? initialisepayment;
+  // Stores action output result for [Backend Call - Insert Row] action in Button widget.
+  AppointmentsRow? appointmentCard;
+  // Stores action output result for [Backend Call - API (GetPaymentStatus)] action in Button widget.
+  ApiCallResponse? checkCardPayment;
   // Stores action output result for [Backend Call - API (Mobile Money)] action in Button widget.
   ApiCallResponse? mobileMoney;
   // Stores action output result for [Backend Call - Insert Row] action in Button widget.
   AppointmentsRow? appointment;
+  // Stores action output result for [Backend Call - API (GetPaymentStatus)] action in Button widget.
+  ApiCallResponse? checkPayment;
 
   @override
   void initState(BuildContext context) {}

@@ -18,7 +18,7 @@ class ProviderConfirmationPageWidget extends StatefulWidget {
   const ProviderConfirmationPageWidget({super.key});
 
   static String routeName = 'Provider_confirmation_page';
-  static String routePath = '/providerConfirmationPage';
+  static String routePath = 'providerConfirmationPage';
 
   @override
   State<ProviderConfirmationPageWidget> createState() =>
@@ -129,22 +129,6 @@ class _ProviderConfirmationPageWidgetState
                                   .headlineMedium
                                   .fontStyle,
                             ),
-                      ),
-                      Container(
-                        width: 120.0,
-                        height: 120.0,
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Align(
-                          alignment: AlignmentDirectional(0.0, 0.0),
-                          child: Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 60.0,
-                          ),
-                        ),
                       ),
                       Column(
                         mainAxisSize: MainAxisSize.max,
@@ -450,7 +434,7 @@ class _ProviderConfirmationPageWidgetState
                               ),
                               Text(
                                 FFLocalizations.of(context).getText(
-                                  'jb7v3ggu' /* +1 (555) 123-4567 */,
+                                  'jb7v3ggu' /* (+237)670707070 */,
                                 ),
                                 style: FlutterFlowTheme.of(context)
                                     .bodyMedium
@@ -585,48 +569,53 @@ class _ProviderConfirmationPageWidgetState
                       decoration: BoxDecoration(
                         color: FlutterFlowTheme.of(context).primaryBackground,
                       ),
-                      child: FFButtonWidget(
-                        onPressed: () async {
-                          context.pushNamed(HomePageWidget.routeName);
-                        },
-                        text: FFLocalizations.of(context).getText(
-                          'ojn6awv2' /* Home */,
-                        ),
-                        options: FFButtonOptions(
-                          height: 77.5,
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              0.0, 0.0, 0.0, 0.0),
-                          iconPadding: EdgeInsetsDirectional.fromSTEB(
-                              0.0, 0.0, 0.0, 0.0),
-                          color: Color(0xFF305A8B),
-                          textStyle:
-                              FlutterFlowTheme.of(context).titleSmall.override(
-                                    font: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.w500,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .titleSmall
-                                          .fontStyle,
-                                    ),
-                                    color: Colors.white,
-                                    fontSize: 25.0,
-                                    letterSpacing: 0.0,
+                      child: Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                            10.0, 0.0, 10.0, 0.0),
+                        child: FFButtonWidget(
+                          onPressed: () async {
+                            context.pushNamed(HomePageWidget.routeName);
+                          },
+                          text: FFLocalizations.of(context).getText(
+                            'ojn6awv2' /* Home */,
+                          ),
+                          options: FFButtonOptions(
+                            height: 77.5,
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                0.0, 0.0, 0.0, 0.0),
+                            iconPadding: EdgeInsetsDirectional.fromSTEB(
+                                0.0, 0.0, 0.0, 0.0),
+                            color: Color(0xFF305A8B),
+                            textStyle: FlutterFlowTheme.of(context)
+                                .titleSmall
+                                .override(
+                                  font: GoogleFonts.plusJakartaSans(
                                     fontWeight: FontWeight.w500,
                                     fontStyle: FlutterFlowTheme.of(context)
                                         .titleSmall
                                         .fontStyle,
                                   ),
-                          elevation: 40.0,
-                          borderSide: BorderSide(
-                            color: Colors.transparent,
-                            width: 2.0,
+                                  color: Colors.white,
+                                  fontSize: 25.0,
+                                  letterSpacing: 0.0,
+                                  fontWeight: FontWeight.w500,
+                                  fontStyle: FlutterFlowTheme.of(context)
+                                      .titleSmall
+                                      .fontStyle,
+                                ),
+                            elevation: 40.0,
+                            borderSide: BorderSide(
+                              color: Colors.transparent,
+                              width: 2.0,
+                            ),
+                            borderRadius: BorderRadius.circular(18.0),
+                            hoverColor: FlutterFlowTheme.of(context).primary,
+                            hoverBorderSide: BorderSide(
+                              color: FlutterFlowTheme.of(context).primaryText,
+                              width: 2.0,
+                            ),
+                            hoverElevation: 40.0,
                           ),
-                          borderRadius: BorderRadius.circular(18.0),
-                          hoverColor: FlutterFlowTheme.of(context).primary,
-                          hoverBorderSide: BorderSide(
-                            color: FlutterFlowTheme.of(context).primaryText,
-                            width: 2.0,
-                          ),
-                          hoverElevation: 40.0,
                         ),
                       ),
                     ),

@@ -1,13 +1,24 @@
+import '/auth/firebase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
+import '/backend/supabase/supabase.dart';
+import '/chat_a_i/start_chat/start_chat_widget.dart';
+import '/components/admin_top_bar/admin_top_bar_widget.dart';
 import '/components/coming_soon/coming_soon_widget.dart';
-import '/components/facility_admin_bottom_nav/facility_admin_bottom_nav_widget.dart';
+import '/components/main_bottom_nav/main_bottom_nav_widget.dart';
+import '/components/side_nav/side_nav_widget.dart';
+import '/components/top_bar/top_bar_widget.dart';
+import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_drop_down.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/form_field_controller.dart';
+import 'dart:math';
 import 'dart:ui';
 import '/index.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -19,7 +30,7 @@ class FacilityAdminLandingPageWidget extends StatefulWidget {
   const FacilityAdminLandingPageWidget({super.key});
 
   static String routeName = 'facilityAdminLanding_page';
-  static String routePath = '/facilityAdminLandingPage';
+  static String routePath = 'facilityAdminLandingPage';
 
   @override
   State<FacilityAdminLandingPageWidget> createState() =>
@@ -27,15 +38,112 @@ class FacilityAdminLandingPageWidget extends StatefulWidget {
 }
 
 class _FacilityAdminLandingPageWidgetState
-    extends State<FacilityAdminLandingPageWidget> {
+    extends State<FacilityAdminLandingPageWidget>
+    with TickerProviderStateMixin {
   late FacilityAdminLandingPageModel _model;
 
   final scaffoldKey = GlobalKey<ScaffoldState>();
+
+  final animationsMap = <String, AnimationInfo>{};
 
   @override
   void initState() {
     super.initState();
     _model = createModel(context, () => FacilityAdminLandingPageModel());
+
+    // On page load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      _model.userData = await SupagraphqlGroup.userDetailsCall.call(
+        userId: valueOrDefault(currentUserDocument?.supabaseUuid, ''),
+      );
+
+      if ((_model.userData?.succeeded ?? true)) {
+        await Future.wait([
+          Future(() async {
+            _model.appointmentstats = await AppointmentsTable().queryRows(
+              queryFn: (q) => q.eqOrNull(
+                'facility_id',
+                getJsonField(
+                  SupagraphqlGroup.userDetailsCall.facilityAdminProfiles(
+                    (_model.userData?.jsonBody ?? ''),
+                  ),
+                  r'''$.primary_facility_id''',
+                ).toString(),
+              ),
+            );
+          }),
+          Future(() async {
+            _model.providers = await MedicalProviderProfilesTable().queryRows(
+              queryFn: (q) => q.eqOrNull(
+                'facility_id',
+                getJsonField(
+                  SupagraphqlGroup.userDetailsCall.facilityAdminProfiles(
+                    (_model.userData?.jsonBody ?? ''),
+                  ),
+                  r'''$.primary_facility_id''',
+                ).toString(),
+              ),
+            );
+          }),
+          Future(() async {
+            _model.facilityadmins =
+                await FacilityAdminProfilesTable().queryRows(
+              queryFn: (q) => q.eqOrNull(
+                'primary_facility_id',
+                getJsonField(
+                  SupagraphqlGroup.userDetailsCall.facilityAdminProfiles(
+                    (_model.userData?.jsonBody ?? ''),
+                  ),
+                  r'''$.primary_facility_id''',
+                ).toString(),
+              ),
+            );
+          }),
+          Future(() async {
+            _model.facilityName = await FacilitiesTable().queryRows(
+              queryFn: (q) => q.eqOrNull(
+                'id',
+                getJsonField(
+                  SupagraphqlGroup.userDetailsCall.facilityAdminProfiles(
+                    (_model.userData?.jsonBody ?? ''),
+                  ),
+                  r'''$.primary_facility_id''',
+                ).toString(),
+              ),
+            );
+          }),
+        ]);
+        safeSetState(() {});
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to load user data',
+              style: TextStyle(
+                color: FlutterFlowTheme.of(context).primaryText,
+              ),
+            ),
+            duration: Duration(milliseconds: 4000),
+            backgroundColor: FlutterFlowTheme.of(context).error,
+          ),
+        );
+      }
+    });
+
+    animationsMap.addAll({
+      'containerOnPageLoadAnimation': AnimationInfo(
+        trigger: AnimationTrigger.onPageLoad,
+        effectsBuilder: () => [
+          ScaleEffect(
+            curve: Curves.easeInOut,
+            delay: 0.0.ms,
+            duration: 600.0.ms,
+            begin: Offset(1.0, 1.0),
+            end: Offset(1.0, 1.0),
+          ),
+        ],
+      ),
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
@@ -57,226 +165,221 @@ class _FacilityAdminLandingPageWidgetState
       child: Scaffold(
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+        floatingActionButton: Align(
+          alignment: AlignmentDirectional(1.0, 0.8),
+          child: Builder(
+            builder: (context) => FloatingActionButton(
+              onPressed: () async {
+                await showDialog(
+                  context: context,
+                  builder: (dialogContext) {
+                    return Dialog(
+                      elevation: 0,
+                      insetPadding: EdgeInsets.zero,
+                      backgroundColor: Colors.transparent,
+                      alignment: AlignmentDirectional(0.0, 0.0)
+                          .resolve(Directionality.of(context)),
+                      child: GestureDetector(
+                        onTap: () {
+                          FocusScope.of(dialogContext).unfocus();
+                          FocusManager.instance.primaryFocus?.unfocus();
+                        },
+                        child: StartChatWidget(),
+                      ),
+                    );
+                  },
+                );
+              },
+              elevation: 20.0,
+              child: Row(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Material(
+                    color: Colors.transparent,
+                    elevation: 100.0,
+                    shape: const CircleBorder(),
+                    child: SafeArea(
+                      child: ClipOval(
+                        child: Container(
+                          width: 50.0,
+                          height: 50.0,
+                          decoration: BoxDecoration(
+                            boxShadow: [
+                              BoxShadow(
+                                blurRadius: 4.0,
+                                color: Color(0x33000000),
+                                offset: Offset(
+                                  0.0,
+                                  2.0,
+                                ),
+                              )
+                            ],
+                            gradient: LinearGradient(
+                              colors: [
+                                FlutterFlowTheme.of(context).primaryBackground,
+                                FlutterFlowTheme.of(context).alternate
+                              ],
+                              stops: [0.0, 1.0],
+                              begin: AlignmentDirectional(0.0, -1.0),
+                              end: AlignmentDirectional(0, 1.0),
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: FlutterFlowTheme.of(context).alternate,
+                              width: 3.0,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(2.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(44.0),
+                              child: Image.asset(
+                                'assets/images/medzen.doctor.png',
+                                width: 50.0,
+                                height: 50.0,
+                                fit: BoxFit.fitHeight,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ).animateOnPageLoad(
+                      animationsMap['containerOnPageLoadAnimation']!),
+                ],
+              ),
+            ),
+          ),
+        ),
+        drawer: Drawer(
+          elevation: 20.0,
+          child: Visibility(
+            visible: responsiveVisibility(
+              context: context,
+              phone: false,
+            ),
+            child: wrapWithModel(
+              model: _model.sideNavModel,
+              updateCallback: () => safeSetState(() {}),
+              child: SideNavWidget(),
+            ),
+          ),
+        ),
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(80.0),
+          child: AppBar(
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            automaticallyImplyLeading: false,
+            actions: [],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                children: [
+                  if (responsiveVisibility(
+                    context: context,
+                    phone: false,
+                  ))
+                    wrapWithModel(
+                      model: _model.adminTopBarModel,
+                      updateCallback: () => safeSetState(() {}),
+                      child: AdminTopBarWidget(
+                        btnicon: Icon(
+                          Icons.dehaze,
+                          size: 30.0,
+                        ),
+                        btnaction: () async {
+                          scaffoldKey.currentState!.openDrawer();
+                        },
+                      ),
+                    ),
+                  if (responsiveVisibility(
+                    context: context,
+                    tablet: false,
+                    tabletLandscape: false,
+                    desktop: false,
+                  ))
+                    wrapWithModel(
+                      model: _model.topBarModel,
+                      updateCallback: () => safeSetState(() {}),
+                      child: TopBarWidget(
+                        btnicon: FaIcon(
+                          FontAwesomeIcons.solidBell,
+                          color: FlutterFlowTheme.of(context).primary,
+                          size: 30.0,
+                        ),
+                        showNotificationBadge: false,
+                        logoutbutton: true,
+                        btnaction: () async {
+                          context.pushNamed(NotificationsWidget.routeName);
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            centerTitle: true,
+            elevation: 0.0,
+          ),
+        ),
         body: SafeArea(
           top: true,
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              Align(
-                alignment: AlignmentDirectional(0.0, -1.0),
-                child: Material(
-                  color: Colors.transparent,
-                  elevation: 40.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24.0),
-                  ),
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: FlutterFlowTheme.of(context).primaryBackground,
-                      borderRadius: BorderRadius.circular(24.0),
-                      border: Border.all(
-                        color: FlutterFlowTheme.of(context).primaryBackground,
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.all(12.0),
-                              child: Container(
-                                width: 100.0,
-                                height: 100.0,
-                                decoration: BoxDecoration(
-                                  color: FlutterFlowTheme.of(context)
-                                      .secondaryBackground,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Container(
-                                  width: 200.0,
-                                  height: 200.0,
-                                  clipBehavior: Clip.antiAlias,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Image.network(
-                                    'https://noaeltglphdlkbflipit.supabase.co/storage/v1/object/public/Default_patient_pic/default_profile.png',
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Column(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 0.0, 4.0),
-                                      child: GradientText(
-                                        FFLocalizations.of(context).getText(
-                                          '1lw4idmf' /* Name */,
-                                        ),
-                                        style: FlutterFlowTheme.of(context)
-                                            .headlineSmall
-                                            .override(
-                                              font: GoogleFonts.readexPro(
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .headlineSmall
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .headlineSmall
-                                                        .fontStyle,
-                                              ),
-                                              letterSpacing: 0.0,
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .headlineSmall
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .headlineSmall
-                                                      .fontStyle,
-                                            ),
-                                        colors: [
-                                          FlutterFlowTheme.of(context)
-                                              .primaryText,
-                                          FlutterFlowTheme.of(context)
-                                              .secondaryText
-                                        ],
-                                        gradientDirection:
-                                            GradientDirection.ltr,
-                                        gradientType: GradientType.linear,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  mainAxisSize: MainAxisSize.max,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 0.0, 4.0),
-                                      child: GradientText(
-                                        FFLocalizations.of(context).getText(
-                                          'dowcdzwc' /* ID */,
-                                        ),
-                                        style: FlutterFlowTheme.of(context)
-                                            .labelSmall
-                                            .override(
-                                              font: GoogleFonts.inter(
-                                                fontWeight:
-                                                    FlutterFlowTheme.of(context)
-                                                        .labelSmall
-                                                        .fontWeight,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .labelSmall
-                                                        .fontStyle,
-                                              ),
-                                              fontSize: 14.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .labelSmall
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .labelSmall
-                                                      .fontStyle,
-                                            ),
-                                        colors: [
-                                          FlutterFlowTheme.of(context)
-                                              .primaryText,
-                                          FlutterFlowTheme.of(context)
-                                              .secondaryText
-                                        ],
-                                        gradientDirection:
-                                            GradientDirection.ltr,
-                                        gradientType: GradientType.linear,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Expanded(
-                              child: Align(
-                                alignment: AlignmentDirectional(1.0, 0.0),
-                                child: Padding(
-                                  padding: EdgeInsets.all(10.0),
-                                  child: InkWell(
-                                    splashColor: Colors.transparent,
-                                    focusColor: Colors.transparent,
-                                    hoverColor: Colors.transparent,
-                                    highlightColor: Colors.transparent,
-                                    onTap: () async {
-                                      context.pushNamed(
-                                          FacilityNotificationsPageWidget
-                                              .routeName);
-                                    },
-                                    child: Icon(
-                                      Icons.notifications_rounded,
-                                      color:
-                                          FlutterFlowTheme.of(context).primary,
-                                      size: 40.0,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.max,
                     children: [
-                      Padding(
-                        padding: EdgeInsetsDirectional.fromSTEB(
-                            0.0, 15.0, 0.0, 15.0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.max,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              FFLocalizations.of(context).getText(
-                                'p45o6tvy' /* Facility Name  */,
-                              ),
-                              style: FlutterFlowTheme.of(context)
-                                  .headlineMedium
-                                  .override(
-                                    font: GoogleFonts.readexPro(
-                                      fontWeight: FontWeight.bold,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .headlineMedium
-                                          .fontStyle,
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                              0.0, 15.0, 0.0, 15.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Padding(
+                                  padding: EdgeInsetsDirectional.fromSTEB(
+                                      12.0, 0.0, 12.0, 0.0),
+                                  child: GradientText(
+                                    valueOrDefault<String>(
+                                      _model.facilityName?.firstOrNull
+                                          ?.facilityName,
+                                      'NA',
                                     ),
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryText,
-                                    fontSize: 40.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.bold,
-                                    fontStyle: FlutterFlowTheme.of(context)
+                                    textAlign: TextAlign.center,
+                                    style: FlutterFlowTheme.of(context)
                                         .headlineMedium
-                                        .fontStyle,
+                                        .override(
+                                          font: GoogleFonts.readexPro(
+                                            fontWeight: FontWeight.bold,
+                                            fontStyle:
+                                                FlutterFlowTheme.of(context)
+                                                    .headlineMedium
+                                                    .fontStyle,
+                                          ),
+                                          color: FlutterFlowTheme.of(context)
+                                              .primaryText,
+                                          fontSize: 40.0,
+                                          letterSpacing: 0.0,
+                                          fontWeight: FontWeight.bold,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .headlineMedium
+                                                  .fontStyle,
+                                        ),
+                                    colors: [
+                                      FlutterFlowTheme.of(context).primary,
+                                      FlutterFlowTheme.of(context).secondary
+                                    ],
+                                    gradientDirection: GradientDirection.ltr,
+                                    gradientType: GradientType.linear,
                                   ),
-                            ),
-                          ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       Padding(
@@ -284,7 +387,7 @@ class _FacilityAdminLandingPageWidgetState
                             EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 0.0),
                         child: Text(
                           FFLocalizations.of(context).getText(
-                            'l54g387l' /* Appointments  */,
+                            'm6w4wcn6' /* Appointments  */,
                           ),
                           style: FlutterFlowTheme.of(context)
                               .headlineMedium
@@ -345,8 +448,10 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          'zeyuf6hf' /* 28 */,
+                                        valueOrDefault<String>(
+                                          _model.appointmentstats?.length
+                                              ?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -369,7 +474,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          '4lv51b60' /* Total */,
+                                          'xbeefcro' /* Total */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -395,7 +500,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'slv1kvdg' /* Appointments */,
+                                          'k1vv6grv' /* Appointments */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -434,7 +539,7 @@ class _FacilityAdminLandingPageWidgetState
                                   borderRadius: BorderRadius.circular(24.0),
                                 ),
                                 child: Container(
-                                  width: MediaQuery.sizeOf(context).width * 1.0,
+                                  width: double.infinity,
                                   height: 150.0,
                                   decoration: BoxDecoration(
                                     color: FlutterFlowTheme.of(context)
@@ -459,8 +564,14 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          'ynd5jw61' /* 8 */,
+                                        valueOrDefault<String>(
+                                          _model.appointmentstats
+                                              ?.where((e) =>
+                                                  e.status == 'scheduled')
+                                              .toList()
+                                              ?.length
+                                              ?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -483,7 +594,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          '3efw8sxc' /* Upcoming */,
+                                          'c53nvmo9' /* Upcoming */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -509,7 +620,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'cd88xbbf' /* Appointments  */,
+                                          '1kq07o3n' /* Appointments  */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -573,8 +684,14 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          'tldnypkj' /* 12 */,
+                                        valueOrDefault<String>(
+                                          _model.appointmentstats
+                                              ?.where((e) =>
+                                                  e.status == 'completed')
+                                              .toList()
+                                              ?.length
+                                              ?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -597,7 +714,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'v7dbzo5t' /* Past */,
+                                          '5q2mdw92' /* Past */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -623,7 +740,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          '00mw3qc8' /* Appointments  */,
+                                          'ecr9u3z6' /* Appointments  */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -666,7 +783,7 @@ class _FacilityAdminLandingPageWidgetState
                               0.0, 20.0, 0.0, 0.0),
                           child: Text(
                             FFLocalizations.of(context).getText(
-                              'zs4dsit9' /* Approval Status */,
+                              'tntt30ls' /* Approval Status */,
                             ),
                             style: FlutterFlowTheme.of(context)
                                 .headlineMedium
@@ -729,8 +846,9 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          '6h1cqt3t' /* 20 */,
+                                        valueOrDefault<String>(
+                                          _model.providers?.length?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -753,7 +871,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'awi0bx78' /* Total */,
+                                          'twbxj99l' /* Total */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -779,7 +897,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'uy125dn2' /* Applications */,
+                                          'retp7b02' /* Practitioners */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -843,8 +961,15 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          'gimuntjl' /* 8 */,
+                                        valueOrDefault<String>(
+                                          _model.providers
+                                              ?.where((e) =>
+                                                  e.applicationStatus ==
+                                                  'pending')
+                                              .toList()
+                                              ?.length
+                                              ?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -867,7 +992,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'r4t3mr67' /* Pending */,
+                                          'zpv2zaw2' /* Pending */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -893,7 +1018,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          '98ewhdr0' /* Applications */,
+                                          '4ofexwg0' /* Practitioners */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -957,8 +1082,15 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          'rspooxpg' /* 12 */,
+                                        valueOrDefault<String>(
+                                          _model.providers
+                                              ?.where((e) =>
+                                                  e.applicationStatus ==
+                                                  'revoked')
+                                              .toList()
+                                              ?.length
+                                              ?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -981,7 +1113,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          's0zfqktv' /* Rejected */,
+                                          'suw19763' /* Rejected */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -1007,7 +1139,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'ahp4cr2w' /* Applications */,
+                                          'rrdp89im' /* Practitioners */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -1050,7 +1182,7 @@ class _FacilityAdminLandingPageWidgetState
                               0.0, 20.0, 0.0, 0.0),
                           child: Text(
                             FFLocalizations.of(context).getText(
-                              'hjfxj28e' /* Application Personels */,
+                              'bsbue0vu' /* Application Personels */,
                             ),
                             style: FlutterFlowTheme.of(context)
                                 .headlineMedium
@@ -1124,8 +1256,10 @@ class _FacilityAdminLandingPageWidgetState
                                           ),
                                         ),
                                         Text(
-                                          FFLocalizations.of(context).getText(
-                                            'wehset4y' /* 50 */,
+                                          valueOrDefault<String>(
+                                            _model.providers?.length
+                                                ?.toString(),
+                                            '0',
                                           ),
                                           style: FlutterFlowTheme.of(context)
                                               .displaySmall
@@ -1152,7 +1286,7 @@ class _FacilityAdminLandingPageWidgetState
                                         ),
                                         Text(
                                           FFLocalizations.of(context).getText(
-                                            'qm8fa5il' /* Medical */,
+                                            'f3av4933' /* Medical */,
                                           ),
                                           style: FlutterFlowTheme.of(context)
                                               .bodyMedium
@@ -1183,7 +1317,7 @@ class _FacilityAdminLandingPageWidgetState
                                         ),
                                         Text(
                                           FFLocalizations.of(context).getText(
-                                            'joxw646f' /* Providers */,
+                                            'eifsmnqr' /* Providers */,
                                           ),
                                           style: FlutterFlowTheme.of(context)
                                               .bodyMedium
@@ -1266,8 +1400,14 @@ class _FacilityAdminLandingPageWidgetState
                                           ),
                                         ),
                                         Text(
-                                          FFLocalizations.of(context).getText(
-                                            '7702npqo' /* 156  */,
+                                          valueOrDefault<String>(
+                                            _model.appointmentstats
+                                                ?.where((e) =>
+                                                    e.status == 'scheduled')
+                                                .toList()
+                                                ?.length
+                                                ?.toString(),
+                                            '0',
                                           ),
                                           style: FlutterFlowTheme.of(context)
                                               .displaySmall
@@ -1292,7 +1432,7 @@ class _FacilityAdminLandingPageWidgetState
                                         ),
                                         Text(
                                           FFLocalizations.of(context).getText(
-                                            'tqehvkj7' /* Active */,
+                                            'su2u10r3' /* Active */,
                                           ),
                                           style: FlutterFlowTheme.of(context)
                                               .bodyMedium
@@ -1323,7 +1463,7 @@ class _FacilityAdminLandingPageWidgetState
                                         ),
                                         Text(
                                           FFLocalizations.of(context).getText(
-                                            '6r2010zz' /* Patients */,
+                                            'poxdgw5u' /* Patients */,
                                           ),
                                           style: FlutterFlowTheme.of(context)
                                               .bodyMedium
@@ -1393,8 +1533,10 @@ class _FacilityAdminLandingPageWidgetState
                                         size: 30.0,
                                       ),
                                       Text(
-                                        FFLocalizations.of(context).getText(
-                                          'raitz0jm' /* 20 */,
+                                        valueOrDefault<String>(
+                                          _model.facilityadmins?.length
+                                              ?.toString(),
+                                          '0',
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .headlineMedium
@@ -1420,7 +1562,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'tpqilviy' /* Facility */,
+                                          'q4nqn2zw' /* Facility */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -1446,7 +1588,7 @@ class _FacilityAdminLandingPageWidgetState
                                       ),
                                       Text(
                                         FFLocalizations.of(context).getText(
-                                          'swmjhx1v' /* Admins */,
+                                          'iujo05gi' /* Admins */,
                                         ),
                                         style: FlutterFlowTheme.of(context)
                                             .bodyMedium
@@ -1493,7 +1635,7 @@ class _FacilityAdminLandingPageWidgetState
                               0.0, 20.0, 0.0, 0.0),
                           child: Text(
                             FFLocalizations.of(context).getText(
-                              'k7q0sp74' /* Administration */,
+                              'twmudscs' /* Administration */,
                             ),
                             style: FlutterFlowTheme.of(context)
                                 .headlineMedium
@@ -1562,7 +1704,7 @@ class _FacilityAdminLandingPageWidgetState
                                           padding: EdgeInsets.all(4.0),
                                           child: Text(
                                             FFLocalizations.of(context).getText(
-                                              'pr3mtc56' /* Appointments */,
+                                              'zxrh940q' /* Appointments */,
                                             ),
                                             style: FlutterFlowTheme.of(context)
                                                 .titleMedium
@@ -1591,12 +1733,27 @@ class _FacilityAdminLandingPageWidgetState
                                         FFButtonWidget(
                                           onPressed: () async {
                                             context.pushNamed(
-                                                AppoitmentStatusPageWidget
-                                                    .routeName);
+                                              AppointmentsWidget.routeName,
+                                              queryParameters: {
+                                                'facilityid': serializeParam(
+                                                  getJsonField(
+                                                    SupagraphqlGroup
+                                                        .userDetailsCall
+                                                        .facilityAdminProfiles(
+                                                      (_model.userData
+                                                              ?.jsonBody ??
+                                                          ''),
+                                                    ),
+                                                    r'''$.primary_facility_id''',
+                                                  ).toString(),
+                                                  ParamType.String,
+                                                ),
+                                              }.withoutNulls,
+                                            );
                                           },
                                           text: FFLocalizations.of(context)
                                               .getText(
-                                            '7isc30f1' /* View Details */,
+                                            'lwy1fwfj' /* View Details */,
                                           ),
                                           options: FFButtonOptions(
                                             height: 40.0,
@@ -1697,7 +1854,7 @@ class _FacilityAdminLandingPageWidgetState
                                           padding: EdgeInsets.all(4.0),
                                           child: Text(
                                             FFLocalizations.of(context).getText(
-                                              'u531r383' /* Analytics */,
+                                              'jm8tn3nm' /* Analytics */,
                                             ),
                                             style: FlutterFlowTheme.of(context)
                                                 .titleMedium
@@ -1753,7 +1910,7 @@ class _FacilityAdminLandingPageWidgetState
                                           },
                                           text: FFLocalizations.of(context)
                                               .getText(
-                                            '1p4uvzqo' /* View Details */,
+                                            '6ymo9k5r' /* View Details */,
                                           ),
                                           options: FFButtonOptions(
                                             height: 40.0,
@@ -1865,7 +2022,7 @@ class _FacilityAdminLandingPageWidgetState
                                           padding: EdgeInsets.all(4.0),
                                           child: Text(
                                             FFLocalizations.of(context).getText(
-                                              '7zqiru27' /* Providers */,
+                                              'pkd1jei0' /* Providers */,
                                             ),
                                             style: FlutterFlowTheme.of(context)
                                                 .titleMedium
@@ -1894,12 +2051,28 @@ class _FacilityAdminLandingPageWidgetState
                                         FFButtonWidget(
                                           onPressed: () async {
                                             context.pushNamed(
-                                                ProviderStatusPageWidget
-                                                    .routeName);
+                                              AdminProviderStatusPageWidget
+                                                  .routeName,
+                                              queryParameters: {
+                                                'facilityID': serializeParam(
+                                                  getJsonField(
+                                                    SupagraphqlGroup
+                                                        .userDetailsCall
+                                                        .facilityAdminProfiles(
+                                                      (_model.userData
+                                                              ?.jsonBody ??
+                                                          ''),
+                                                    ),
+                                                    r'''$.primary_facility_id''',
+                                                  ).toString(),
+                                                  ParamType.String,
+                                                ),
+                                              }.withoutNulls,
+                                            );
                                           },
                                           text: FFLocalizations.of(context)
                                               .getText(
-                                            '3ob4mrgy' /* View Details */,
+                                            'l9u7pklp' /* View Details */,
                                           ),
                                           options: FFButtonOptions(
                                             height: 40.0,
@@ -2000,7 +2173,7 @@ class _FacilityAdminLandingPageWidgetState
                                           padding: EdgeInsets.all(4.0),
                                           child: Text(
                                             FFLocalizations.of(context).getText(
-                                              'dbcfc53k' /* Patients */,
+                                              'lmguxitg' /* Patients */,
                                             ),
                                             style: FlutterFlowTheme.of(context)
                                                 .titleMedium
@@ -2029,12 +2202,28 @@ class _FacilityAdminLandingPageWidgetState
                                         FFButtonWidget(
                                           onPressed: () async {
                                             context.pushNamed(
-                                                AdminPatientStatusPageWidget
-                                                    .routeName);
+                                              FacilityadminPatientsPageWidget
+                                                  .routeName,
+                                              queryParameters: {
+                                                'facilityID': serializeParam(
+                                                  getJsonField(
+                                                    SupagraphqlGroup
+                                                        .userDetailsCall
+                                                        .facilityAdminProfiles(
+                                                      (_model.userData
+                                                              ?.jsonBody ??
+                                                          ''),
+                                                    ),
+                                                    r'''$.primary_facility_id''',
+                                                  ).toString(),
+                                                  ParamType.String,
+                                                ),
+                                              }.withoutNulls,
+                                            );
                                           },
                                           text: FFLocalizations.of(context)
                                               .getText(
-                                            'uxxk1869' /* View Details */,
+                                            'ibux0asx' /* View Details */,
                                           ),
                                           options: FFButtonOptions(
                                             height: 40.0,
@@ -2147,7 +2336,7 @@ class _FacilityAdminLandingPageWidgetState
                                           padding: EdgeInsets.all(4.0),
                                           child: Text(
                                             FFLocalizations.of(context).getText(
-                                              'ynutzqvx' /* Payments */,
+                                              'pck8z3tc' /* Payments */,
                                             ),
                                             style: FlutterFlowTheme.of(context)
                                                 .titleMedium
@@ -2173,30 +2362,59 @@ class _FacilityAdminLandingPageWidgetState
                                                 ),
                                           ),
                                         ),
-                                        FFButtonWidget(
-                                          onPressed: () async {
-                                            context.pushNamed(
-                                                PaymentStatusPageWidget
-                                                    .routeName);
-                                          },
-                                          text: FFLocalizations.of(context)
-                                              .getText(
-                                            'jzxhul7u' /* View Details */,
-                                          ),
-                                          options: FFButtonOptions(
-                                            height: 40.0,
-                                            padding:
-                                                EdgeInsetsDirectional.fromSTEB(
-                                                    16.0, 0.0, 16.0, 0.0),
-                                            iconPadding:
-                                                EdgeInsetsDirectional.fromSTEB(
-                                                    0.0, 0.0, 0.0, 0.0),
-                                            color: Color(0xFF305A8B),
-                                            textStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .titleSmall
-                                                    .override(
-                                                      font: GoogleFonts.inter(
+                                        Expanded(
+                                          child: FFButtonWidget(
+                                            onPressed: () async {
+                                              context.pushNamed(
+                                                PaymentHistoryWidget.routeName,
+                                                queryParameters: {
+                                                  'facilityid': serializeParam(
+                                                    getJsonField(
+                                                      SupagraphqlGroup
+                                                          .userDetailsCall
+                                                          .facilityAdminProfiles(
+                                                        (_model.userData
+                                                                ?.jsonBody ??
+                                                            ''),
+                                                      ),
+                                                      r'''$.primary_facility_id''',
+                                                    ).toString(),
+                                                    ParamType.String,
+                                                  ),
+                                                }.withoutNulls,
+                                              );
+                                            },
+                                            text: FFLocalizations.of(context)
+                                                .getText(
+                                              '846wlfrf' /* View Details */,
+                                            ),
+                                            options: FFButtonOptions(
+                                              height: 40.0,
+                                              padding: EdgeInsetsDirectional
+                                                  .fromSTEB(
+                                                      16.0, 0.0, 16.0, 0.0),
+                                              iconPadding: EdgeInsetsDirectional
+                                                  .fromSTEB(0.0, 0.0, 0.0, 0.0),
+                                              color: Color(0xFF305A8B),
+                                              textStyle:
+                                                  FlutterFlowTheme.of(context)
+                                                      .titleSmall
+                                                      .override(
+                                                        font: GoogleFonts.inter(
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .titleSmall
+                                                                  .fontStyle,
+                                                        ),
+                                                        color: Colors.white,
+                                                        fontSize: 15.0,
+                                                        letterSpacing: 0.0,
                                                         fontWeight:
                                                             FlutterFlowTheme.of(
                                                                     context)
@@ -2208,30 +2426,17 @@ class _FacilityAdminLandingPageWidgetState
                                                                 .titleSmall
                                                                 .fontStyle,
                                                       ),
-                                                      color: Colors.white,
-                                                      fontSize: 15.0,
-                                                      letterSpacing: 0.0,
-                                                      fontWeight:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .titleSmall
-                                                              .fontWeight,
-                                                      fontStyle:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .titleSmall
-                                                              .fontStyle,
-                                                    ),
-                                            elevation: 40.0,
-                                            borderRadius:
-                                                BorderRadius.circular(24.0),
-                                            hoverColor:
-                                                FlutterFlowTheme.of(context)
-                                                    .primary,
-                                            hoverBorderSide: BorderSide(
-                                              color:
+                                              elevation: 40.0,
+                                              borderRadius:
+                                                  BorderRadius.circular(24.0),
+                                              hoverColor:
                                                   FlutterFlowTheme.of(context)
-                                                      .primaryText,
+                                                      .primary,
+                                              hoverBorderSide: BorderSide(
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .primaryText,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -2273,16 +2478,16 @@ class _FacilityAdminLandingPageWidgetState
                                           CrossAxisAlignment.center,
                                       children: [
                                         Icon(
-                                          Icons.people_outline_rounded,
+                                          Icons.home,
                                           color: FlutterFlowTheme.of(context)
                                               .primary,
-                                          size: 40.0,
+                                          size: 35.0,
                                         ),
                                         Padding(
                                           padding: EdgeInsets.all(4.0),
                                           child: Text(
                                             FFLocalizations.of(context).getText(
-                                              'z9vlj2ad' /* Admins */,
+                                              '2enxfwzq' /* Facility */,
                                             ),
                                             style: FlutterFlowTheme.of(context)
                                                 .titleMedium
@@ -2311,12 +2516,28 @@ class _FacilityAdminLandingPageWidgetState
                                         FFButtonWidget(
                                           onPressed: () async {
                                             context.pushNamed(
-                                                AdminStatusPageWidget
-                                                    .routeName);
+                                              CareCenterStatusPageWidget
+                                                  .routeName,
+                                              queryParameters: {
+                                                'facilityID': serializeParam(
+                                                  getJsonField(
+                                                    SupagraphqlGroup
+                                                        .userDetailsCall
+                                                        .facilityAdminProfiles(
+                                                      (_model.userData
+                                                              ?.jsonBody ??
+                                                          ''),
+                                                    ),
+                                                    r'''$.primary_facility_id''',
+                                                  ).toString(),
+                                                  ParamType.String,
+                                                ),
+                                              }.withoutNulls,
+                                            );
                                           },
                                           text: FFLocalizations.of(context)
                                               .getText(
-                                            'uwc5simz' /* View Details */,
+                                            'ito1cmcj' /* View Details */,
                                           ),
                                           options: FFButtonOptions(
                                             height: 40.0,
@@ -2383,681 +2604,6 @@ class _FacilityAdminLandingPageWidgetState
                               .around(SizedBox(width: 16.0)),
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsets.all(10.0),
-                        child: Material(
-                          color: Colors.transparent,
-                          elevation: 20.0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24.0),
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: FlutterFlowTheme.of(context)
-                                  .secondaryBackground,
-                              borderRadius: BorderRadius.circular(24.0),
-                              border: Border.all(
-                                color: FlutterFlowTheme.of(context).primaryText,
-                                width: 2.0,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(6.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.all(10.0),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.max,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          FFLocalizations.of(context).getText(
-                                            'z5ilx4vc' /* Admin Actions */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .titleMedium
-                                              .override(
-                                                font: GoogleFonts.readexPro(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .titleMedium
-                                                          .fontStyle,
-                                                ),
-                                                color:
-                                                    FlutterFlowTheme.of(context)
-                                                        .primaryText,
-                                                letterSpacing: 0.0,
-                                                fontWeight: FontWeight.bold,
-                                                fontStyle:
-                                                    FlutterFlowTheme.of(context)
-                                                        .titleMedium
-                                                        .fontStyle,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Divider(
-                                    thickness: 2.0,
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryText,
-                                  ),
-                                  Expanded(
-                                    child: Align(
-                                      alignment: AlignmentDirectional(0.0, 0.0),
-                                      child: Wrap(
-                                        spacing: 10.0,
-                                        runSpacing: 10.0,
-                                        alignment: WrapAlignment.center,
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.start,
-                                        direction: Axis.horizontal,
-                                        runAlignment: WrapAlignment.center,
-                                        verticalDirection:
-                                            VerticalDirection.down,
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          if (responsiveVisibility(
-                                            context: context,
-                                            tablet: false,
-                                            tabletLandscape: false,
-                                            desktop: false,
-                                          ))
-                                            Padding(
-                                              padding: EdgeInsets.all(10.0),
-                                              child: SingleChildScrollView(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: FFButtonWidget(
-                                                        onPressed: () {
-                                                          print(
-                                                              'Button pressed ...');
-                                                        },
-                                                        text:
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                          'eby4d070' /* Add Patient */,
-                                                        ),
-                                                        options:
-                                                            FFButtonOptions(
-                                                          width: 150.0,
-                                                          height: 50.0,
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          iconPadding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          color:
-                                                              Color(0xFF305A8B),
-                                                          textStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .info,
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                          elevation: 40.0,
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      16.0),
-                                                          hoverColor:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .primary,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: FFButtonWidget(
-                                                        onPressed: () {
-                                                          print(
-                                                              'Button pressed ...');
-                                                        },
-                                                        text:
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                          '967u4ros' /* Add Facility Admin */,
-                                                        ),
-                                                        options:
-                                                            FFButtonOptions(
-                                                          width: 150.0,
-                                                          height: 50.0,
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          iconPadding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          color:
-                                                              Color(0xFF305A8B),
-                                                          textStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .info,
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                          elevation: 40.0,
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      16.0),
-                                                          hoverColor:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .primary,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ]
-                                                      .divide(
-                                                          SizedBox(width: 10.0))
-                                                      .around(SizedBox(
-                                                          width: 10.0)),
-                                                ),
-                                              ),
-                                            ),
-                                          if (responsiveVisibility(
-                                            context: context,
-                                            tablet: false,
-                                            tabletLandscape: false,
-                                            desktop: false,
-                                          ))
-                                            Padding(
-                                              padding: EdgeInsets.all(10.0),
-                                              child: SingleChildScrollView(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: FFButtonWidget(
-                                                        onPressed: () {
-                                                          print(
-                                                              'Button pressed ...');
-                                                        },
-                                                        text:
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                          'ou3npd7p' /* Add Provider */,
-                                                        ),
-                                                        options:
-                                                            FFButtonOptions(
-                                                          width: 150.0,
-                                                          height: 50.0,
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          iconPadding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          color:
-                                                              Color(0xFF305A8B),
-                                                          textStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .info,
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                          elevation: 40.0,
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      16.0),
-                                                          hoverColor:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .primary,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ]
-                                                      .divide(
-                                                          SizedBox(width: 10.0))
-                                                      .around(SizedBox(
-                                                          width: 10.0)),
-                                                ),
-                                              ),
-                                            ),
-                                          if (responsiveVisibility(
-                                            context: context,
-                                            phone: false,
-                                          ))
-                                            Padding(
-                                              padding: EdgeInsets.all(10.0),
-                                              child: SingleChildScrollView(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.max,
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: FFButtonWidget(
-                                                        onPressed: () async {
-                                                          context.pushNamed(
-                                                              PatientAccountCreationWidget
-                                                                  .routeName);
-                                                        },
-                                                        text:
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                          '010jcxvh' /* Add Patient */,
-                                                        ),
-                                                        options:
-                                                            FFButtonOptions(
-                                                          width: 150.0,
-                                                          height: 50.0,
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          iconPadding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          color:
-                                                              Color(0xFF305A8B),
-                                                          textStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .info,
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                          elevation: 40.0,
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      16.0),
-                                                          hoverColor:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .primary,
-                                                          hoverBorderSide:
-                                                              BorderSide(
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .primaryText,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: FFButtonWidget(
-                                                        onPressed: () async {
-                                                          context.pushNamed(
-                                                              FacilityAdminAccountCreationWidget
-                                                                  .routeName);
-                                                        },
-                                                        text:
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                          'zjp6c9wh' /* Add Facility Admin */,
-                                                        ),
-                                                        options:
-                                                            FFButtonOptions(
-                                                          width: 150.0,
-                                                          height: 50.0,
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          iconPadding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          color:
-                                                              Color(0xFF305A8B),
-                                                          textStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .info,
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                          elevation: 40.0,
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      16.0),
-                                                          hoverColor:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .primary,
-                                                          hoverBorderSide:
-                                                              BorderSide(
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .primaryText,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Align(
-                                                      alignment:
-                                                          AlignmentDirectional(
-                                                              0.0, 0.0),
-                                                      child: FFButtonWidget(
-                                                        onPressed: () {
-                                                          print(
-                                                              'Button pressed ...');
-                                                        },
-                                                        text:
-                                                            FFLocalizations.of(
-                                                                    context)
-                                                                .getText(
-                                                          'uuhf4vsk' /* Add Provider */,
-                                                        ),
-                                                        options:
-                                                            FFButtonOptions(
-                                                          width: 150.0,
-                                                          height: 50.0,
-                                                          padding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          iconPadding:
-                                                              EdgeInsetsDirectional
-                                                                  .fromSTEB(
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0,
-                                                                      0.0),
-                                                          color:
-                                                              Color(0xFF305A8B),
-                                                          textStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .info,
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyMedium
-                                                                        .fontStyle,
-                                                                  ),
-                                                          elevation: 40.0,
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      16.0),
-                                                          hoverColor:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .primary,
-                                                          hoverBorderSide:
-                                                              BorderSide(
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .primaryText,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ]
-                                                      .divide(
-                                                          SizedBox(width: 10.0))
-                                                      .around(SizedBox(
-                                                          width: 10.0)),
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ].divide(SizedBox(height: 16.0)),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                       Divider(
                         thickness: 2.0,
                         color: FlutterFlowTheme.of(context).primaryText,
@@ -3070,7 +2616,7 @@ class _FacilityAdminLandingPageWidgetState
                       ),
                       Text(
                         FFLocalizations.of(context).getText(
-                          'q4qw4ulf' /* Facility Performance */,
+                          '6755vkpx' /* Facility Performance */,
                         ),
                         style: FlutterFlowTheme.of(context)
                             .headlineMedium
@@ -3161,15 +2707,15 @@ class _FacilityAdminLandingPageWidgetState
                                               options: [
                                                 FFLocalizations.of(context)
                                                     .getText(
-                                                  '967kn3q9' /* This Month */,
+                                                  'w7b12zk8' /* This Month */,
                                                 ),
                                                 FFLocalizations.of(context)
                                                     .getText(
-                                                  '9i6ho3u9' /* Last Month */,
+                                                  'y62wxfv7' /* Last Month */,
                                                 ),
                                                 FFLocalizations.of(context)
                                                     .getText(
-                                                  'hmd82062' /* Last 3 Months */,
+                                                  '1rzs3170' /* Last 3 Months */,
                                                 )
                                               ],
                                               onChanged: (val) => safeSetState(
@@ -3202,7 +2748,7 @@ class _FacilityAdminLandingPageWidgetState
                                               hintText:
                                                   FFLocalizations.of(context)
                                                       .getText(
-                                                '5swawt42' /* This Month */,
+                                                '46eftkgc' /* This Month */,
                                               ),
                                               icon: Icon(
                                                 Icons
@@ -3285,7 +2831,7 @@ class _FacilityAdminLandingPageWidgetState
                                                           FFLocalizations.of(
                                                                   context)
                                                               .getText(
-                                                            'kbhkcthz' /* Consultations */,
+                                                            '15qggd9j' /* Consultations */,
                                                           ),
                                                           style: FlutterFlowTheme
                                                                   .of(context)
@@ -3344,7 +2890,7 @@ class _FacilityAdminLandingPageWidgetState
                                                                     FFLocalizations.of(
                                                                             context)
                                                                         .getText(
-                                                                      'a3cd90n2' /* 1,245 */,
+                                                                      'splq5nbt' /* 0 */,
                                                                     ),
                                                                     style: FlutterFlowTheme.of(
                                                                             context)
@@ -3365,31 +2911,6 @@ class _FacilityAdminLandingPageWidgetState
                                                                               .headlineSmall
                                                                               .fontStyle,
                                                                         ),
-                                                                  ),
-                                                                  Row(
-                                                                    mainAxisSize:
-                                                                        MainAxisSize
-                                                                            .max,
-                                                                    children: [
-                                                                      Text(
-                                                                        FFLocalizations.of(context)
-                                                                            .getText(
-                                                                          'ndww1ulx' /* +12% from last month */,
-                                                                        ),
-                                                                        style: FlutterFlowTheme.of(context)
-                                                                            .bodySmall
-                                                                            .override(
-                                                                              font: GoogleFonts.inter(
-                                                                                fontWeight: FlutterFlowTheme.of(context).bodySmall.fontWeight,
-                                                                                fontStyle: FlutterFlowTheme.of(context).bodySmall.fontStyle,
-                                                                              ),
-                                                                              color: FlutterFlowTheme.of(context).primaryText,
-                                                                              letterSpacing: 0.0,
-                                                                              fontWeight: FlutterFlowTheme.of(context).bodySmall.fontWeight,
-                                                                              fontStyle: FlutterFlowTheme.of(context).bodySmall.fontStyle,
-                                                                            ),
-                                                                      ),
-                                                                    ],
                                                                   ),
                                                                 ],
                                                               ),
@@ -3492,7 +3013,7 @@ class _FacilityAdminLandingPageWidgetState
                                                       FFLocalizations.of(
                                                               context)
                                                           .getText(
-                                                        'htzptwwz' /* Patient Satisfaction */,
+                                                        'w4j7oqg8' /* Patient Satisfaction */,
                                                       ),
                                                       style: FlutterFlowTheme
                                                               .of(context)
@@ -3549,7 +3070,7 @@ class _FacilityAdminLandingPageWidgetState
                                                                 FFLocalizations.of(
                                                                         context)
                                                                     .getText(
-                                                                  'dwos26sg' /* 4.8/5 */,
+                                                                  'txzwejdo' /* 0/0 */,
                                                                 ),
                                                                 style: FlutterFlowTheme.of(
                                                                         context)
@@ -3573,42 +3094,6 @@ class _FacilityAdminLandingPageWidgetState
                                                                           .headlineSmall
                                                                           .fontStyle,
                                                                     ),
-                                                              ),
-                                                              Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .max,
-                                                                children: [
-                                                                  Text(
-                                                                    FFLocalizations.of(
-                                                                            context)
-                                                                        .getText(
-                                                                      'pzcqmrlk' /* +0.3 from last month */,
-                                                                    ),
-                                                                    style: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodySmall
-                                                                        .override(
-                                                                          font:
-                                                                              GoogleFonts.inter(
-                                                                            fontWeight:
-                                                                                FlutterFlowTheme.of(context).bodySmall.fontWeight,
-                                                                            fontStyle:
-                                                                                FlutterFlowTheme.of(context).bodySmall.fontStyle,
-                                                                          ),
-                                                                          color:
-                                                                              FlutterFlowTheme.of(context).primaryText,
-                                                                          letterSpacing:
-                                                                              0.0,
-                                                                          fontWeight: FlutterFlowTheme.of(context)
-                                                                              .bodySmall
-                                                                              .fontWeight,
-                                                                          fontStyle: FlutterFlowTheme.of(context)
-                                                                              .bodySmall
-                                                                              .fontStyle,
-                                                                        ),
-                                                                  ),
-                                                                ],
                                                               ),
                                                             ],
                                                           ),
@@ -3675,6 +3160,20 @@ class _FacilityAdminLandingPageWidgetState
                           ),
                         ),
                       ),
+                      if (responsiveVisibility(
+                        context: context,
+                        tablet: false,
+                        tabletLandscape: false,
+                        desktop: false,
+                      ))
+                        Container(
+                          width: double.infinity,
+                          height: 45.86,
+                          decoration: BoxDecoration(
+                            color: FlutterFlowTheme.of(context)
+                                .secondaryBackground,
+                          ),
+                        ),
                     ]
                         .divide(SizedBox(height: 10.0))
                         .around(SizedBox(height: 10.0)),
@@ -3682,9 +3181,9 @@ class _FacilityAdminLandingPageWidgetState
                 ),
               ),
               wrapWithModel(
-                model: _model.facilityAdminBottomNavModel,
+                model: _model.mainBottomNavModel,
                 updateCallback: () => safeSetState(() {}),
-                child: FacilityAdminBottomNavWidget(),
+                child: MainBottomNavWidget(),
               ),
             ],
           ),

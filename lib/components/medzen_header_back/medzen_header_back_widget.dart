@@ -42,102 +42,93 @@ class _MedzenHeaderBackWidgetState extends State<MedzenHeaderBackWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      elevation: 40.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
-      ),
-      child: Container(
-        width: MediaQuery.sizeOf(context).width * 1.0,
-        height: 100.0,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              FlutterFlowTheme.of(context).primaryBackground,
-              FlutterFlowTheme.of(context).primaryBackground
-            ],
-            stops: [0.0, 1.0],
-            begin: AlignmentDirectional(0.0, -1.0),
-            end: AlignmentDirectional(0, 1.0),
-          ),
-          borderRadius: BorderRadius.circular(24.0),
-          shape: BoxShape.rectangle,
+    return Container(
+      width: MediaQuery.sizeOf(context).width * 1.0,
+      height: 80.37,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            FlutterFlowTheme.of(context).primaryBackground,
+            FlutterFlowTheme.of(context).primaryBackground
+          ],
+          stops: [0.0, 1.0],
+          begin: AlignmentDirectional(0.0, -1.0),
+          end: AlignmentDirectional(0, 1.0),
         ),
-        child: Align(
-          alignment: AlignmentDirectional(-1.0, 0.0),
-          child: Padding(
-            padding: EdgeInsetsDirectional.fromSTEB(0.0, 8.0, 0.0, 8.0),
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      Padding(
-                        padding:
-                            EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 0.0, 0.0),
-                        child: Material(
-                          color: Colors.transparent,
-                          elevation: 40.0,
-                          shape: const CircleBorder(),
-                          child: Container(
-                            decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(0.0),
+        shape: BoxShape.rectangle,
+      ),
+      child: Align(
+        alignment: AlignmentDirectional(-1.0, 0.0),
+        child: Padding(
+          padding: EdgeInsetsDirectional.fromSTEB(0.0, 8.0, 0.0, 8.0),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Padding(
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 0.0, 0.0),
+                      child: Material(
+                        color: Colors.transparent,
+                        elevation: 40.0,
+                        shape: const CircleBorder(),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color:
+                                FlutterFlowTheme.of(context).primaryBackground,
+                            shape: BoxShape.circle,
+                            border: Border.all(
                               color: FlutterFlowTheme.of(context)
                                   .primaryBackground,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: FlutterFlowTheme.of(context)
-                                    .primaryBackground,
-                              ),
                             ),
-                            child: Align(
-                              alignment: AlignmentDirectional(0.0, 0.0),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24.0),
-                                child: Image.asset(
-                                  'assets/images/medzen.logo.png',
-                                  width: 100.0,
-                                  fit: BoxFit.fitWidth,
-                                ),
+                          ),
+                          child: Align(
+                            alignment: AlignmentDirectional(0.0, 0.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(24.0),
+                              child: Image.asset(
+                                'assets/images/medzen.logo.png',
+                                fit: BoxFit.fitWidth,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Expanded(
-                  child: Align(
-                    alignment: AlignmentDirectional(1.0, 0.0),
-                    child: Padding(
-                      padding:
-                          EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 20.0, 0.0),
-                      child: FlutterFlowIconButton(
-                        borderColor: FlutterFlowTheme.of(context).primaryText,
-                        borderRadius: 20.0,
-                        borderWidth: 2.0,
-                        buttonSize: 50.0,
-                        fillColor:
-                            FlutterFlowTheme.of(context).primaryBackground,
-                        hoverColor: FlutterFlowTheme.of(context).primary,
-                        icon: Icon(
-                          Icons.chevron_left,
-                          color: FlutterFlowTheme.of(context).primaryText,
-                          size: 35.0,
-                        ),
-                        onPressed: () async {
-                          context.safePop();
-                        },
+              ),
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional(1.0, 0.0),
+                  child: Padding(
+                    padding:
+                        EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 20.0, 0.0),
+                    child: FlutterFlowIconButton(
+                      borderColor: FlutterFlowTheme.of(context).primaryText,
+                      borderRadius: 20.0,
+                      borderWidth: 2.0,
+                      buttonSize: 50.0,
+                      fillColor: FlutterFlowTheme.of(context).primaryBackground,
+                      hoverColor: FlutterFlowTheme.of(context).primary,
+                      icon: Icon(
+                        Icons.chevron_left,
+                        color: FlutterFlowTheme.of(context).primaryText,
+                        size: 35.0,
                       ),
+                      onPressed: () async {
+                        context.safePop();
+                      },
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

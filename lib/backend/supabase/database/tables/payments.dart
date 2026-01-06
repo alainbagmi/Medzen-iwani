@@ -59,8 +59,8 @@ class PaymentsRow extends SupabaseDataRow {
   String? get appointmentId => getField<String>('appointment_id');
   set appointmentId(String? value) => setField<String>('appointment_id', value);
 
-  String get paymentMethod => getField<String>('payment_method')!;
-  set paymentMethod(String value) => setField<String>('payment_method', value);
+  String? get paymentMethod => getField<String>('payment_method');
+  set paymentMethod(String? value) => setField<String>('payment_method', value);
 
   String? get paymentProviderId => getField<String>('payment_provider_id');
   set paymentProviderId(String? value) =>
@@ -73,21 +73,9 @@ class PaymentsRow extends SupabaseDataRow {
   double get grossAmount => getField<double>('gross_amount')!;
   set grossAmount(double value) => setField<double>('gross_amount', value);
 
-  double? get taxAmount => getField<double>('tax_amount');
-  set taxAmount(double? value) => setField<double>('tax_amount', value);
-
-  double? get serviceFee => getField<double>('service_fee');
-  set serviceFee(double? value) => setField<double>('service_fee', value);
-
-  double? get processingFee => getField<double>('processing_fee');
-  set processingFee(double? value) => setField<double>('processing_fee', value);
-
   double? get discountAmount => getField<double>('discount_amount');
   set discountAmount(double? value) =>
       setField<double>('discount_amount', value);
-
-  double get netAmount => getField<double>('net_amount')!;
-  set netAmount(double value) => setField<double>('net_amount', value);
 
   String? get currency => getField<String>('currency');
   set currency(String? value) => setField<String>('currency', value);
@@ -215,4 +203,19 @@ class PaymentsRow extends SupabaseDataRow {
   String? get subscriptionType => getField<String>('subscription_type');
   set subscriptionType(String? value) =>
       setField<String>('subscription_type', value);
+
+  String? get paymentUrl => getField<String>('payment_url');
+  set paymentUrl(String? value) => setField<String>('payment_url', value);
+
+  double? get processingFee => getField<double>('processing_fee');
+  set processingFee(double? value) => setField<double>('processing_fee', value);
+
+  double? get serviceFee => getField<double>('service_fee');
+  set serviceFee(double? value) => setField<double>('service_fee', value);
+
+  double? get taxAmount => getField<double>('tax_amount');
+  set taxAmount(double? value) => setField<double>('tax_amount', value);
+
+  double? get netAmount => getField<double>('net_amount');
+  set netAmount(double? value) => setField<double>('net_amount', value);
 }

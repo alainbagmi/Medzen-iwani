@@ -17,7 +17,7 @@ class HomePageWidget extends StatefulWidget {
   const HomePageWidget({super.key});
 
   static String routeName = 'HomePage';
-  static String routePath = '/homePage';
+  static String routePath = 'homePage';
 
   @override
   State<HomePageWidget> createState() => _HomePageWidgetState();
@@ -63,33 +63,49 @@ class _HomePageWidgetState extends State<HomePageWidget> {
             child: Column(
               mainAxisSize: MainAxisSize.max,
               children: [
-                Container(
-                  width: double.infinity,
-                  height: 100.0,
-                  decoration: BoxDecoration(
-                    color: FlutterFlowTheme.of(context).secondaryBackground,
-                  ),
-                  child: Align(
-                    alignment: AlignmentDirectional(-1.0, 0.0),
-                    child: Padding(
-                      padding:
-                          EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 0.0, 0.0),
-                      child: FlutterFlowIconButton(
-                        borderRadius: 8.0,
-                        buttonSize: 40.0,
-                        fillColor: FlutterFlowTheme.of(context).primaryText,
-                        hoverColor: FlutterFlowTheme.of(context).primary,
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color: FlutterFlowTheme.of(context).info,
-                          size: 30.0,
+                Align(
+                  alignment: AlignmentDirectional(0.0, 1.0),
+                  child: Container(
+                    width: double.infinity,
+                    height: 100.0,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          FlutterFlowTheme.of(context).secondaryBackground,
+                          FlutterFlowTheme.of(context).primaryBackground
+                        ],
+                        stops: [0.0, 1.0],
+                        begin: AlignmentDirectional(0.0, -1.0),
+                        end: AlignmentDirectional(0, 1.0),
+                      ),
+                    ),
+                    child: Align(
+                      alignment: AlignmentDirectional(-1.0, 1.0),
+                      child: Padding(
+                        padding:
+                            EdgeInsetsDirectional.fromSTEB(10.0, 0.0, 0.0, 0.0),
+                        child: FlutterFlowIconButton(
+                          borderRadius: 8.0,
+                          borderWidth: 2.0,
+                          buttonSize: 47.66,
+                          fillColor: Color(0xFF305A8B),
+                          hoverColor: FlutterFlowTheme.of(context).primary,
+                          hoverBorderColor:
+                              FlutterFlowTheme.of(context).primaryText,
+                          icon: Icon(
+                            Icons.arrow_back,
+                            color: FlutterFlowTheme.of(context).info,
+                            size: 30.0,
+                          ),
+                          onPressed: () async {
+                            if (scaffoldKey.currentState?.isDrawerOpen ==
+                                    true ||
+                                scaffoldKey.currentState?.isEndDrawerOpen ==
+                                    true) {
+                              Navigator.of(context).pop();
+                            }
+                          },
                         ),
-                        onPressed: () async {
-                          if (scaffoldKey.currentState!.isDrawerOpen ||
-                              scaffoldKey.currentState!.isEndDrawerOpen) {
-                            Navigator.pop(context);
-                          }
-                        },
                       ),
                     ),
                   ),
@@ -97,32 +113,116 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                 Expanded(
                   child: Align(
                     alignment: AlignmentDirectional(-1.0, 0.0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.max,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: FFButtonWidget(
-                            onPressed: () async {
-                              context.pushNamed(FeaturesWidget.routeName);
-                            },
-                            text: FFLocalizations.of(context).getText(
-                              'jydphx9u' /* Features */,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.max,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Align(
+                            alignment: AlignmentDirectional(0.0, 0.0),
+                            child: Padding(
+                              padding: EdgeInsets.all(10.0),
+                              child: FFButtonWidget(
+                                onPressed: () async {
+                                  Navigator.of(context).pop(); // Close drawer
+                                  await Future.delayed(
+                                      const Duration(milliseconds: 250));
+                                  if (context.mounted) {
+                                    context.pushNamed(FeaturesWidget.routeName);
+                                  }
+                                },
+                                text: FFLocalizations.of(context).getText(
+                                  'jydphx9u' /* Features */,
+                                ),
+                                options: FFButtonOptions(
+                                  width: double.infinity,
+                                  padding: EdgeInsets.all(24.0),
+                                  iconAlignment: IconAlignment.start,
+                                  iconPadding: EdgeInsetsDirectional.fromSTEB(
+                                      0.0, 0.0, 0.0, 0.0),
+                                  color: Color(0xFF305A8B),
+                                  textStyle: FlutterFlowTheme.of(context)
+                                      .headlineMedium
+                                      .override(
+                                        font: GoogleFonts.notoSerif(
+                                          fontWeight:
+                                              FlutterFlowTheme.of(context)
+                                                  .headlineMedium
+                                                  .fontWeight,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .headlineMedium
+                                                  .fontStyle,
+                                        ),
+                                        color: FlutterFlowTheme.of(context)
+                                            .secondaryBackground,
+                                        fontSize: 24.0,
+                                        letterSpacing: 0.0,
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .fontStyle,
+                                      ),
+                                  elevation: 40.0,
+                                  borderSide: BorderSide(
+                                    color: Colors.transparent,
+                                    width: 2.0,
+                                  ),
+                                  borderRadius: BorderRadius.circular(24.0),
+                                  hoverColor:
+                                      FlutterFlowTheme.of(context).primary,
+                                  hoverBorderSide: BorderSide(
+                                    color: FlutterFlowTheme.of(context)
+                                        .primaryText,
+                                    width: 2.0,
+                                  ),
+                                  hoverTextColor: FlutterFlowTheme.of(context)
+                                      .secondaryBackground,
+                                  hoverElevation: 40.0,
+                                ),
+                                showLoadingIndicator: false,
+                              ),
                             ),
-                            icon: Icon(
-                              Icons.dashboard_sharp,
-                              size: 50.0,
-                            ),
-                            options: FFButtonOptions(
-                              height: 47.6,
-                              padding: EdgeInsets.all(24.0),
-                              iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
-                              color: Colors.transparent,
-                              textStyle: FlutterFlowTheme.of(context)
-                                  .headlineMedium
-                                  .override(
-                                    font: GoogleFonts.notoSerif(
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(10.0),
+                            child: FFButtonWidget(
+                              onPressed: () async {
+                                Navigator.of(context).pop(); // Close drawer
+                                await Future.delayed(
+                                    const Duration(milliseconds: 250));
+                                if (context.mounted) {
+                                  context
+                                      .pushNamed(PublicationsWidget.routeName);
+                                }
+                              },
+                              text: FFLocalizations.of(context).getText(
+                                '89hacu0l' /* Publications */,
+                              ),
+                              options: FFButtonOptions(
+                                width: double.infinity,
+                                padding: EdgeInsets.all(24.0),
+                                iconAlignment: IconAlignment.start,
+                                iconPadding: EdgeInsetsDirectional.fromSTEB(
+                                    0.0, 0.0, 0.0, 0.0),
+                                color: Color(0xFF305A8B),
+                                textStyle: FlutterFlowTheme.of(context)
+                                    .headlineMedium
+                                    .override(
+                                      font: GoogleFonts.notoSerif(
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .fontStyle,
+                                      ),
+                                      color: FlutterFlowTheme.of(context)
+                                          .secondaryBackground,
+                                      fontSize: 24.0,
+                                      letterSpacing: 0.0,
                                       fontWeight: FlutterFlowTheme.of(context)
                                           .headlineMedium
                                           .fontWeight,
@@ -130,50 +230,63 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           .headlineMedium
                                           .fontStyle,
                                     ),
-                                    fontSize: 24.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .fontStyle,
-                                  ),
-                              elevation: 0.0,
-                              borderSide: BorderSide(
-                                color: Colors.transparent,
-                                width: 0.0,
+                                elevation: 40.0,
+                                borderSide: BorderSide(
+                                  color: Color(0xFF305A8B),
+                                  width: 2.0,
+                                ),
+                                borderRadius: BorderRadius.circular(24.0),
+                                hoverColor:
+                                    FlutterFlowTheme.of(context).primary,
+                                hoverBorderSide: BorderSide(
+                                  color:
+                                      FlutterFlowTheme.of(context).primaryText,
+                                  width: 2.0,
+                                ),
+                                hoverTextColor: FlutterFlowTheme.of(context)
+                                    .secondaryBackground,
+                                hoverElevation: 40.0,
                               ),
-                              borderRadius: BorderRadius.circular(0.0),
-                              hoverColor: Colors.transparent,
-                              hoverTextColor:
-                                  FlutterFlowTheme.of(context).primary,
+                              showLoadingIndicator: false,
                             ),
-                            showLoadingIndicator: false,
                           ),
-                        ),
-                        Expanded(
-                          child: FFButtonWidget(
-                            onPressed: () async {
-                              context.pushNamed(AboutUsWidget.routeName);
-                            },
-                            text: FFLocalizations.of(context).getText(
-                              '2a5wwtx5' /* About Us */,
-                            ),
-                            icon: Icon(
-                              Icons.info,
-                              size: 50.0,
-                            ),
-                            options: FFButtonOptions(
-                              height: 47.6,
-                              padding: EdgeInsets.all(24.0),
-                              iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
-                              color: Colors.transparent,
-                              textStyle: FlutterFlowTheme.of(context)
-                                  .headlineMedium
-                                  .override(
-                                    font: GoogleFonts.notoSerif(
+                          Padding(
+                            padding: EdgeInsets.all(10.0),
+                            child: FFButtonWidget(
+                              onPressed: () async {
+                                Navigator.of(context).pop(); // Close drawer
+                                await Future.delayed(
+                                    const Duration(milliseconds: 250));
+                                if (context.mounted) {
+                                  context
+                                      .pushNamed(AboutUsPageWidget.routeName);
+                                }
+                              },
+                              text: FFLocalizations.of(context).getText(
+                                '2a5wwtx5' /* About Us */,
+                              ),
+                              options: FFButtonOptions(
+                                width: double.infinity,
+                                padding: EdgeInsets.all(24.0),
+                                iconAlignment: IconAlignment.start,
+                                iconPadding: EdgeInsetsDirectional.fromSTEB(
+                                    0.0, 0.0, 0.0, 0.0),
+                                color: Color(0xFF305A8B),
+                                textStyle: FlutterFlowTheme.of(context)
+                                    .headlineMedium
+                                    .override(
+                                      font: GoogleFonts.notoSerif(
+                                        fontWeight: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .fontWeight,
+                                        fontStyle: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .fontStyle,
+                                      ),
+                                      color: FlutterFlowTheme.of(context)
+                                          .secondaryBackground,
+                                      fontSize: 24.0,
+                                      letterSpacing: 0.0,
                                       fontWeight: FlutterFlowTheme.of(context)
                                           .headlineMedium
                                           .fontWeight,
@@ -181,90 +294,30 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           .headlineMedium
                                           .fontStyle,
                                     ),
-                                    fontSize: 24.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .fontStyle,
-                                  ),
-                              elevation: 0.0,
-                              borderSide: BorderSide(
-                                color: Colors.transparent,
-                                width: 0.0,
+                                elevation: 40.0,
+                                borderSide: BorderSide(
+                                  color: Colors.transparent,
+                                  width: 2.0,
+                                ),
+                                borderRadius: BorderRadius.circular(24.0),
+                                hoverColor:
+                                    FlutterFlowTheme.of(context).primary,
+                                hoverBorderSide: BorderSide(
+                                  color:
+                                      FlutterFlowTheme.of(context).primaryText,
+                                  width: 2.0,
+                                ),
+                                hoverTextColor: FlutterFlowTheme.of(context)
+                                    .secondaryBackground,
+                                hoverElevation: 40.0,
                               ),
-                              borderRadius: BorderRadius.circular(0.0),
-                              hoverColor: Colors.transparent,
-                              hoverTextColor:
-                                  FlutterFlowTheme.of(context).primary,
+                              showLoadingIndicator: false,
                             ),
-                            showLoadingIndicator: false,
                           ),
-                        ),
-                        Expanded(
-                          child: FFButtonWidget(
-                            onPressed: () async {
-                              context.pushNamed(PublicationsWidget.routeName);
-                            },
-                            text: FFLocalizations.of(context).getText(
-                              '89hacu0l' /* Publications */,
-                            ),
-                            icon: Icon(
-                              Icons.public,
-                              size: 50.0,
-                            ),
-                            options: FFButtonOptions(
-                              height: 47.6,
-                              padding: EdgeInsets.all(24.0),
-                              iconPadding: EdgeInsetsDirectional.fromSTEB(
-                                  0.0, 0.0, 0.0, 0.0),
-                              color: Colors.transparent,
-                              textStyle: FlutterFlowTheme.of(context)
-                                  .headlineMedium
-                                  .override(
-                                    font: GoogleFonts.notoSerif(
-                                      fontWeight: FlutterFlowTheme.of(context)
-                                          .headlineMedium
-                                          .fontWeight,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .headlineMedium
-                                          .fontStyle,
-                                    ),
-                                    fontSize: 24.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .headlineMedium
-                                        .fontStyle,
-                                  ),
-                              elevation: 0.0,
-                              borderSide: BorderSide(
-                                color: Colors.transparent,
-                                width: 0.0,
-                              ),
-                              borderRadius: BorderRadius.circular(0.0),
-                              hoverColor: Colors.transparent,
-                              hoverTextColor:
-                                  FlutterFlowTheme.of(context).primary,
-                            ),
-                            showLoadingIndicator: false,
-                          ),
-                        ),
-                        Container(
-                          width: double.infinity,
-                          height: MediaQuery.sizeOf(context).height * 0.05,
-                          decoration: BoxDecoration(
-                            color:
-                                FlutterFlowTheme.of(context).primaryBackground,
-                          ),
-                        ),
-                      ]
-                          .divide(SizedBox(height: 100.0))
-                          .around(SizedBox(height: 100.0)),
+                        ]
+                            .divide(SizedBox(height: 100.0))
+                            .around(SizedBox(height: 100.0)),
+                      ),
                     ),
                   ),
                 ),
@@ -299,7 +352,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               alignment: AlignmentDirectional(-1.0, 0.0),
                               child: FlutterFlowLanguageSelector(
                                 width: 244.5,
-                                height: 60.0,
+                                height: 51.36,
                                 backgroundColor: FlutterFlowTheme.of(context)
                                     .secondaryBackground,
                                 borderColor:
@@ -354,7 +407,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             ),
                             child: Container(
                               width: double.infinity,
-                              height: 100.0,
+                              height: 90.16,
                               decoration: BoxDecoration(
                                 color: FlutterFlowTheme.of(context)
                                     .primaryBackground,
@@ -389,7 +442,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                               BorderRadius.circular(24.0),
                                           child: Image.asset(
                                             'assets/images/medzen.logo.png',
-                                            width: 100.0,
+                                            width: 90.0,
                                             fit: BoxFit.fitWidth,
                                           ),
                                         ),
@@ -407,7 +460,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                           child: Padding(
                                             padding:
                                                 EdgeInsetsDirectional.fromSTEB(
-                                                    0.0, 0.0, 20.0, 0.0),
+                                                    0.0, 0.0, 5.0, 0.0),
                                             child: FlutterFlowIconButton(
                                               borderColor:
                                                   FlutterFlowTheme.of(context)
@@ -426,8 +479,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                 size: 40.0,
                                               ),
                                               onPressed: () async {
-                                                scaffoldKey.currentState!
-                                                    .openEndDrawer();
+                                                scaffoldKey.currentState
+                                                    ?.openEndDrawer();
                                               },
                                             ),
                                           ),
@@ -754,7 +807,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                       FFButtonWidget(
                                         onPressed: () async {
                                           context.pushNamed(
-                                              AboutUsWidget.routeName);
+                                              AboutUsPageWidget.routeName);
                                         },
                                         text:
                                             FFLocalizations.of(context).getText(

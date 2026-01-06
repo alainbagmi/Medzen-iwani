@@ -154,6 +154,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case PathologyReportsRow:
         return PathologyReportsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case SystemAdminPatientViewRow:
+        return SystemAdminPatientViewRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case InfectiousDiseaseVisitsRow:
         return InfectiousDiseaseVisitsRow(
             json.decode(param) as Map<String, dynamic>) as T;
@@ -178,12 +181,18 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
             as T;
       case MedicationsRow:
         return MedicationsRow(json.decode(param) as Map<String, dynamic>) as T;
+      case CustomVocabulariesRow:
+        return CustomVocabulariesRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case NurseProfilesRow:
         return NurseProfilesRow(json.decode(param) as Map<String, dynamic>)
             as T;
       case PharmacistProfilesRow:
         return PharmacistProfilesRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case UnreadMessageCountsRow:
+        return UnreadMessageCountsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case OpenehrIntegrationHealthRow:
         return OpenehrIntegrationHealthRow(
             json.decode(param) as Map<String, dynamic>) as T;
@@ -202,6 +211,12 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case MedicalProviderProfilesRow:
         return MedicalProviderProfilesRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case VProviderTypeDetailsRow:
+        return VProviderTypeDetailsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case AiConversationLanguageStatsRow:
+        return AiConversationLanguageStatsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case OncologyTreatmentsRow:
         return OncologyTreatmentsRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -215,23 +230,41 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
         return AiMessagesRow(json.decode(param) as Map<String, dynamic>) as T;
       case VitalSignsRow:
         return VitalSignsRow(json.decode(param) as Map<String, dynamic>) as T;
+      case AppointmentRemindersRow:
+        return AppointmentRemindersRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case ClinicalNotesOverviewRow:
+        return ClinicalNotesOverviewRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case DocumentEmbeddingsRow:
         return DocumentEmbeddingsRow(json.decode(param) as Map<String, dynamic>)
             as T;
       case RadiologyReportsRow:
         return RadiologyReportsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case ConversationParticipantsRow:
+        return ConversationParticipantsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case AiMessagesWithAudioRow:
+        return AiMessagesWithAudioRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case ArchetypeFormFieldsRow:
         return ArchetypeFormFieldsRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case ImmunizationsRow:
         return ImmunizationsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case EdgeFunctionLogsRow:
+        return EdgeFunctionLogsRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case FacilityDepartmentAssignmentsRow:
         return FacilityDepartmentAssignmentsRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case LabTestCategoriesRow:
         return LabTestCategoriesRow(json.decode(param) as Map<String, dynamic>)
+            as T;
+      case PaymentSumaryRow:
+        return PaymentSumaryRow(json.decode(param) as Map<String, dynamic>)
             as T;
       case ArchetypesRow:
         return ArchetypesRow(json.decode(param) as Map<String, dynamic>) as T;
@@ -241,12 +274,18 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case DoctorProfilesRow:
         return DoctorProfilesRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case VideoCallParticipantsViewRow:
+        return VideoCallParticipantsViewRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case SystemAdminProfilesRow:
         return SystemAdminProfilesRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case VProviderSpecialtySearchRow:
         return VProviderSpecialtySearchRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case VideoCallAuditLogRow:
+        return VideoCallAuditLogRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case MedicalProviderTypesRow:
         return MedicalProviderTypesRow(
             json.decode(param) as Map<String, dynamic>) as T;
@@ -261,6 +300,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case GeometryColumnsRow:
         return GeometryColumnsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case WithdrawalListViewRow:
+        return WithdrawalListViewRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case BloodDonorsRow:
         return BloodDonorsRow(json.decode(param) as Map<String, dynamic>) as T;
       case UserSubscriptionsRow:
@@ -268,6 +310,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
             as T;
       case EhrbaseSyncQueueRow:
         return EhrbaseSyncQueueRow(json.decode(param) as Map<String, dynamic>)
+            as T;
+      case PaymentOverviewRow:
+        return PaymentOverviewRow(json.decode(param) as Map<String, dynamic>)
             as T;
       case LabTestTypesRow:
         return LabTestTypesRow(json.decode(param) as Map<String, dynamic>) as T;
@@ -284,6 +329,12 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case SpecialtyServicesRow:
         return SpecialtyServicesRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case LanguagePreferencesRow:
+        return LanguagePreferencesRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case MedicalProviderFacilityViewRow:
+        return MedicalProviderFacilityViewRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case ClinicalConsultationsRow:
         return ClinicalConsultationsRow(
             json.decode(param) as Map<String, dynamic>) as T;
@@ -307,11 +358,11 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case MedicalPractitionersViewRow:
         return MedicalPractitionersViewRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case CustomVocabularyAnalyticsRow:
+        return CustomVocabularyAnalyticsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case AdmissionDischargesRow:
         return AdmissionDischargesRow(
-            json.decode(param) as Map<String, dynamic>) as T;
-      case VPendingProviderApplicationsRow:
-        return VPendingProviderApplicationsRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case FacilityAdminProfilesRow:
         return FacilityAdminProfilesRow(
@@ -321,19 +372,30 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case PrescriptionMedicationsRow:
         return PrescriptionMedicationsRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case ChimeMessagesRow:
+        return ChimeMessagesRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case PatientMedicalReportExportsRow:
         return PatientMedicalReportExportsRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case AppointmentsRow:
         return AppointmentsRow(json.decode(param) as Map<String, dynamic>) as T;
+      case PushNotificationTargetsRow:
+        return PushNotificationTargetsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case GastroenterologyProceduresRow:
         return GastroenterologyProceduresRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case WithdrawalTotalsRow:
+        return WithdrawalTotalsRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case TemplatesRow:
         return TemplatesRow(json.decode(param) as Map<String, dynamic>) as T;
       case NeurologyExamsRow:
         return NeurologyExamsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case AllReviewsRow:
+        return AllReviewsRow(json.decode(param) as Map<String, dynamic>) as T;
       case MedicalRecordsRow:
         return MedicalRecordsRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -346,6 +408,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case SystemAdminAppointmentStatsRow:
         return SystemAdminAppointmentStatsRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case ProviderTypesRow:
+        return ProviderTypesRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case SubscriptionPlansRow:
         return SubscriptionPlansRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -354,6 +419,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
             json.decode(param) as Map<String, dynamic>) as T;
       case SystemDashboardStatsRow:
         return SystemDashboardStatsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case ChimeMessagingChannelsRow:
+        return ChimeMessagingChannelsRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case PrescriptionsRow:
         return PrescriptionsRow(json.decode(param) as Map<String, dynamic>)
@@ -364,6 +432,8 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case UserMedicationsRow:
         return UserMedicationsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case AiAssistantsRow:
+        return AiAssistantsRow(json.decode(param) as Map<String, dynamic>) as T;
       case GeographyColumnsRow:
         return GeographyColumnsRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -372,6 +442,12 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
             as T;
       case FeedbackRow:
         return FeedbackRow(json.decode(param) as Map<String, dynamic>) as T;
+      case LiveCaptionSegmentsRow:
+        return LiveCaptionSegmentsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case WithdrawalsOverviewRow:
+        return WithdrawalsOverviewRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case NotificationPreferencesRow:
         return NotificationPreferencesRow(
             json.decode(param) as Map<String, dynamic>) as T;
@@ -381,13 +457,22 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case LabTechnicianProfilesRow:
         return LabTechnicianProfilesRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case PaymentTotalsRow:
+        return PaymentTotalsRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case UssdMenusRow:
         return UssdMenusRow(json.decode(param) as Map<String, dynamic>) as T;
+      case PasswordResetTokensRow:
+        return PasswordResetTokensRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case AnnouncementsRow:
         return AnnouncementsRow(json.decode(param) as Map<String, dynamic>)
             as T;
       case WaitlistRow:
         return WaitlistRow(json.decode(param) as Map<String, dynamic>) as T;
+      case ClinicalNotesRow:
+        return ClinicalNotesRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case AllergiesRow:
         return AllergiesRow(json.decode(param) as Map<String, dynamic>) as T;
       case ProfilePicturesRow:
@@ -427,6 +512,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
         return UserProfilesRow(json.decode(param) as Map<String, dynamic>) as T;
       case UssdActionsRow:
         return UssdActionsRow(json.decode(param) as Map<String, dynamic>) as T;
+      case FacilityAdminPatientViewRow:
+        return FacilityAdminPatientViewRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case UserAllergiesRow:
         return UserAllergiesRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -444,6 +532,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case PharmacyStockRow:
         return PharmacyStockRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case AiLanguageUsageStatsRow:
+        return AiLanguageUsageStatsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case FacilityTypesRow:
         return FacilityTypesRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -455,6 +546,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
             json.decode(param) as Map<String, dynamic>) as T;
       case MessagesRow:
         return MessagesRow(json.decode(param) as Map<String, dynamic>) as T;
+      case ConsultationMedicalEntitiesRow:
+        return ConsultationMedicalEntitiesRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case UssdSessionsRow:
         return UssdSessionsRow(json.decode(param) as Map<String, dynamic>) as T;
       case LabOrdersRow:
@@ -462,8 +556,13 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case AntenatalVisitsRow:
         return AntenatalVisitsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case WithdrawalsRow:
+        return WithdrawalsRow(json.decode(param) as Map<String, dynamic>) as T;
       case DocumentsRow:
         return DocumentsRow(json.decode(param) as Map<String, dynamic>) as T;
+      case ChatConversationsRow:
+        return ChatConversationsRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case SearchAnalyticsRow:
         return SearchAnalyticsRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -490,6 +589,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case VSpecialtiesByCategoryRow:
         return VSpecialtiesByCategoryRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case ActiveSessionsRow:
+        return ActiveSessionsRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case EhrCompositionsRow:
         return EhrCompositionsRow(json.decode(param) as Map<String, dynamic>)
             as T;
@@ -500,12 +602,21 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
       case SystemAdminClinicalStatsRow:
         return SystemAdminClinicalStatsRow(
             json.decode(param) as Map<String, dynamic>) as T;
+      case VideoCallParticipantsRow:
+        return VideoCallParticipantsRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case ChimeMessageAuditRow:
+        return ChimeMessageAuditRow(json.decode(param) as Map<String, dynamic>)
+            as T;
       case ReviewResponsesRow:
         return ReviewResponsesRow(json.decode(param) as Map<String, dynamic>)
             as T;
       case InvoiceLineItemsRow:
         return InvoiceLineItemsRow(json.decode(param) as Map<String, dynamic>)
             as T;
+      case MedicalRecordingMetadataRow:
+        return MedicalRecordingMetadataRow(
+            json.decode(param) as Map<String, dynamic>) as T;
       case SpecialtiesRow:
         return SpecialtiesRow(json.decode(param) as Map<String, dynamic>) as T;
       case UserActivityLogsRow:
@@ -513,6 +624,9 @@ T? getParameter<T>(Map<String, dynamic> data, String paramName) {
             as T;
       case VPowersyncReplicationStatusRow:
         return VPowersyncReplicationStatusRow(
+            json.decode(param) as Map<String, dynamic>) as T;
+      case FacilityAdminDetailsRow:
+        return FacilityAdminDetailsRow(
             json.decode(param) as Map<String, dynamic>) as T;
       case ReviewsRow:
         return ReviewsRow(json.decode(param) as Map<String, dynamic>) as T;

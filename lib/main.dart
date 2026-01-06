@@ -1,3 +1,4 @@
+import '/custom_code/actions/index.dart' as actions;
 import 'package:provider/provider.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -17,7 +18,7 @@ import 'flutter_flow/internationalization.dart';
 import 'flutter_flow/nav/nav.dart';
 import 'index.dart';
 
-import 'package:medzen_iwani/backend/schema/structs/index.dart';
+import 'package:medzen/backend/schema/structs/index.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,10 @@ void main() async {
 
   final appState = FFAppState(); // Initialize FFAppState
   await appState.initializePersistedState();
+
+  // Start final custom actions code
+  await actions.initializeMessaging();
+  // End final custom actions code
 
   runApp(ChangeNotifierProvider(
     create: (context) => appState,
@@ -90,7 +95,7 @@ class _MyAppState extends State<MyApp> {
 
     _appStateNotifier = AppStateNotifier.instance;
     _router = createRouter(_appStateNotifier);
-    userStream = medzenIwaniFirebaseUserStream()
+    userStream = medzenFirebaseUserStream()
       ..listen((user) {
         _appStateNotifier.update(user);
       });
@@ -121,7 +126,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'medzen-iwani',
+      title: 'Medzen Health',
       scrollBehavior: MyAppScrollBehavior(),
       localizationsDelegates: [
         FFLocalizationsDelegate(),
@@ -136,14 +141,6 @@ class _MyAppState extends State<MyApp> {
         Locale('en'),
         Locale('fr'),
         Locale('af'),
-        Locale('zu'),
-        Locale('am'),
-        Locale('sg'),
-        Locale('ff'),
-        Locale('ln'),
-        Locale('wo'),
-        Locale('tw'),
-        Locale('sw'),
       ],
       theme: ThemeData(
         brightness: Brightness.light,

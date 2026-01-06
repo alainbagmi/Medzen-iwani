@@ -32,10 +32,47 @@ Parameters:
     MaxValue: 900
     Description: Lambda function timeout in seconds
 
-  BedrockModelId:
+  # Role-Based Model Configuration
+  PatientModelId:
     Type: String
-    Default: anthropic.claude-3-sonnet-20240229-v1:0
-    Description: Primary Bedrock model ID
+    Default: eu.amazon.nova-pro-v1:0
+    Description: Bedrock model for patient users (health assistant)
+
+  ProviderModelId:
+    Type: String
+    Default: eu.anthropic.claude-opus-4-5-20251101-v1:0
+    Description: Bedrock model for medical provider users (clinical assistant)
+
+  AdminModelId:
+    Type: String
+    Default: eu.amazon.nova-micro-v1:0
+    Description: Bedrock model for facility admin users (operations assistant)
+
+  PlatformModelId:
+    Type: String
+    Default: eu.amazon.nova-pro-v1:0
+    Description: Bedrock model for system admin users (platform assistant)
+
+  # Multi-Region Configuration
+  PrimaryRegion:
+    Type: String
+    Default: eu-central-1
+    AllowedValues:
+      - eu-central-1
+      - eu-west-1
+      - us-east-1
+      - af-south-1
+    Description: Primary AWS region for Bedrock model inference
+
+  SecondaryRegion:
+    Type: String
+    Default: eu-west-1
+    AllowedValues:
+      - eu-central-1
+      - eu-west-1
+      - us-east-1
+      - af-south-1
+    Description: Secondary AWS region for Bedrock failover
 
   SupabaseUrl:
     Type: String
@@ -56,21 +93,28 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-ai-chat-handler'
       Description: AI Chat handler with Bedrock integration
-      Runtime: nodejs18.x
+      Runtime: nodejs20.x
       Handler: index.handler
       MemorySize: !Ref LambdaMemory
       Timeout: !Ref LambdaTimeout
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
-          BEDROCK_MODEL_ID: !Ref BedrockModelId
-          BEDROCK_REGION: !Ref AWS::Region
+          # Default model (fallback)
+          BEDROCK_MODEL_ID: !Ref PatientModelId
+          # Role-based models
+          PATIENT_MODEL_ID: !Ref PatientModelId
+          PROVIDER_MODEL_ID: !Ref ProviderModelId
+          ADMIN_MODEL_ID: !Ref AdminModelId
+          PLATFORM_MODEL_ID: !Ref PlatformModelId
+          # Multi-region configuration
+          BEDROCK_REGION: !Ref PrimaryRegion
+          FAILOVER_REGION_1: !Ref SecondaryRegion
+          FAILOVER_REGION_2: us-east-1
+          # Supabase configuration
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           ENVIRONMENT: !Ref Environment
-          # Failover regions
-          FAILOVER_REGION_1: us-east-1
-          FAILOVER_REGION_2: af-south-1
       Code:
         ZipFile: |
           const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
@@ -78,9 +122,9 @@ Resources:
           const { ComprehendMedicalClient, DetectEntitiesV2Command } = require('@aws-sdk/client-comprehendmedical');
 
           // Multi-region clients
-          const primaryRegion = process.env.BEDROCK_REGION || 'eu-west-1';
-          const failoverRegion1 = process.env.FAILOVER_REGION_1 || 'us-east-1';
-          const failoverRegion2 = process.env.FAILOVER_REGION_2 || 'af-south-1';
+          const primaryRegion = process.env.BEDROCK_REGION || 'eu-central-1';
+          const failoverRegion1 = process.env.FAILOVER_REGION_1 || 'eu-west-1';
+          const failoverRegion2 = process.env.FAILOVER_REGION_2 || 'us-east-1';
 
           const bedrockClients = {
             primary: new BedrockRuntimeClient({ region: primaryRegion }),
@@ -166,12 +210,18 @@ Resources:
               Provide culturally appropriate medical guidance.
               Always recommend consulting a healthcare provider for serious concerns.`;
 
+              // Nova Pro Converse API format
               const bedrockBody = {
-                anthropic_version: 'bedrock-2023-05-31',
-                max_tokens: 2000,
-                temperature: 0.7,
-                system: systemPrompt,
-                messages: [{ role: 'user', content: message }]
+                messages: [{
+                  role: 'user',
+                  content: [{ text: message }]
+                }],
+                system: [{ text: systemPrompt }],
+                inferenceConfig: {
+                  maxTokens: 2000,
+                  temperature: 0.7,
+                  topP: 0.9
+                }
               };
 
               // Invoke Bedrock with failover
@@ -181,7 +231,10 @@ Resources:
               );
 
               const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-              const aiMessage = responseBody.content[0].text;
+              // Nova Pro response format
+              const aiMessage = responseBody.output?.message?.content?.[0]?.text ||
+                                responseBody.content?.[0]?.text ||
+                                'Unable to generate response';
 
               return {
                 statusCode: 200,
@@ -209,6 +262,78 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
 
+  # ============================================
+  # Health Check Lambda Function
+  # ============================================
+  HealthCheckLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-health-check'
+      Description: Health check endpoint for API monitoring
+      Runtime: nodejs20.x
+      Handler: index.handler
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt HealthCheckLambdaRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            try {
+              return {
+                statusCode: 200,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*',
+                  'Cache-Control': 'no-cache'
+                },
+                body: JSON.stringify({
+                  status: 'healthy',
+                  timestamp: new Date().toISOString(),
+                  region: process.env.AWS_REGION || 'unknown',
+                  service: 'medzen-ai-api',
+                  version: '1.0.0'
+                })
+              };
+            } catch (error) {
+              console.error('Health check error:', error);
+              return {
+                statusCode: 500,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({
+                  status: 'unhealthy',
+                  timestamp: new Date().toISOString(),
+                  error: error.message
+                })
+              };
+            }
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  HealthCheckLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-health-check-role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  HealthCheckLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-health-check'
+      RetentionInDays: 7
+
   # Lambda URL for direct invocation
   LambdaUrl:
     Type: AWS::Lambda::Url
@@ -220,7 +345,6 @@ Resources:
           - '*'
         AllowMethods:
           - POST
-          - OPTIONS
         AllowHeaders:
           - Content-Type
           - Authorization
@@ -259,6 +383,18 @@ Resources:
                   - bedrock:InvokeModel
                   - bedrock:InvokeModelWithResponseStream
                 Resource:
+                  # Primary region - explicit model family permissions
+                  - !Sub 'arn:aws:bedrock:${PrimaryRegion}::foundation-model/amazon.nova-*'
+                  - !Sub 'arn:aws:bedrock:${PrimaryRegion}::foundation-model/anthropic.claude-*'
+                  - !Sub 'arn:aws:bedrock:${PrimaryRegion}::foundation-model/eu.amazon.nova-*'
+                  - !Sub 'arn:aws:bedrock:${PrimaryRegion}::foundation-model/eu.anthropic.claude-*'
+                  # Secondary region - explicit model family permissions
+                  - !Sub 'arn:aws:bedrock:${SecondaryRegion}::foundation-model/amazon.nova-*'
+                  - !Sub 'arn:aws:bedrock:${SecondaryRegion}::foundation-model/anthropic.claude-*'
+                  - !Sub 'arn:aws:bedrock:${SecondaryRegion}::foundation-model/eu.amazon.nova-*'
+                  - !Sub 'arn:aws:bedrock:${SecondaryRegion}::foundation-model/eu.anthropic.claude-*'
+                  # Backward compatibility - inference profiles and wildcard
+                  - !Sub 'arn:aws:bedrock:*:*:inference-profile/*'
                   - !Sub 'arn:aws:bedrock:*::foundation-model/*'
         - PolicyName: TranslateAccess
           PolicyDocument:
@@ -332,6 +468,15 @@ Resources:
       PayloadFormatVersion: '2.0'
       TimeoutInMillis: 29000
 
+  HealthCheckIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt HealthCheckLambda.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 5000
+
   ApiGatewayRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -344,7 +489,7 @@ Resources:
     Properties:
       ApiId: !Ref ApiGateway
       RouteKey: 'GET /health'
-      Target: !Sub 'integrations/${ApiGatewayIntegration}'
+      Target: !Sub 'integrations/${HealthCheckIntegration}'
 
   ApiGatewayStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -360,6 +505,14 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref AILambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
+
+  HealthCheckPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HealthCheckLambda
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*'
@@ -485,6 +638,12 @@ Outputs:
     Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com'
     Export:
       Name: !Sub '${ProjectName}-${AWS::Region}-AIApiEndpoint'
+
+  HealthCheckEndpoint:
+    Description: Health check endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/health'
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-HealthCheckEndpoint'
 
   AIAssetsBucketName:
     Description: S3 bucket for AI assets

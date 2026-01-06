@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront CDN for MedZen Chime SDK Bundle'
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: medzen-assets-558069890522
+    Description: S3 bucket containing the SDK bundle
+
+Resources:
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: 'OAI for MedZen SDK CDN'
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketName
+      PolicyDocument:
+        Statement:
+          - Sid: CloudFrontReadAccess
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontOAI.S3CanonicalUserId
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${S3BucketName}/assets/*'
+
+  CDNDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: 'MedZen Chime SDK CDN'
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+
+        Origins:
+          - Id: S3Origin
+            DomainName: !Sub '${S3BucketName}.s3.eu-central-1.amazonaws.com'
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          MinTTL: 0
+          DefaultTTL: 31536000
+          MaxTTL: 31536000
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+
+Outputs:
+  CloudFrontDomain:
+    Value: !GetAtt CDNDistribution.DomainName
+  SDKURL:
+    Value: !Sub 'https://${CDNDistribution.DomainName}/assets/amazon-chime-sdk-medzen.min.js'

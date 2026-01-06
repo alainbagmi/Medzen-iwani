@@ -1,4 +1,5 @@
 import '/auth/firebase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
 import '/backend/backend.dart';
 import '/backend/supabase/supabase.dart';
 import '/components/medzen_header_back/medzen_header_back_widget.dart';
@@ -131,6 +132,14 @@ class FacilityAdminAccountCreationModel
   TextEditingController? adminGroupNumberTextController;
   String? Function(BuildContext, String?)?
       adminGroupNumberTextControllerValidator;
+  // State field(s) for facilityChoice widget.
+  String? facilityChoiceValue;
+  FormFieldController<String>? facilityChoiceValueController;
+  // State field(s) for facilityChosen widget.
+  FocusNode? facilityChosenFocusNode;
+  TextEditingController? facilityChosenTextController;
+  String? Function(BuildContext, String?)?
+      facilityChosenTextControllerValidator;
   // State field(s) for EmergencyNames widget.
   FocusNode? emergencyNamesFocusNode;
   TextEditingController? emergencyNamesTextController;
@@ -145,6 +154,10 @@ class FacilityAdminAccountCreationModel
   String? Function(BuildContext, String?)? relationshipTextControllerValidator;
   // Stores action output result for [Backend Call - Query Rows] action in Button widget.
   List<UsersRow>? aUthUser;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<FacilitiesRow>? facChosen;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<FacilityAdminProfilesRow>? faprofile;
 
   @override
   void initState(BuildContext context) {
@@ -204,6 +217,9 @@ class FacilityAdminAccountCreationModel
 
     adminGroupNumberFocusNode?.dispose();
     adminGroupNumberTextController?.dispose();
+
+    facilityChosenFocusNode?.dispose();
+    facilityChosenTextController?.dispose();
 
     emergencyNamesFocusNode?.dispose();
     emergencyNamesTextController?.dispose();

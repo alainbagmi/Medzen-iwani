@@ -261,9 +261,6 @@ class MedicalProviderProfilesRow extends SupabaseDataRow {
   set rejectionReason(String? value) =>
       setField<String>('rejection_reason', value);
 
-  String? get facilityId => getField<String>('facility_id');
-  set facilityId(String? value) => setField<String>('facility_id', value);
-
   DateTime? get approvedAt => getField<DateTime>('approved_at');
   set approvedAt(DateTime? value) => setField<DateTime>('approved_at', value);
 
@@ -282,4 +279,12 @@ class MedicalProviderProfilesRow extends SupabaseDataRow {
 
   String? get avatarUrl => getField<String>('avatar_url');
   set avatarUrl(String? value) => setField<String>('avatar_url', value);
+
+  String? get facilityId => getField<String>('facility_id');
+  set facilityId(String? value) => setField<String>('facility_id', value);
+
+  String? get professionalRoleLegacy =>
+      getField<String>('professional_role_legacy');
+  set professionalRoleLegacy(String? value) =>
+      setField<String>('professional_role_legacy', value);
 }

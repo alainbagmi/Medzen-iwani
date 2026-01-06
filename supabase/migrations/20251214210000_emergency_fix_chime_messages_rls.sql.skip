@@ -1,0 +1,29 @@
+-- Emergency fix: Update RLS policy for chime_messages to allow video call messaging
+-- Previous policy required chime_messaging_channels record which doesn't exist for video calls
+-- This fix allows authenticated users to send messages without channel lookup
+
+-- Drop all existing INSERT policies on chime_messages
+DROP POLICY IF EXISTS "Users can send messages in their channels" ON chime_messages;
+DROP POLICY IF EXISTS "Users can send messages when authenticated" ON chime_messages;
+
+-- Create new permissive policy for INSERT
+-- Allows any authenticated user to send messages if user_id or sender_id matches their auth ID
+CREATE POLICY "video_call_messaging_insert"
+ON chime_messages
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    -- User must be authenticated
+    auth.uid() IS NOT NULL
+    AND
+    -- Either user_id or sender_id must match the authenticated user
+    (
+        (user_id IS NOT NULL AND user_id = auth.uid())
+        OR
+        (sender_id IS NOT NULL AND sender_id = auth.uid())
+    )
+);
+
+-- Add helpful comment
+COMMENT ON POLICY "video_call_messaging_insert" ON chime_messages IS
+'Allows authenticated users to send messages during video calls. Validates that the sender (user_id or sender_id) matches auth.uid(). Does not require chime_messaging_channels record, making it compatible with video call messaging.';

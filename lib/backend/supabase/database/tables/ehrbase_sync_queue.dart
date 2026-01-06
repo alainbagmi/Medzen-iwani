@@ -66,4 +66,7 @@ class EhrbaseSyncQueueRow extends SupabaseDataRow {
 
   DateTime? get updatedAt => getField<DateTime>('updated_at');
   set updatedAt(DateTime? value) => setField<DateTime>('updated_at', value);
+
+  String? get ehrId => getField<String>('ehr_id');
+  set ehrId(String? value) => setField<String>('ehr_id', value);
 }

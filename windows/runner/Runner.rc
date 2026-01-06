@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "medzen-iwani" "\0"
+            VALUE "CompanyName", "medzen" "\0"
             VALUE "FileDescription", "A new Flutter project." "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "medzen-iwani" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 medzen-iwani. All rights reserved." "\0"
-            VALUE "OriginalFilename", "medzen_iwani.exe" "\0"
-            VALUE "ProductName", "medzen-iwani" "\0"
+            VALUE "InternalName", "medzen" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 medzen. All rights reserved." "\0"
+            VALUE "OriginalFilename", "medzen.exe" "\0"
+            VALUE "ProductName", "medzen" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

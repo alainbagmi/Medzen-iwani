@@ -18,6 +18,12 @@ import 'package:provider/provider.dart';
 
 class FilterPractitionersModel
     extends FlutterFlowModel<FilterPractitionersWidget> {
+  ///  Local state fields for this component.
+
+  String? gender;
+
+  String? specialty;
+
   ///  State fields for stateful widgets in this component.
 
   // State field(s) for SelectedGender widget.

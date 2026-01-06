@@ -138,8 +138,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding:
-                        EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 25.0),
+                    padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
                     child: Row(
                       mainAxisSize: MainAxisSize.max,
                       children: [
@@ -154,78 +153,77 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                               shape: BoxShape.circle,
                             ),
                             child: Image.network(
-                              widget!.imageurl!,
+                              valueOrDefault<String>(
+                                widget!.imageurl,
+                                'https://noaeltglphdlkbflipit.supabase.co/storage/v1/object/public/Default_patient_pic/default_profile.png',
+                              ),
                               fit: BoxFit.cover,
                             ),
                           ),
                         ),
-                        Padding(
-                          padding: EdgeInsetsDirectional.fromSTEB(
-                              8.0, 25.0, 0.0, 0.0),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.max,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  AutoSizeText(
-                                    widget!.name,
-                                    style: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .override(
-                                          font: GoogleFonts.inter(
-                                            fontWeight: FontWeight.w500,
-                                            fontStyle:
-                                                FlutterFlowTheme.of(context)
-                                                    .bodyMedium
-                                                    .fontStyle,
-                                          ),
-                                          color: Color(0xFF2260FF),
-                                          fontSize: 20.0,
-                                          letterSpacing: 0.0,
-                                          fontWeight: FontWeight.w500,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .bodyMedium
-                                                  .fontStyle,
-                                        ),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsetsDirectional.fromSTEB(
-                                        10.0, 0.0, 0.0, 5.0),
-                                    child: Container(
-                                      width: 26.0,
-                                      height: 26.0,
-                                      decoration: BoxDecoration(
-                                        color: FlutterFlowTheme.of(context)
-                                            .secondaryBackground,
-                                        image: DecorationImage(
-                                          fit: BoxFit.cover,
-                                          image: Image.asset(
-                                            'assets/images/medzen.logo.png',
-                                          ).image,
-                                        ),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Align(
-                                    alignment: AlignmentDirectional(-1.0, 0.0),
-                                    child: Padding(
-                                      padding: EdgeInsetsDirectional.fromSTEB(
-                                          0.0, 0.0, 20.0, 0.0),
-                                      child: Text(
-                                        widget!.specialty,
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                10.0, 0.0, 10.0, 0.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.max,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Expanded(
+                                      child: AutoSizeText(
+                                        widget!.name,
                                         style: FlutterFlowTheme.of(context)
-                                            .bodyLarge
+                                            .bodyMedium
                                             .override(
                                               font: GoogleFonts.inter(
+                                                fontWeight: FontWeight.w500,
+                                                fontStyle:
+                                                    FlutterFlowTheme.of(context)
+                                                        .bodyMedium
+                                                        .fontStyle,
+                                              ),
+                                              color: Color(0xFF2260FF),
+                                              fontSize: 20.0,
+                                              letterSpacing: 0.0,
+                                              fontWeight: FontWeight.w500,
+                                              fontStyle:
+                                                  FlutterFlowTheme.of(context)
+                                                      .bodyMedium
+                                                      .fontStyle,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.max,
+                                  children: [
+                                    Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsetsDirectional.fromSTEB(
+                                            0.0, 0.0, 20.0, 0.0),
+                                        child: Text(
+                                          widget!.specialty,
+                                          style: FlutterFlowTheme.of(context)
+                                              .bodyLarge
+                                              .override(
+                                                font: GoogleFonts.inter(
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyLarge
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyLarge
+                                                          .fontStyle,
+                                                ),
+                                                color: Colors.black,
+                                                letterSpacing: 0.0,
                                                 fontWeight:
                                                     FlutterFlowTheme.of(context)
                                                         .bodyLarge
@@ -235,111 +233,25 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                                         .bodyLarge
                                                         .fontStyle,
                                               ),
-                                              color: Colors.black,
-                                              letterSpacing: 0.0,
-                                              fontWeight:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyLarge
-                                                      .fontWeight,
-                                              fontStyle:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyLarge
-                                                      .fontStyle,
-                                            ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              if (responsiveVisibility(
-                                context: context,
-                                phone: false,
-                                tablet: false,
-                                tabletLandscape: false,
-                                desktop: false,
-                              ))
-                                Padding(
-                                  padding: EdgeInsetsDirectional.fromSTEB(
-                                      0.0, 6.0, 0.0, 0.0),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: [
-                                      Container(
-                                        width: 50.0,
-                                        height: 28.0,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.only(
-                                            bottomLeft: Radius.circular(13.0),
-                                            bottomRight: Radius.circular(13.0),
-                                            topLeft: Radius.circular(13.0),
-                                            topRight: Radius.circular(13.0),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.max,
-                                          children: [
-                                            Padding(
-                                              padding: EdgeInsetsDirectional
-                                                  .fromSTEB(4.0, 0.0, 0.0, 0.0),
-                                              child: Container(
-                                                width: 20.0,
-                                                height: 20.0,
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  image: DecorationImage(
-                                                    fit: BoxFit.scaleDown,
-                                                    image: Image.asset(
-                                                      'assets/images/Vector_158_(Stroke)_(1).png',
-                                                    ).image,
-                                                  ),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding: EdgeInsetsDirectional
-                                                  .fromSTEB(2.0, 2.0, 0.0, 0.0),
-                                              child: Text(
-                                                FFLocalizations.of(context)
-                                                    .getText(
-                                                  'qh2aqnrc' /* 5 */,
-                                                ),
-                                                style:
-                                                    FlutterFlowTheme.of(context)
-                                                        .bodyMedium
-                                                        .override(
-                                                          font: GoogleFonts
-                                                              .leagueSpartan(
-                                                            fontWeight:
-                                                                FontWeight.w300,
-                                                            fontStyle:
-                                                                FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontStyle,
-                                                          ),
-                                                          color:
-                                                              Color(0xFF2260FF),
-                                                          fontSize: 18.0,
-                                                          letterSpacing: 0.0,
-                                                          fontWeight:
-                                                              FontWeight.w300,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: EdgeInsetsDirectional.fromSTEB(
-                                            10.0, 0.0, 0.0, 0.0),
-                                        child: Container(
+                                  ],
+                                ),
+                                if (responsiveVisibility(
+                                  context: context,
+                                  phone: false,
+                                  tablet: false,
+                                  tabletLandscape: false,
+                                  desktop: false,
+                                ))
+                                  Padding(
+                                    padding: EdgeInsetsDirectional.fromSTEB(
+                                        0.0, 6.0, 0.0, 0.0),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.max,
+                                      children: [
+                                        Container(
                                           width: 50.0,
                                           height: 28.0,
                                           decoration: BoxDecoration(
@@ -367,7 +279,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                                     image: DecorationImage(
                                                       fit: BoxFit.scaleDown,
                                                       image: Image.asset(
-                                                        'assets/images/Vector_(9).png',
+                                                        'assets/images/Vector_158_(Stroke)_(1).png',
                                                       ).image,
                                                     ),
                                                     shape: BoxShape.circle,
@@ -381,7 +293,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                                 child: Text(
                                                   FFLocalizations.of(context)
                                                       .getText(
-                                                    'du3qij2t' /* 60 */,
+                                                    'qh2aqnrc' /* 5 */,
                                                   ),
                                                   style: FlutterFlowTheme.of(
                                                           context)
@@ -414,11 +326,92 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                             ],
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        Padding(
+                                          padding:
+                                              EdgeInsetsDirectional.fromSTEB(
+                                                  10.0, 0.0, 0.0, 0.0),
+                                          child: Container(
+                                            width: 50.0,
+                                            height: 28.0,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.only(
+                                                bottomLeft:
+                                                    Radius.circular(13.0),
+                                                bottomRight:
+                                                    Radius.circular(13.0),
+                                                topLeft: Radius.circular(13.0),
+                                                topRight: Radius.circular(13.0),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.max,
+                                              children: [
+                                                Padding(
+                                                  padding: EdgeInsetsDirectional
+                                                      .fromSTEB(
+                                                          4.0, 0.0, 0.0, 0.0),
+                                                  child: Container(
+                                                    width: 20.0,
+                                                    height: 20.0,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      image: DecorationImage(
+                                                        fit: BoxFit.scaleDown,
+                                                        image: Image.asset(
+                                                          'assets/images/Vector_(9).png',
+                                                        ).image,
+                                                      ),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Padding(
+                                                  padding: EdgeInsetsDirectional
+                                                      .fromSTEB(
+                                                          2.0, 2.0, 0.0, 0.0),
+                                                  child: Text(
+                                                    FFLocalizations.of(context)
+                                                        .getText(
+                                                      'du3qij2t' /* 60 */,
+                                                    ),
+                                                    style: FlutterFlowTheme.of(
+                                                            context)
+                                                        .bodyMedium
+                                                        .override(
+                                                          font: GoogleFonts
+                                                              .leagueSpartan(
+                                                            fontWeight:
+                                                                FontWeight.w300,
+                                                            fontStyle:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodyMedium
+                                                                    .fontStyle,
+                                                          ),
+                                                          color:
+                                                              Color(0xFF2260FF),
+                                                          fontSize: 18.0,
+                                                          letterSpacing: 0.0,
+                                                          fontWeight:
+                                                              FontWeight.w300,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .bodyMedium
+                                                                  .fontStyle,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -557,7 +550,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                             .fontStyle,
                                       ),
                                       color: Colors.black,
-                                      fontSize: 18.0,
+                                      fontSize: 15.0,
                                       letterSpacing: 0.0,
                                       fontWeight: FontWeight.w500,
                                       fontStyle: FlutterFlowTheme.of(context)
@@ -583,7 +576,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                               45.0, 0.0, 0.0, 0.0),
                           child: Text(
                             FFLocalizations.of(context).getText(
-                              'ixziu4v7' /* Time */,
+                              'ixziu4v7' /* Time :  */,
                             ),
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
@@ -696,7 +689,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                             .fontStyle,
                                       ),
                                       color: Colors.black,
-                                      fontSize: 18.0,
+                                      fontSize: 15.0,
                                       letterSpacing: 0.0,
                                       fontWeight: FontWeight.w500,
                                       fontStyle: FlutterFlowTheme.of(context)
@@ -722,7 +715,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                               45.0, 0.0, 0.0, 0.0),
                           child: Text(
                             FFLocalizations.of(context).getText(
-                              'tfuhvv0x' /* Booking for */,
+                              'tfuhvv0x' /* Booking for :  */,
                             ),
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
@@ -783,7 +776,7 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                               45.0, 0.0, 0.0, 0.0),
                           child: Text(
                             FFLocalizations.of(context).getText(
-                              'l12v869l' /* Type */,
+                              'l12v869l' /* Type :  */,
                             ),
                             style: FlutterFlowTheme.of(context)
                                 .bodyMedium
@@ -804,55 +797,63 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                 ),
                           ),
                         ),
-                        FlutterFlowDropDown<String>(
-                          controller: _model.dropDownValueController ??=
-                              FormFieldController<String>(null),
-                          options: [
-                            FFLocalizations.of(context).getText(
-                              'h2pu4dmm' /* Online */,
+                        Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                              0.0, 0.0, 5.0, 0.0),
+                          child: FlutterFlowDropDown<String>(
+                            controller: _model.dropDownValueController ??=
+                                FormFieldController<String>(
+                              _model.dropDownValue ??=
+                                  FFLocalizations.of(context).getText(
+                                'qisjckwx' /* In person */,
+                              ),
                             ),
-                            FFLocalizations.of(context).getText(
-                              'cc9bqmuh' /* In person */,
-                            )
-                          ],
-                          onChanged: (val) =>
-                              safeSetState(() => _model.dropDownValue = val),
-                          width: 200.0,
-                          height: 40.0,
-                          textStyle:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.bold,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    letterSpacing: 0.0,
+                            options: [
+                              FFLocalizations.of(context).getText(
+                                'h2pu4dmm' /* Online */,
+                              ),
+                              FFLocalizations.of(context).getText(
+                                'cc9bqmuh' /* In person */,
+                              )
+                            ],
+                            onChanged: (val) =>
+                                safeSetState(() => _model.dropDownValue = val),
+                            width: 200.0,
+                            height: 40.0,
+                            textStyle: FlutterFlowTheme.of(context)
+                                .bodyMedium
+                                .override(
+                                  font: GoogleFonts.inter(
                                     fontWeight: FontWeight.bold,
                                     fontStyle: FlutterFlowTheme.of(context)
                                         .bodyMedium
                                         .fontStyle,
                                   ),
-                          hintText: FFLocalizations.of(context).getText(
-                            'l8ifvluj' /* Select... */,
+                                  letterSpacing: 0.0,
+                                  fontWeight: FontWeight.bold,
+                                  fontStyle: FlutterFlowTheme.of(context)
+                                      .bodyMedium
+                                      .fontStyle,
+                                ),
+                            icon: Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: FlutterFlowTheme.of(context).secondaryText,
+                              size: 24.0,
+                            ),
+                            fillColor: FlutterFlowTheme.of(context)
+                                .secondaryBackground,
+                            elevation: 2.0,
+                            borderColor:
+                                FlutterFlowTheme.of(context).primaryText,
+                            borderWidth: 0.0,
+                            borderRadius: 8.0,
+                            margin: EdgeInsetsDirectional.fromSTEB(
+                                12.0, 0.0, 12.0, 0.0),
+                            hidesUnderline: true,
+                            isOverButton: false,
+                            isSearchable: false,
+                            isMultiSelect: false,
                           ),
-                          icon: Icon(
-                            Icons.keyboard_arrow_down_rounded,
-                            color: FlutterFlowTheme.of(context).secondaryText,
-                            size: 24.0,
-                          ),
-                          fillColor:
-                              FlutterFlowTheme.of(context).secondaryBackground,
-                          elevation: 2.0,
-                          borderColor: Colors.transparent,
-                          borderWidth: 0.0,
-                          borderRadius: 8.0,
-                          margin: EdgeInsetsDirectional.fromSTEB(
-                              12.0, 0.0, 12.0, 0.0),
-                          hidesUnderline: true,
-                          isOverButton: false,
-                          isSearchable: false,
-                          isMultiSelect: false,
                         ),
                       ],
                     ),
@@ -948,23 +949,6 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                 child: FFButtonWidget(
                                   onPressed: () async {
                                     Navigator.pop(context);
-                                    ScaffoldMessenger.of(context)
-                                        .clearSnackBars();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Cancelled Operation',
-                                          style: TextStyle(
-                                            color: FlutterFlowTheme.of(context)
-                                                .primaryText,
-                                          ),
-                                        ),
-                                        duration: Duration(milliseconds: 4000),
-                                        backgroundColor:
-                                            FlutterFlowTheme.of(context)
-                                                .warning,
-                                      ),
-                                    );
                                   },
                                   text: FFLocalizations.of(context).getText(
                                     'k9hbg8gl' /* Cancel */,
@@ -1046,8 +1030,13 @@ class _BookingSummaryWidgetState extends State<BookingSummaryWidget>
                                                   startdate: _model.datePicked1,
                                                   starttime: _model.datePicked2,
                                                   servicetype: 'appointment',
-                                                  consultationmode:
-                                                      _model.dropDownValue,
+                                                  consultationmode: (_model
+                                                                  .dropDownValue ==
+                                                              'Online') ||
+                                                          (_model.dropDownValue ==
+                                                              'En ligne')
+                                                      ? 'Online'
+                                                      : 'In person',
                                                 ),
                                               );
                                             },

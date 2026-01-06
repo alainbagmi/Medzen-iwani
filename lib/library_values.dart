@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'package:flutter/material.dart';
 
-import 'package:medzen_iwani/backend/schema/structs/index.dart';
+import 'package:medzen/backend/schema/structs/index.dart';
 
 class FFLibraryValues {
   static FFLibraryValues _instance = FFLibraryValues._internal();

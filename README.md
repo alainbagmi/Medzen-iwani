@@ -1,4 +1,4 @@
-# medzen-iwani
+# medzen
 
 A new Flutter project.
 

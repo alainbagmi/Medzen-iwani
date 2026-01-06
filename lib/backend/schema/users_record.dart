@@ -46,6 +46,31 @@ class UsersRecord extends FirestoreRecord {
   String get phoneNumber => _phoneNumber ?? '';
   bool hasPhoneNumber() => _phoneNumber != null;
 
+  // "full_name" field.
+  String? _fullName;
+  String get fullName => _fullName ?? '';
+  bool hasFullName() => _fullName != null;
+
+  // "user_number" field.
+  String? _userNumber;
+  String get userNumber => _userNumber ?? '';
+  bool hasUserNumber() => _userNumber != null;
+
+  // "role" field.
+  String? _role;
+  String get role => _role ?? '';
+  bool hasRole() => _role != null;
+
+  // "supabase_uuid" field.
+  String? _supabaseUuid;
+  String get supabaseUuid => _supabaseUuid ?? '';
+  bool hasSupabaseUuid() => _supabaseUuid != null;
+
+  // "facilityid" field.
+  String? _facilityid;
+  String get facilityid => _facilityid ?? '';
+  bool hasFacilityid() => _facilityid != null;
+
   void _initializeFields() {
     _email = snapshotData['email'] as String?;
     _displayName = snapshotData['display_name'] as String?;
@@ -53,6 +78,11 @@ class UsersRecord extends FirestoreRecord {
     _uid = snapshotData['uid'] as String?;
     _createdTime = snapshotData['created_time'] as DateTime?;
     _phoneNumber = snapshotData['phone_number'] as String?;
+    _fullName = snapshotData['full_name'] as String?;
+    _userNumber = snapshotData['user_number'] as String?;
+    _role = snapshotData['role'] as String?;
+    _supabaseUuid = snapshotData['supabase_uuid'] as String?;
+    _facilityid = snapshotData['facilityid'] as String?;
   }
 
   static CollectionReference get collection =>
@@ -95,6 +125,11 @@ Map<String, dynamic> createUsersRecordData({
   String? uid,
   DateTime? createdTime,
   String? phoneNumber,
+  String? fullName,
+  String? userNumber,
+  String? role,
+  String? supabaseUuid,
+  String? facilityid,
 }) {
   final firestoreData = mapToFirestore(
     <String, dynamic>{
@@ -104,6 +139,11 @@ Map<String, dynamic> createUsersRecordData({
       'uid': uid,
       'created_time': createdTime,
       'phone_number': phoneNumber,
+      'full_name': fullName,
+      'user_number': userNumber,
+      'role': role,
+      'supabase_uuid': supabaseUuid,
+      'facilityid': facilityid,
     }.withoutNulls,
   );
 
@@ -120,7 +160,12 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e1?.photoUrl == e2?.photoUrl &&
         e1?.uid == e2?.uid &&
         e1?.createdTime == e2?.createdTime &&
-        e1?.phoneNumber == e2?.phoneNumber;
+        e1?.phoneNumber == e2?.phoneNumber &&
+        e1?.fullName == e2?.fullName &&
+        e1?.userNumber == e2?.userNumber &&
+        e1?.role == e2?.role &&
+        e1?.supabaseUuid == e2?.supabaseUuid &&
+        e1?.facilityid == e2?.facilityid;
   }
 
   @override
@@ -130,7 +175,12 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e?.photoUrl,
         e?.uid,
         e?.createdTime,
-        e?.phoneNumber
+        e?.phoneNumber,
+        e?.fullName,
+        e?.userNumber,
+        e?.role,
+        e?.supabaseUuid,
+        e?.facilityid
       ]);
 
   @override

@@ -1,4 +1,5 @@
 import '/auth/firebase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
 import '/backend/backend.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_choice_chips.dart';
@@ -27,7 +28,7 @@ class PatientAccountCreationWidget extends StatefulWidget {
   const PatientAccountCreationWidget({super.key});
 
   static String routeName = 'PatientAccountCreation';
-  static String routePath = '/patientAccountCreation';
+  static String routePath = 'patientAccountCreation';
 
   @override
   State<PatientAccountCreationWidget> createState() =>
@@ -144,20 +145,17 @@ class _PatientAccountCreationWidgetState
       child: Scaffold(
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        body: SafeArea(
-          top: true,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              Material(
-                color: Colors.transparent,
-                elevation: 20.0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24.0),
-                ),
-                child: Container(
+        appBar: AppBar(
+          backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+          automaticallyImplyLeading: true,
+          actions: [],
+          flexibleSpace: FlexibleSpaceBar(
+            background: Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Container(
                   width: MediaQuery.sizeOf(context).width * 1.0,
-                  height: 100.0,
+                  height: 75.3,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -168,14 +166,14 @@ class _PatientAccountCreationWidgetState
                       begin: AlignmentDirectional(0.0, -1.0),
                       end: AlignmentDirectional(0, 1.0),
                     ),
-                    borderRadius: BorderRadius.circular(24.0),
+                    borderRadius: BorderRadius.circular(0.0),
                     shape: BoxShape.rectangle,
                   ),
                   child: Align(
                     alignment: AlignmentDirectional(-1.0, 0.0),
                     child: Padding(
                       padding:
-                          EdgeInsetsDirectional.fromSTEB(0.0, 8.0, 0.0, 8.0),
+                          EdgeInsetsDirectional.fromSTEB(0.0, 5.0, 0.0, 0.0),
                       child: Row(
                         mainAxisSize: MainAxisSize.max,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -205,7 +203,6 @@ class _PatientAccountCreationWidgetState
                                               BorderRadius.circular(24.0),
                                           child: Image.asset(
                                             'assets/images/medzen.logo.png',
-                                            width: 100.0,
                                             fit: BoxFit.fitWidth,
                                           ),
                                         ),
@@ -221,20 +218,20 @@ class _PatientAccountCreationWidgetState
                               alignment: AlignmentDirectional(1.0, 0.0),
                               child: Padding(
                                 padding: EdgeInsetsDirectional.fromSTEB(
-                                    0.0, 0.0, 20.0, 0.0),
+                                    0.0, 0.0, 15.0, 0.0),
                                 child: FlutterFlowIconButton(
                                   borderColor:
                                       FlutterFlowTheme.of(context).primaryText,
                                   borderRadius: 20.0,
                                   borderWidth: 2.0,
-                                  buttonSize: 60.0,
+                                  buttonSize: 50.0,
                                   fillColor: FlutterFlowTheme.of(context)
                                       .primaryBackground,
                                   icon: Icon(
                                     Icons.chevron_left,
                                     color: FlutterFlowTheme.of(context)
                                         .primaryText,
-                                    size: 40.0,
+                                    size: 35.0,
                                   ),
                                   onPressed: () async {
                                     context.safePop();
@@ -248,7 +245,17 @@ class _PatientAccountCreationWidgetState
                     ),
                   ),
                 ),
-              ),
+              ],
+            ),
+          ),
+          centerTitle: true,
+          elevation: 0.0,
+        ),
+        body: SafeArea(
+          top: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            children: [
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -274,33 +281,28 @@ class _PatientAccountCreationWidgetState
                                     Align(
                                       alignment:
                                           AlignmentDirectional(0.0, -1.0),
-                                      child: Padding(
-                                        padding: EdgeInsetsDirectional.fromSTEB(
-                                            0.0, 16.0, 0.0, 8.0),
-                                        child: Text(
-                                          FFLocalizations.of(context).getText(
-                                            't0ub9ven' /* Patient Basic Information */,
-                                          ),
-                                          style: FlutterFlowTheme.of(context)
-                                              .headlineMedium
-                                              .override(
-                                                font: GoogleFonts.readexPro(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontStyle:
-                                                      FlutterFlowTheme.of(
-                                                              context)
-                                                          .headlineMedium
-                                                          .fontStyle,
-                                                ),
-                                                fontSize: 24.0,
-                                                letterSpacing: 0.0,
+                                      child: Text(
+                                        FFLocalizations.of(context).getText(
+                                          't0ub9ven' /* Patient Basic Information */,
+                                        ),
+                                        style: FlutterFlowTheme.of(context)
+                                            .headlineMedium
+                                            .override(
+                                              font: GoogleFonts.readexPro(
                                                 fontWeight: FontWeight.bold,
                                                 fontStyle:
                                                     FlutterFlowTheme.of(context)
                                                         .headlineMedium
                                                         .fontStyle,
                                               ),
-                                        ),
+                                              fontSize: 24.0,
+                                              letterSpacing: 0.0,
+                                              fontWeight: FontWeight.bold,
+                                              fontStyle:
+                                                  FlutterFlowTheme.of(context)
+                                                      .headlineMedium
+                                                      .fontStyle,
+                                            ),
                                       ),
                                     ),
                                     Align(
@@ -631,6 +633,8 @@ class _PatientAccountCreationWidgetState
                                                                 _model
                                                                     .pickLanguageValueController
                                                                     ?.reset();
+                                                                _model.pickLanguageValue =
+                                                                    null;
                                                               });
                                                             },
                                                             width: 200.0,
@@ -2043,10 +2047,9 @@ class _PatientAccountCreationWidgetState
                                                                         initialDate:
                                                                             getCurrentTimestamp,
                                                                         firstDate:
-                                                                            (DateTime.fromMicrosecondsSinceEpoch(-1880564400000000) ??
-                                                                                DateTime(1900)),
+                                                                            DateTime(1900),
                                                                         lastDate:
-                                                                            (DateTime.fromMicrosecondsSinceEpoch(4102462800000000) ??
+                                                                            (getCurrentTimestamp ??
                                                                                 DateTime(2050)),
                                                                         builder:
                                                                             (context,
@@ -2299,7 +2302,7 @@ class _PatientAccountCreationWidgetState
                                                                         initialDate:
                                                                             getCurrentTimestamp,
                                                                         firstDate:
-                                                                            (DateTime.fromMicrosecondsSinceEpoch(-1880564400000000) ??
+                                                                            (_model.datePicked1 ??
                                                                                 DateTime(1900)),
                                                                         lastDate:
                                                                             (DateTime.fromMicrosecondsSinceEpoch(4102462800000000) ??
@@ -3465,7 +3468,7 @@ class _PatientAccountCreationWidgetState
                                             alignment:
                                                 AlignmentDirectional(0.0, 0.0),
                                             child: Padding(
-                                              padding: EdgeInsets.all(10.0),
+                                              padding: EdgeInsets.all(6.0),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.max,
                                                 mainAxisAlignment:
@@ -5109,6 +5112,8 @@ class _PatientAccountCreationWidgetState
                                                                 _model
                                                                     .selectRelationshipValueController
                                                                     ?.reset();
+                                                                _model.selectRelationshipValue =
+                                                                    null;
                                                               });
                                                             },
                                                             width: 246.7,
@@ -9052,21 +9057,6 @@ class _PatientAccountCreationWidgetState
                                                                   .firstOrNull!
                                                                   .id;
                                                           safeSetState(() {});
-
-                                                          await currentUserReference!
-                                                              .update(
-                                                                  createUsersRecordData(
-                                                            displayName:
-                                                                '${_model.firstNameTextController.text}  ${_model.lastNameTextController.text}',
-                                                            phoneNumber:
-                                                                (String email) {
-                                                              return email
-                                                                  .split(
-                                                                      '@')[0];
-                                                            }(currentUserEmail),
-                                                            email:
-                                                                currentUserEmail,
-                                                          ));
                                                           await UsersTable()
                                                               .update(
                                                             data: {
@@ -9197,10 +9187,53 @@ class _PatientAccountCreationWidgetState
                                                                   .UserRole =
                                                               'patient';
                                                           safeSetState(() {});
+                                                          _model.paprofile =
+                                                              await PatientProfilesTable()
+                                                                  .queryRows(
+                                                            queryFn: (q) =>
+                                                                q.eqOrNull(
+                                                              'user_id',
+                                                              _model
+                                                                  .aUthUser
+                                                                  ?.firstOrNull
+                                                                  ?.id,
+                                                            ),
+                                                          );
+
+                                                          await currentUserReference!
+                                                              .update(
+                                                                  createUsersRecordData(
+                                                            displayName:
+                                                                '${_model.firstNameTextController.text}  ${_model.lastNameTextController.text}',
+                                                            phoneNumber:
+                                                                (String email) {
+                                                              return email
+                                                                  .split(
+                                                                      '@')[0];
+                                                            }(currentUserEmail),
+                                                            role: 'patient',
+                                                            supabaseUuid: _model
+                                                                .aUthUser
+                                                                ?.firstOrNull
+                                                                ?.id,
+                                                            userNumber: _model
+                                                                .paprofile
+                                                                ?.firstOrNull
+                                                                ?.patientNumber,
+                                                          ));
 
                                                           context.pushNamed(
                                                               PatientLandingPageWidget
                                                                   .routeName);
+
+                                                          _model.apiResultv2o =
+                                                              await AwsSmsCall
+                                                                  .call(
+                                                            phonenumber:
+                                                                currentPhoneNumber,
+                                                            message:
+                                                                'Hi ${_model.firstNameTextController.text}, Welcome to  MedzenHealth. Your one Stop Digital Health platform',
+                                                          );
 
                                                           safeSetState(() {});
                                                         },

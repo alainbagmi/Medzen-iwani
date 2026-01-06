@@ -1,0 +1,26 @@
+-- Migration: Update all appointments to today's date (2025-12-15)
+-- Description: Updates scheduled_start, scheduled_end, and start_date to today while preserving time components
+-- Created: 2025-12-15
+
+BEGIN;
+
+-- Update scheduled_start, scheduled_end, and start_date to today while preserving time components
+UPDATE appointments
+SET
+    scheduled_start = DATE '2025-12-15' + (scheduled_start::time),
+    scheduled_end = DATE '2025-12-15' + (scheduled_end::time),
+    start_date = DATE '2025-12-15',
+    updated_at = NOW()
+WHERE DATE(scheduled_start) != DATE '2025-12-15'
+  OR DATE(start_date) != DATE '2025-12-15';
+
+-- Log the number of updated records
+DO $$
+DECLARE
+    updated_count INTEGER;
+BEGIN
+    GET DIAGNOSTICS updated_count = ROW_COUNT;
+    RAISE NOTICE 'Updated % appointment records to 2025-12-15', updated_count;
+END $$;
+
+COMMIT;

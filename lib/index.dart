@@ -1,10 +1,6 @@
 // Export pages
 export '/medical_provider/provider_confirmation_page/provider_confirmation_page_widget.dart'
     show ProviderConfirmationPageWidget;
-export '/home_pages/video_call/video_call_widget.dart' show VideoCallWidget;
-export '/home_pages/join_call/join_call_widget.dart' show JoinCallWidget;
-export '/medical_provider/provider_landing_page/provider_landing_page_widget.dart'
-    show ProviderLandingPageWidget;
 export '/home_pages/role_page/role_page_widget.dart' show RolePageWidget;
 export '/patients_folder/patient_account_creation/patient_account_creation_widget.dart'
     show PatientAccountCreationWidget;
@@ -17,56 +13,34 @@ export '/patients_folder/patient_profile_page/patient_profile_page_widget.dart'
 export '/home_pages/home_page/home_page_widget.dart' show HomePageWidget;
 export '/home_pages/features/features_widget.dart' show FeaturesWidget;
 export '/home_pages/about_us/about_us_widget.dart' show AboutUsWidget;
-export '/home_pages/splash_screen/splash_screen_widget.dart'
-    show SplashScreenWidget;
 export '/home_pages/publications/publications_widget.dart'
     show PublicationsWidget;
-export '/facilities/facility_status_page/facility_status_page_widget.dart'
-    show FacilityStatusPageWidget;
 export '/system_admin/system_admin_account_creation/system_admin_account_creation_widget.dart'
     show SystemAdminAccountCreationWidget;
 export '/facility_admin/facility_admin_account_creation/facility_admin_account_creation_widget.dart'
     show FacilityAdminAccountCreationWidget;
-export '/home_pages/admin_patient_status_page/admin_patient_status_page_widget.dart'
-    show AdminPatientStatusPageWidget;
-export '/facilities/appoitment_status_page/appoitment_status_page_widget.dart'
-    show AppoitmentStatusPageWidget;
-export '/system_admin/provider_status_page/provider_status_page_widget.dart'
-    show ProviderStatusPageWidget;
-export '/transactions/payment_status_page/payment_status_page_widget.dart'
-    show PaymentStatusPageWidget;
-export '/facilities/facility_details_page/facility_details_page_widget.dart'
-    show FacilityDetailsPageWidget;
 export '/patients_folder/patient_landing_page/patient_landing_page_widget.dart'
     show PatientLandingPageWidget;
-export '/home_pages/appointments/appointments_widget.dart'
+export '/all_users_page/appointments/appointments_widget.dart'
     show AppointmentsWidget;
-export '/facilities/facility_registration_page/facility_registration_page_widget.dart'
-    show FacilityRegistrationPageWidget;
-export '/facility_admin/admin_status_page/admin_status_page_widget.dart'
+export '/care_centers/care_center_registration_page/care_center_registration_page_widget.dart'
+    show CareCenterRegistrationPageWidget;
+export '/all_users_page/admin_status_page/admin_status_page_widget.dart'
     show AdminStatusPageWidget;
-export '/terms_and_conditions/terms_and_c_onditions_page/terms_and_c_onditions_page_widget.dart'
-    show TermsAndCOnditionsPageWidget;
-export '/transactions/payment_history/payment_history_widget.dart'
+export '/all_users_page/payment_history/payment_history_widget.dart'
     show PaymentHistoryWidget;
 export '/medical_provider/medical_practitioners/medical_practitioners_widget.dart'
     show MedicalPractitionersWidget;
 export '/medical_provider/practioner_detail/practioner_detail_widget.dart'
     show PractionerDetailWidget;
-export '/facilities/facility_search_page/facility_search_page_widget.dart'
-    show FacilitySearchPageWidget;
-export '/patients_folder/patients_notifications_page/patients_notifications_page_widget.dart'
-    show PatientsNotificationsPageWidget;
+export '/care_centers/care_center_search_page/care_center_search_page_widget.dart'
+    show CareCenterSearchPageWidget;
 export '/medical_provider/provider_profile_page/provider_profile_page_widget.dart'
     show ProviderProfilePageWidget;
 export '/patients_folder/patients_medication_page/patients_medication_page_widget.dart'
     show PatientsMedicationPageWidget;
 export '/patients_folder/patient_diagnostics/patient_diagnostics_widget.dart'
     show PatientDiagnosticsWidget;
-export '/home_pages/admin_patients_admin_edit_page/admin_patients_admin_edit_page_widget.dart'
-    show AdminPatientsAdminEditPageWidget;
-export '/facilities/facility_settings_page/facility_settings_page_widget.dart'
-    show FacilitySettingsPageWidget;
 export '/home_pages/sign_in/sign_in_widget.dart' show SignInWidget;
 export '/patients_folder/patients_settings_page/patients_settings_page_widget.dart'
     show PatientsSettingsPageWidget;
@@ -76,12 +50,6 @@ export '/medical_provider/provider_settings_page/provider_settings_page_widget.d
     show ProviderSettingsPageWidget;
 export '/system_admin/system_admin_settings_page/system_admin_settings_page_widget.dart'
     show SystemAdminSettingsPageWidget;
-export '/medical_provider/provider_notifications_page/provider_notifications_page_widget.dart'
-    show ProviderNotificationsPageWidget;
-export '/facility_admin/facility_notifications_page/facility_notifications_page_widget.dart'
-    show FacilityNotificationsPageWidget;
-export '/system_admin/system_admin_notifications_page/system_admin_notifications_page_widget.dart'
-    show SystemAdminNotificationsPageWidget;
 export '/system_admin/system_admin_profile_page/system_admin_profile_page_widget.dart'
     show SystemAdminProfilePageWidget;
 export '/facility_admin/facility_admin_profile_page/facility_admin_profile_page_widget.dart'
@@ -94,12 +62,39 @@ export '/medical_provider/provider_account_creation/provider_account_creation_wi
     show ProviderAccountCreationWidget;
 export '/facility_admin/facility_admin_document_page/facility_admin_document_page_widget.dart'
     show FacilityAdminDocumentPageWidget;
-export '/system_admin/syst_admin_document_page/syst_admin_document_page_widget.dart'
-    show SystAdminDocumentPageWidget;
-export '/system_admin/syst_admin_payment_page/syst_admin_payment_page_widget.dart'
-    show SystAdminPaymentPageWidget;
-export '/facility_admin/facility_admin_payment_page/facility_admin_payment_page_widget.dart'
-    show FacilityAdminPaymentPageWidget;
-export '/medical_provider/providers_wallet/providers_wallet_widget.dart'
-    show ProvidersWalletWidget;
-export '/availability/availability_widget.dart' show AvailabilityWidget;
+export '/care_centers/care_centers_types/care_centers_types_widget.dart'
+    show CareCentersTypesWidget;
+export '/care_centers/care_centers/care_centers_widget.dart'
+    show CareCentersWidget;
+export '/care_centers/care_center_details/care_center_details_widget.dart'
+    show CareCenterDetailsWidget;
+export '/chat_a_i/chat/chat_widget.dart' show ChatWidget;
+export '/chat_a_i/a_i_chat_history_page/a_i_chat_history_page_widget.dart'
+    show AIChatHistoryPageWidget;
+export '/all_users_page/admin_patients_page/admin_patients_page_widget.dart'
+    show AdminPatientsPageWidget;
+export '/medical_provider/provider_landing_page/provider_landing_page_widget.dart'
+    show ProviderLandingPageWidget;
+export '/care_centers/care_center_status_page/care_center_status_page_widget.dart'
+    show CareCenterStatusPageWidget;
+export '/all_users_page/admin_provider_status_page/admin_provider_status_page_widget.dart'
+    show AdminProviderStatusPageWidget;
+export '/reset_password_from_link/reset_password_from_link_widget.dart'
+    show ResetPasswordFromLinkWidget;
+export '/finance/finance_widget.dart' show FinanceWidget;
+export '/all_users_page/notifications/notifications_widget.dart'
+    show NotificationsWidget;
+export '/medical_provider/provider_summary_page/provider_summary_page_widget.dart'
+    show ProviderSummaryPageWidget;
+export '/c_hat_message/chat_history_page/chat_history_page_widget.dart'
+    show ChatHistoryPageWidget;
+export '/c_hat_message/chat_history_detail/chat_history_detail_widget.dart'
+    show ChatHistoryDetailWidget;
+export '/home_pages/terms_and_conditions/terms_and_conditions_widget.dart'
+    show TermsAndConditionsWidget;
+export '/home_pages/about_us_page/about_us_page_widget.dart'
+    show AboutUsPageWidget;
+export '/all_users_page/facilityadmin_patients_page/facilityadmin_patients_page_widget.dart'
+    show FacilityadminPatientsPageWidget;
+export '/care_centers/care_center_settings_page/care_center_settings_page_widget.dart'
+    show CareCenterSettingsPageWidget;

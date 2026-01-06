@@ -47,4 +47,25 @@ class ConversationsRow extends SupabaseDataRow {
 
   DateTime? get updatedAt => getField<DateTime>('updated_at');
   set updatedAt(DateTime? value) => setField<DateTime>('updated_at', value);
+
+  String? get appointmentId => getField<String>('appointment_id');
+  set appointmentId(String? value) => setField<String>('appointment_id', value);
+
+  String? get conversationCategory => getField<String>('conversation_category');
+  set conversationCategory(String? value) =>
+      setField<String>('conversation_category', value);
+
+  String? get initiatedByRole => getField<String>('initiated_by_role');
+  set initiatedByRole(String? value) =>
+      setField<String>('initiated_by_role', value);
+
+  bool? get requiresAppointment => getField<bool>('requires_appointment');
+  set requiresAppointment(bool? value) =>
+      setField<bool>('requires_appointment', value);
+
+  bool? get isActive => getField<bool>('is_active');
+  set isActive(bool? value) => setField<bool>('is_active', value);
+
+  String? get facilityId => getField<String>('facility_id');
+  set facilityId(String? value) => setField<String>('facility_id', value);
 }

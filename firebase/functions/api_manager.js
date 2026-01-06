@@ -1,5 +1,5 @@
-// const axios = require("axios").default;
-// const qs = require("qs");
+const axios = require("axios").default;
+const qs = require("qs");
 
 /// Helper functions to route to the appropriate API Call.
 
@@ -21,9 +21,6 @@ async function makeApiCall(context, data) {
   return response;
 }
 
-// Reserved for future API implementations
-// Uncomment when adding custom API calls to callMap
-/*
 async function makeApiRequest({
   method,
   url,
@@ -68,28 +65,26 @@ const _unauthenticatedResponse = {
 
 function createBody({ headers, params, body, bodyType }) {
   switch (bodyType) {
-  case "JSON":
-    headers["Content-Type"] = "application/json";
-    return body;
-  case "TEXT":
-    headers["Content-Type"] = "text/plain";
-    return body;
-  case "X_WWW_FORM_URL_ENCODED":
-    headers["Content-Type"] = "application/x-www-form-urlencoded";
-    return qs.stringify(params);
+    case "JSON":
+      headers["Content-Type"] = "application/json";
+      return body;
+    case "TEXT":
+      headers["Content-Type"] = "text/plain";
+      return body;
+    case "X_WWW_FORM_URL_ENCODED":
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      return qs.stringify(params);
   }
 }
-
 function escapeStringForJson(val) {
   if (typeof val !== "string") {
     return val;
   }
   return val
     .replace(/[\\]/g, "\\\\")
-    .replace(/["]/g, "\\\"")
+    .replace(/["]/g, '\\"')
     .replace(/[\n]/g, "\\n")
     .replace(/[\t]/g, "\\t");
 }
-*/
 
 module.exports = { makeApiCall };

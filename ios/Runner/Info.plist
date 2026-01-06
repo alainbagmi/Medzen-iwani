@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>medzen-iwani</string>
+	<string>MedzenHealth</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>medzen-iwani</string>
+	<string>medzen</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleLocalizations</key>
@@ -21,14 +21,6 @@
 		<string>en</string>
 		<string>fr</string>
 		<string>af</string>
-		<string>zu</string>
-		<string>am</string>
-		<string>sg</string>
-		<string>ff</string>
-		<string>ln</string>
-		<string>wo</string>
-		<string>tw</string>
-		<string>sw</string>
 	</array>
 
 	<key>CFBundleShortVersionString</key>
@@ -51,10 +43,10 @@
         <key>CFBundleTypeRole</key>
         <string>Editor</string>
         <key>CFBundleURLName</key>
-        <string>medzeniwani.com</string>
+        <string>medzenhealth.app</string>
         <key>CFBundleURLSchemes</key>
         <array>
-        <string>medzeniwani</string>
+        <string>mylestech</string>
         </array>
         </dict>
     </array>
@@ -68,25 +60,27 @@
 	<true/>
 
 	<key>NSCameraUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health requires camera access for video consultations with healthcare providers.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health needs access to your photos to upload profile pictures and medical documents.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health uses Bluetooth for connecting to health monitoring devices.</string>
 	<key>NSFaceIDUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health uses Face ID for secure authentication.</string>
 	<key>NSCalendarsUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health needs calendar access to schedule and manage your appointments.</string>
 	<key>NSContactsUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health uses contacts to help you share your medical records with trusted contacts.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health needs your location to find nearby healthcare facilities and providers.</string>
 	<key>NSMicrophoneUsageDescription</key>
-    <string>allow usage </string>
+    <string>MedZen Health requires microphone access for video consultations with healthcare providers.</string>
 	<key>PermissionGroupNotification</key>
-    <string>allow usage </string>
+    <string>MedZen Health sends notifications for appointment reminders and important health updates.</string>
     <key>UIBackgroundModes</key>
     <array>
+        <string>audio</string>
+        <string>voip</string>
         <string>fetch</string>
         <string>remote-notification</string>
     </array>
@@ -113,5 +107,9 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
 </dict>
 </plist>

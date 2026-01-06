@@ -1,0 +1,4 @@
+-- Migration: Disable RLS on clinical_notes to test if that's causing the uuid=text error
+-- Description: Temporarily disable RLS for debugging
+
+ALTER TABLE clinical_notes DISABLE ROW LEVEL SECURITY;

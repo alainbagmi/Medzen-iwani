@@ -1,5 +1,6 @@
 import '/auth/firebase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -8,6 +9,7 @@ import 'dart:math';
 import 'dart:ui';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/random_data_util.dart' as random_data;
+import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -21,9 +23,28 @@ class PaymentReferalWidget extends StatefulWidget {
   const PaymentReferalWidget({
     super.key,
     double? amount,
-  }) : this.amount = amount ?? 3000.0;
+    this.providerid,
+    this.facilityid,
+    this.startdate,
+    this.starttime,
+    this.consultationmode,
+    this.service,
+    required this.helptype,
+    this.appointmentID,
+  }) : this.amount = amount ?? 0.0;
 
   final double amount;
+  final String? providerid;
+  final String? facilityid;
+  final DateTime? startdate;
+  final DateTime? starttime;
+  final String? consultationmode;
+  final String? service;
+
+  /// determinds the path to take
+  final String? helptype;
+
+  final String? appointmentID;
 
   @override
   State<PaymentReferalWidget> createState() => _PaymentReferalWidgetState();
@@ -87,6 +108,8 @@ class _PaymentReferalWidgetState extends State<PaymentReferalWidget>
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FFAppState>();
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -273,40 +296,259 @@ class _PaymentReferalWidgetState extends State<PaymentReferalWidget>
                                 alignment: AlignmentDirectional(0.0, 0.05),
                                 child: FFButtonWidget(
                                   onPressed: () async {
-                                    _model.initialisepayment =
-                                        await PaymentGroup.initializePaymentCall
-                                            .call(
-                                      amount: widget!.amount.toString(),
-                                      transactionID:
-                                          'Medzen-${random_data.randomString(
-                                        4,
-                                        8,
-                                        true,
-                                        true,
-                                        true,
-                                      )}',
-                                    );
-
-                                    if ((_model.initialisepayment?.succeeded ??
-                                        true)) {
-                                      _model.apiResultpdo =
-                                          await HelpMePayCall.call(
-                                        phone: _model.userphone,
-                                        sms:
-                                            'Hi From Medzen Health ${currentUserDisplayName}Has Requested You help them Pay their E-Health bill of 50000Please use this link to pay${PaymentGroup.initializePaymentCall.transactionURL(
-                                          (_model.initialisepayment?.jsonBody ??
-                                              ''),
+                                    if (widget!.helptype == 'new') {
+                                      _model.initialisepayment =
+                                          await PaymentGroup
+                                              .initializePaymentCall
+                                              .call(
+                                        amount: widget!.amount.toString(),
+                                        transactionID: 'Medzen-${dateTimeFormat(
+                                          "jms",
+                                          random_data.randomDate(),
+                                          locale: FFLocalizations.of(context)
+                                              .languageCode,
                                         )}',
                                       );
 
-                                      if ((_model.apiResultpdo?.succeeded ??
+                                      if ((_model
+                                              .initialisepayment?.succeeded ??
                                           true)) {
+                                        if ((String var1) {
+                                          return var1.startsWith('+237');
+                                        }(_model.userphone!)) {
+                                          _model.apiResultlfg =
+                                              await AwsSmsCall.call(
+                                            phonenumber: _model.userphone,
+                                            message:
+                                                'Hi From Medzen E-Health .  ${currentUserDisplayName}Has Requested You help them Pay their E-Health bill of ${widget!.amount.toString()}XAF , Please use this link to pay :  ${PaymentGroup.initializePaymentCall.transactionURL(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            )}',
+                                          );
+
+                                          if ((_model.apiResultlfg?.succeeded ??
+                                              true)) {
+                                            _model.appointment1 =
+                                                await AppointmentsTable()
+                                                    .insert({
+                                              'patient_id':
+                                                  FFAppState().AuthuserID,
+                                              'provider_id': widget!.providerid,
+                                              'start_date':
+                                                  supaSerialize<DateTime>(
+                                                      widget!.startdate),
+                                              'appointment_type':
+                                                  widget!.service,
+                                              'appointment_number':
+                                                  'Appt-${random_data.randomInteger(0, 10).toString()}',
+                                              'status': 'pending',
+                                              'consultation_mode':
+                                                  widget!.consultationmode,
+                                              'scheduled_start':
+                                                  supaSerialize<DateTime>(
+                                                      widget!.startdate),
+                                              'scheduled_end':
+                                                  supaSerialize<DateTime>(
+                                                      widget!.starttime),
+                                              'facility_id': widget!.facilityid,
+                                            });
+                                            await PaymentsTable().insert({
+                                              'payment_for': widget!.service,
+                                              'net_amount': widget!.amount,
+                                              'payment_reference': PaymentGroup
+                                                  .initializePaymentCall
+                                                  .transactionID(
+                                                (_model.initialisepayment
+                                                        ?.jsonBody ??
+                                                    ''),
+                                              ),
+                                              'gross_amount': widget!.amount,
+                                              'payment_status': 'completed',
+                                              'payer_id':
+                                                  FFAppState().AuthuserID,
+                                              'transaction_id': PaymentGroup
+                                                  .initializePaymentCall
+                                                  .transactionID(
+                                                (_model.initialisepayment
+                                                        ?.jsonBody ??
+                                                    ''),
+                                              ),
+                                              'appointment_id':
+                                                  _model.appointment1?.id,
+                                              'facility_id': widget!.facilityid,
+                                              'external_transaction_id': '',
+                                              'recipient_id':
+                                                  widget!.providerid,
+                                            });
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(context)
+                                                .clearSnackBars();
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Payment Successful. Booking has been confirmed',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryBackground,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .success,
+                                              ),
+                                            );
+
+                                            context.pushNamed(
+                                                AppointmentsWidget.routeName);
+                                          } else {
+                                            await showDialog(
+                                              context: context,
+                                              builder: (alertDialogContext) {
+                                                return AlertDialog(
+                                                  title: Text(
+                                                      'Failed to ask for Help'),
+                                                  content: Text(
+                                                      'We were unable to to contact the recipient at the moment. Please try again later'),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              alertDialogContext),
+                                                      child: Text('Ok'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          }
+                                        } else {
+                                          _model.apiResultpdo =
+                                              await HelpMePayCall.call(
+                                            phone: _model.userphone,
+                                            sms:
+                                                'Hi From Medzen E-Health .  ${currentUserDisplayName}Has Requested You help them Pay their E-Health bill of ${widget!.amount.toString()}XAF , Please use this link to pay ${PaymentGroup.initializePaymentCall.transactionURL(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            )}',
+                                          );
+
+                                          if ((_model.apiResultpdo?.succeeded ??
+                                              true)) {
+                                            _model.appointment =
+                                                await AppointmentsTable()
+                                                    .insert({
+                                              'patient_id':
+                                                  FFAppState().AuthuserID,
+                                              'provider_id': widget!.providerid,
+                                              'start_date':
+                                                  supaSerialize<DateTime>(
+                                                      widget!.startdate),
+                                              'appointment_type':
+                                                  widget!.service,
+                                              'appointment_number':
+                                                  'Appt-${random_data.randomInteger(0, 10).toString()}',
+                                              'status': 'pending',
+                                              'consultation_mode':
+                                                  widget!.consultationmode,
+                                              'scheduled_start':
+                                                  supaSerialize<DateTime>(
+                                                      widget!.startdate),
+                                              'scheduled_end':
+                                                  supaSerialize<DateTime>(
+                                                      widget!.starttime),
+                                              'facility_id': widget!.facilityid,
+                                            });
+                                            await PaymentsTable().insert({
+                                              'payment_for': widget!.service,
+                                              'net_amount': widget!.amount,
+                                              'payment_reference': PaymentGroup
+                                                  .initializePaymentCall
+                                                  .transactionID(
+                                                (_model.initialisepayment
+                                                        ?.jsonBody ??
+                                                    ''),
+                                              ),
+                                              'gross_amount': widget!.amount,
+                                              'payment_status': 'completed',
+                                              'payer_id':
+                                                  FFAppState().AuthuserID,
+                                              'transaction_id': PaymentGroup
+                                                  .initializePaymentCall
+                                                  .transactionID(
+                                                (_model.initialisepayment
+                                                        ?.jsonBody ??
+                                                    ''),
+                                              ),
+                                              'appointment_id':
+                                                  _model.appointment?.id,
+                                              'facility_id': widget!.facilityid,
+                                              'external_transaction_id': '',
+                                              'recipient_id':
+                                                  widget!.providerid,
+                                            });
+                                            Navigator.pop(context);
+                                            ScaffoldMessenger.of(context)
+                                                .clearSnackBars();
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Payment Successful. Booking has been confirmed',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryBackground,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .success,
+                                              ),
+                                            );
+
+                                            context.pushNamed(
+                                                AppointmentsWidget.routeName);
+                                          } else {
+                                            await showDialog(
+                                              context: context,
+                                              builder: (alertDialogContext) {
+                                                return AlertDialog(
+                                                  title: Text(
+                                                      'Failed to ask for Help'),
+                                                  content: Text(
+                                                      'We were unable to to contact the recipient at the moment. Please try again later'),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              alertDialogContext),
+                                                      child: Text('Ok'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+                                          }
+                                        }
+                                      } else {
                                         context.safePop();
+                                        ScaffoldMessenger.of(context)
+                                            .clearSnackBars();
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              'Help Sent',
+                                              'Process failed. Please try again later',
                                               style: TextStyle(
                                                 color:
                                                     FlutterFlowTheme.of(context)
@@ -317,47 +559,125 @@ class _PaymentReferalWidgetState extends State<PaymentReferalWidget>
                                                 Duration(milliseconds: 4000),
                                             backgroundColor:
                                                 FlutterFlowTheme.of(context)
-                                                    .success,
+                                                    .error,
                                           ),
-                                        );
-                                      } else {
-                                        await showDialog(
-                                          context: context,
-                                          builder: (alertDialogContext) {
-                                            return AlertDialog(
-                                              title: Text('Payment Failed'),
-                                              content: Text(
-                                                  'We were unable to proceed with payment please try again'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(
-                                                          alertDialogContext),
-                                                  child: Text('Ok'),
-                                                ),
-                                              ],
-                                            );
-                                          },
                                         );
                                       }
                                     } else {
-                                      await showDialog(
-                                        context: context,
-                                        builder: (alertDialogContext) {
-                                          return AlertDialog(
-                                            title: Text('Payment Failed'),
-                                            content: Text(
-                                                'We were unable to proceed with payment please try again'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    alertDialogContext),
-                                                child: Text('Ok'),
-                                              ),
-                                            ],
-                                          );
-                                        },
+                                      _model.paymenturl =
+                                          await PaymentsTable().queryRows(
+                                        queryFn: (q) => q.eqOrNull(
+                                          'appointment_id',
+                                          widget!.appointmentID,
+                                        ),
                                       );
+                                      if ((String var1) {
+                                        return var1.startsWith('+237');
+                                      }(_model.userphone!)) {
+                                        _model.apiResult1qi =
+                                            await AwsSmsCall.call(
+                                          phonenumber: _model.userphone,
+                                          message:
+                                              'Hi From Medzen E-Health. ${currentUserDisplayName}Has Requested You help them Pay their E-Health bill of ${widget!.amount.toString()}XAF , Please use this link to pay  ${_model.paymenturl?.firstOrNull?.paymentUrl}',
+                                        );
+
+                                        if ((_model.apiResult1qi?.succeeded ??
+                                            true)) {
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Help sent ',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .success,
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Service unavailable. please retry later',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .error,
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        _model.resendhelp =
+                                            await HelpMePayCall.call(
+                                          phone: _model.userphone,
+                                          sms:
+                                              'Hi From Medzen E-Health. ${currentUserDisplayName}Has Requested You help them Pay their E-Health bill of ${widget!.amount.toString()}XAF , Please use this link to pay  ${_model.paymenturl?.firstOrNull?.paymentUrl}',
+                                        );
+
+                                        if ((_model.resendhelp?.succeeded ??
+                                            true)) {
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Help sent ',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .success,
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Service unavailable. please retry later',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .error,
+                                            ),
+                                          );
+                                        }
+                                      }
                                     }
 
                                     safeSetState(() {});

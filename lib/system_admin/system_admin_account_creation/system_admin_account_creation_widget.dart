@@ -27,7 +27,7 @@ class SystemAdminAccountCreationWidget extends StatefulWidget {
   const SystemAdminAccountCreationWidget({super.key});
 
   static String routeName = 'systemAdminAccountCreation';
-  static String routePath = '/systemAdminAccountCreation';
+  static String routePath = 'systemAdminAccountCreation';
 
   @override
   State<SystemAdminAccountCreationWidget> createState() =>
@@ -105,18 +105,7 @@ class _SystemAdminAccountCreationWidgetState
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {
           _model.roleTextController?.text = FFLocalizations.of(context).getText(
-            '3iu2bem4' /* system admin
-
-
-
-
-
-
-
-
-
-   */
-            ,
+            '3iu2bem4' /* system admin */,
           );
         }));
   }
@@ -140,16 +129,28 @@ class _SystemAdminAccountCreationWidgetState
       child: Scaffold(
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(70.0),
+          child: AppBar(
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            automaticallyImplyLeading: false,
+            actions: [],
+            flexibleSpace: FlexibleSpaceBar(
+              background: wrapWithModel(
+                model: _model.medzenHeaderBackModel,
+                updateCallback: () => safeSetState(() {}),
+                child: MedzenHeaderBackWidget(),
+              ),
+            ),
+            centerTitle: true,
+            elevation: 0.0,
+          ),
+        ),
         body: SafeArea(
           top: true,
           child: Column(
             mainAxisSize: MainAxisSize.max,
             children: [
-              wrapWithModel(
-                model: _model.medzenHeaderBackModel,
-                updateCallback: () => safeSetState(() {}),
-                child: MedzenHeaderBackWidget(),
-              ),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.max,
@@ -553,6 +554,8 @@ class _SystemAdminAccountCreationWidgetState
                                                                       _model
                                                                           .picklanguageValueController
                                                                           ?.reset();
+                                                                      _model.picklanguageValue =
+                                                                          null;
                                                                     });
                                                                   },
                                                                   width: 200.0,
@@ -2232,12 +2235,12 @@ class _SystemAdminAccountCreationWidgetState
                                                                       options: [
                                                                         ChipData(
                                                                             FFLocalizations.of(context).getText(
-                                                                              'a449gy98' /* male */,
+                                                                              'a449gy98' /* M */,
                                                                             ),
                                                                             Icons.man_2),
                                                                         ChipData(
                                                                             FFLocalizations.of(context).getText(
-                                                                              'oa095z46' /* female */,
+                                                                              'oa095z46' /* F */,
                                                                             ),
                                                                             Icons.woman_2)
                                                                       ],
@@ -3084,7 +3087,7 @@ class _SystemAdminAccountCreationWidgetState
                                                                             context)
                                                                         .width *
                                                                     0.2,
-                                                                height: 60.0,
+                                                                height: 53.26,
                                                                 padding: EdgeInsetsDirectional
                                                                     .fromSTEB(
                                                                         24.0,
@@ -3192,7 +3195,7 @@ class _SystemAdminAccountCreationWidgetState
                                                                             context)
                                                                         .width *
                                                                     0.2,
-                                                                height: 60.0,
+                                                                height: 55.13,
                                                                 padding: EdgeInsetsDirectional
                                                                     .fromSTEB(
                                                                         24.0,
@@ -4246,6 +4249,8 @@ class _SystemAdminAccountCreationWidgetState
                                                                 _model
                                                                     .selectRelationshipValueController
                                                                     ?.reset();
+                                                                _model.selectRelationshipValue =
+                                                                    null;
                                                               });
                                                             },
                                                             width: 246.7,
@@ -6666,20 +6671,6 @@ class _SystemAdminAccountCreationWidgetState
                                                                         .id;
                                                                 safeSetState(
                                                                     () {});
-
-                                                                await currentUserReference!
-                                                                    .update(
-                                                                        createUsersRecordData(
-                                                                  displayName:
-                                                                      '${_model.firstNameTextController.text}  ${_model.lastNameTextController.text}',
-                                                                  phoneNumber:
-                                                                      (String
-                                                                          email) {
-                                                                    return email
-                                                                        .split(
-                                                                            '@')[0];
-                                                                  }(currentUserEmail),
-                                                                ));
                                                                 await UsersTable()
                                                                     .update(
                                                                   data: {
@@ -6695,9 +6686,10 @@ class _SystemAdminAccountCreationWidgetState
                                                                             DateTime>(
                                                                         _model
                                                                             .datePicked1),
-                                                                    'gender': _model
-                                                                        .selectGenderTextController
-                                                                        .text,
+                                                                    'gender': _model.selectGenderTextController.text ==
+                                                                            'M'
+                                                                        ? 'male'
+                                                                        : 'female',
                                                                     'preferred_language':
                                                                         _model
                                                                             .preferedLanguageTextController
@@ -6763,7 +6755,7 @@ class _SystemAdminAccountCreationWidgetState
                                                                           .text,
                                                                   'insurance_number':
                                                                       _model
-                                                                          .adminInsuranceProviderTextController
+                                                                          .adminPolicyNumberTextController
                                                                           .text,
                                                                   'id_card_number':
                                                                       _model
@@ -6809,6 +6801,42 @@ class _SystemAdminAccountCreationWidgetState
                                                                     'system_admin';
                                                                 safeSetState(
                                                                     () {});
+                                                                _model.saprofile =
+                                                                    await SystemAdminProfilesTable()
+                                                                        .queryRows(
+                                                                  queryFn: (q) =>
+                                                                      q.eqOrNull(
+                                                                    'user_id',
+                                                                    _model
+                                                                        .aUthUser
+                                                                        ?.firstOrNull
+                                                                        ?.id,
+                                                                  ),
+                                                                );
+
+                                                                await currentUserReference!
+                                                                    .update(
+                                                                        createUsersRecordData(
+                                                                  displayName:
+                                                                      '${_model.firstNameTextController.text}  ${_model.lastNameTextController.text}',
+                                                                  phoneNumber:
+                                                                      (String
+                                                                          email) {
+                                                                    return email
+                                                                        .split(
+                                                                            '@')[0];
+                                                                  }(currentUserEmail),
+                                                                  role:
+                                                                      'system_admin',
+                                                                  supabaseUuid: _model
+                                                                      .aUthUser
+                                                                      ?.firstOrNull
+                                                                      ?.id,
+                                                                  userNumber: _model
+                                                                      .saprofile
+                                                                      ?.firstOrNull
+                                                                      ?.adminNumber,
+                                                                ));
 
                                                                 context.pushNamed(
                                                                     SystemAdminLandingPageWidget

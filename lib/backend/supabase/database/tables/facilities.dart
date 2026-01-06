@@ -61,9 +61,9 @@ class FacilitiesRow extends SupabaseDataRow {
   set emergencyServices(bool? value) =>
       setField<bool>('emergency_services', value);
 
-  List<String> get specialties => getListField<String>('specialties');
-  set specialties(List<String>? value) =>
-      setListField<String>('specialties', value);
+  List<dynamic> get specialties => getListField<dynamic>('specialties');
+  set specialties(List<dynamic>? value) =>
+      setListField<dynamic>('specialties', value);
 
   List<String> get certifications => getListField<String>('certifications');
   set certifications(List<String>? value) =>
@@ -90,4 +90,19 @@ class FacilitiesRow extends SupabaseDataRow {
   double? get consultationFee => getField<double>('consultation_fee');
   set consultationFee(double? value) =>
       setField<double>('consultation_fee', value);
+
+  String get applicationStatus => getField<String>('application_status')!;
+  set applicationStatus(String value) =>
+      setField<String>('application_status', value);
+
+  String? get rejectionReason => getField<String>('rejection_reason');
+  set rejectionReason(String? value) =>
+      setField<String>('rejection_reason', value);
+
+  String? get description => getField<String>('Description');
+  set description(String? value) => setField<String>('Description', value);
+
+  List<String> get departments => getListField<String>('Departments');
+  set departments(List<String>? value) =>
+      setListField<String>('Departments', value);
 }

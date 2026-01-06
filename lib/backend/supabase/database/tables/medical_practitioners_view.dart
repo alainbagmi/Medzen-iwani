@@ -37,4 +37,49 @@ class MedicalPractitionersViewRow extends SupabaseDataRow {
 
   double? get fees => getField<double>('fees');
   set fees(double? value) => setField<double>('fees', value);
+
+  String? get licenseNumber => getField<String>('license_number');
+  set licenseNumber(String? value) => setField<String>('license_number', value);
+
+  String? get licenseIssuingAuthority =>
+      getField<String>('license_issuing_authority');
+  set licenseIssuingAuthority(String? value) =>
+      setField<String>('license_issuing_authority', value);
+
+  DateTime? get licenseExpiryDate => getField<DateTime>('license_expiry_date');
+  set licenseExpiryDate(DateTime? value) =>
+      setField<DateTime>('license_expiry_date', value);
+
+  DateTime? get applicationDate => getField<DateTime>('application_date');
+  set applicationDate(DateTime? value) =>
+      setField<DateTime>('application_date', value);
+
+  String? get applicationStatus => getField<String>('application_status');
+  set applicationStatus(String? value) =>
+      setField<String>('application_status', value);
+
+  String? get rejectionReasons => getField<String>('rejection_reasons');
+  set rejectionReasons(String? value) =>
+      setField<String>('rejection_reasons', value);
+
+  String? get phoneNumber => getField<String>('phone_number');
+  set phoneNumber(String? value) => setField<String>('phone_number', value);
+
+  String? get emergencyContactName =>
+      getField<String>('emergency_contact_name');
+  set emergencyContactName(String? value) =>
+      setField<String>('emergency_contact_name', value);
+
+  String? get emergencyContactPhone =>
+      getField<String>('emergency_contact_phone');
+  set emergencyContactPhone(String? value) =>
+      setField<String>('emergency_contact_phone', value);
+
+  String? get emergencyContactRelationship =>
+      getField<String>('emergency_contact_relationship');
+  set emergencyContactRelationship(String? value) =>
+      setField<String>('emergency_contact_relationship', value);
+
+  String? get facilityId => getField<String>('facility_id');
+  set facilityId(String? value) => setField<String>('facility_id', value);
 }

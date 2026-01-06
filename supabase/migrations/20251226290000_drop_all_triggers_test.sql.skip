@@ -1,0 +1,29 @@
+-- Migration: Drop ALL triggers to find the problematic one
+-- Description: Nuclear option - remove all triggers to confirm
+
+-- Drop our trigger
+DROP TRIGGER IF EXISTS tr_clinical_note_sync ON clinical_notes;
+DROP TRIGGER IF EXISTS tr_clinical_note_sync_insert ON clinical_notes;
+
+-- Drop any other triggers that might exist
+DO $$
+DECLARE
+    trigger_rec RECORD;
+BEGIN
+    FOR trigger_rec IN
+        SELECT tgname
+        FROM pg_trigger
+        WHERE tgrelid = 'clinical_notes'::regclass
+        AND NOT tgisinternal
+    LOOP
+        EXECUTE format('DROP TRIGGER IF EXISTS %I ON clinical_notes CASCADE', trigger_rec.tgname);
+        RAISE NOTICE 'Dropped trigger: %', trigger_rec.tgname;
+    END LOOP;
+END $$;
+
+-- Drop all functions that might be called
+DROP FUNCTION IF EXISTS fn_queue_clinical_note_sync() CASCADE;
+DROP FUNCTION IF EXISTS fn_queue_signed_clinical_note() CASCADE;
+DROP FUNCTION IF EXISTS fn_queue_clinical_note_for_ehrbase_sync() CASCADE;
+DROP FUNCTION IF EXISTS queue_clinical_note_for_sync() CASCADE;
+DROP FUNCTION IF EXISTS auto_sync_clinical_note() CASCADE;

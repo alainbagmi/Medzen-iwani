@@ -10,6 +10,7 @@ import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/form_field_controller.dart';
+import '/flutter_flow/upload_data.dart';
 import 'dart:ui';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
@@ -30,14 +31,14 @@ class ProviderAccountCreationModel
 
   String? facilityID;
 
+  double finalConsultationFee = 0.0;
+
   ///  State fields for stateful widgets in this page.
 
   final formKey3 = GlobalKey<FormState>();
   final formKey2 = GlobalKey<FormState>();
   final formKey4 = GlobalKey<FormState>();
   final formKey1 = GlobalKey<FormState>();
-  // Model for medzen_landing_header component.
-  late MedzenLandingHeaderModel medzenLandingHeaderModel;
   // State field(s) for PageView widget.
   PageController? pageViewController;
 
@@ -143,6 +144,27 @@ class ProviderAccountCreationModel
   FocusNode? bioFocusNode;
   TextEditingController? bioTextController;
   String? Function(BuildContext, String?)? bioTextControllerValidator;
+  bool isDataUploading_uploadDataF3f = false;
+  FFUploadedFile uploadedLocalFile_uploadDataF3f =
+      FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
+  String uploadedFileUrl_uploadDataF3f = '';
+
+  // State field(s) for consultationFee widget.
+  FocusNode? consultationFeeFocusNode;
+  TextEditingController? consultationFeeTextController;
+  String? Function(BuildContext, String?)?
+      consultationFeeTextControllerValidator;
+  String? _consultationFeeTextControllerValidator(
+      BuildContext context, String? val) {
+    if (val == null || val.isEmpty) {
+      return FFLocalizations.of(context).getText(
+        'uhnilj23' /* consultation Fee is required */,
+      );
+    }
+
+    return null;
+  }
+
   // State field(s) for DropDownprovider widget.
   String? dropDownproviderValue;
   FormFieldController<String>? dropDownproviderValueController;
@@ -201,15 +223,14 @@ class ProviderAccountCreationModel
   String? Function(BuildContext, String?)?
       licenceExpirationTextControllerValidator;
   DateTime? datePicked4;
-  // State field(s) for DropDownpractisepick widget.
-  String? dropDownpractisepickValue;
-  FormFieldController<String>? dropDownpractisepickValueController;
-  // Stores action output result for [Backend Call - Query Rows] action in DropDownpractisepick widget.
-  List<FacilitiesRow>? facID;
-  // State field(s) for FacilityName widget.
-  FocusNode? facilityNameFocusNode;
-  TextEditingController? facilityNameTextController;
-  String? Function(BuildContext, String?)? facilityNameTextControllerValidator;
+  // State field(s) for facilityChoice widget.
+  String? facilityChoiceValue;
+  FormFieldController<String>? facilityChoiceValueController;
+  // State field(s) for facilityChosen widget.
+  FocusNode? facilityChosenFocusNode;
+  TextEditingController? facilityChosenTextController;
+  String? Function(BuildContext, String?)?
+      facilityChosenTextControllerValidator;
   // State field(s) for PracticeName widget.
   FocusNode? practiceNameFocusNode;
   TextEditingController? practiceNameTextController;
@@ -323,19 +344,28 @@ class ProviderAccountCreationModel
   String? Function(BuildContext, String?)? relationshipTextControllerValidator;
   // Stores action output result for [Backend Call - Query Rows] action in Button widget.
   List<UsersRow>? lOgged;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<FacilitiesRow>? facid;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<MedicalProviderProfilesRow>? mdprofile;
+  // Stores action output result for [Backend Call - API (AWS SMS)] action in Button widget.
+  ApiCallResponse? apiResult9n5;
+  // Model for medzen_landing_header component.
+  late MedzenLandingHeaderModel medzenLandingHeaderModel;
 
   @override
   void initState(BuildContext context) {
-    medzenLandingHeaderModel =
-        createModel(context, () => MedzenLandingHeaderModel());
+    consultationFeeTextControllerValidator =
+        _consultationFeeTextControllerValidator;
     providerTypeTextControllerValidator = _providerTypeTextControllerValidator;
     formSpecialistTextControllerValidator =
         _formSpecialistTextControllerValidator;
+    medzenLandingHeaderModel =
+        createModel(context, () => MedzenLandingHeaderModel());
   }
 
   @override
   void dispose() {
-    medzenLandingHeaderModel.dispose();
     roleFocusNode?.dispose();
     roleTextController?.dispose();
 
@@ -393,6 +423,9 @@ class ProviderAccountCreationModel
     bioFocusNode?.dispose();
     bioTextController?.dispose();
 
+    consultationFeeFocusNode?.dispose();
+    consultationFeeTextController?.dispose();
+
     providerTypeFocusNode?.dispose();
     providerTypeTextController?.dispose();
 
@@ -408,8 +441,8 @@ class ProviderAccountCreationModel
     licenceExpirationFocusNode?.dispose();
     licenceExpirationTextController?.dispose();
 
-    facilityNameFocusNode?.dispose();
-    facilityNameTextController?.dispose();
+    facilityChosenFocusNode?.dispose();
+    facilityChosenTextController?.dispose();
 
     practiceNameFocusNode?.dispose();
     practiceNameTextController?.dispose();
@@ -476,5 +509,7 @@ class ProviderAccountCreationModel
 
     relationshipFocusNode?.dispose();
     relationshipTextController?.dispose();
+
+    medzenLandingHeaderModel.dispose();
   }
 }

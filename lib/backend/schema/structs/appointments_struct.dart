@@ -91,7 +91,7 @@ class AppointmentsStruct extends FFFirebaseStruct {
 
   // "facility_id" field.
   String? _facilityId;
-  String get facilityId => _facilityId ?? '';
+  String get facilityId => _facilityId ?? 'null';
   set facilityId(String? val) => _facilityId = val;
 
   bool hasFacilityId() => _facilityId != null;

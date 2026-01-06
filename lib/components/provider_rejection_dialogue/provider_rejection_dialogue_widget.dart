@@ -1,3 +1,4 @@
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_choice_chips.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -6,6 +7,7 @@ import '/flutter_flow/flutter_flow_widgets.dart';
 import '/flutter_flow/form_field_controller.dart';
 import 'dart:math';
 import 'dart:ui';
+import '/flutter_flow/random_data_util.dart' as random_data;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -17,19 +19,10 @@ export 'provider_rejection_dialogue_model.dart';
 class ProviderRejectionDialogueWidget extends StatefulWidget {
   const ProviderRejectionDialogueWidget({
     super.key,
-    String? name,
-    String? service,
-    String? specialty,
-    double? amount,
-  })  : this.name = name ?? 'Name of doctor or facility',
-        this.service = service ?? 'Services',
-        this.specialty = specialty ?? 'specialty or location',
-        this.amount = amount ?? 3000.0;
+    String? providerID,
+  }) : this.providerID = providerID ?? 'Name of doctor or facility';
 
-  final String name;
-  final String service;
-  final String specialty;
-  final double amount;
+  final String providerID;
 
   @override
   State<ProviderRejectionDialogueWidget> createState() =>
@@ -95,6 +88,8 @@ class _ProviderRejectionDialogueWidgetState
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FFAppState>();
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -234,9 +229,13 @@ class _ProviderRejectionDialogueWidgetState
                                                 'ueqdthpm' /* License Expired */,
                                               ))
                                             ],
-                                            onChanged: (val) => safeSetState(
-                                                () =>
-                                                    _model.reasonsValues = val),
+                                            onChanged: (val) async {
+                                              safeSetState(() =>
+                                                  _model.reasonsValues = val);
+                                              _model.isubmitrejectionSelected =
+                                                  true;
+                                              safeSetState(() {});
+                                            },
                                             selectedChipStyle: ChipStyle(
                                               backgroundColor:
                                                   FlutterFlowTheme.of(context)
@@ -413,8 +412,7 @@ class _ProviderRejectionDialogueWidgetState
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(18.0),
-                                    hoverColor:
-                                        FlutterFlowTheme.of(context).primary,
+                                    hoverColor: Color(0xFF0353F8),
                                     hoverBorderSide: BorderSide(
                                       color: FlutterFlowTheme.of(context)
                                           .primaryText,
@@ -425,14 +423,54 @@ class _ProviderRejectionDialogueWidgetState
                               ),
                               Expanded(
                                 child: FFButtonWidget(
-                                  onPressed: () {
-                                    print('Button pressed ...');
-                                  },
+                                  onPressed: (_model.isubmitrejectionSelected ==
+                                          false)
+                                      ? null
+                                      : () async {
+                                          await MedicalProviderProfilesTable()
+                                              .update(
+                                            data: {
+                                              'application_status': 'revoked',
+                                              'rejection_reason': _model
+                                                  .reasonsValues?.firstOrNull,
+                                              'revoked_by_id':
+                                                  FFAppState().AuthuserID,
+                                              'revoked_at':
+                                                  supaSerialize<DateTime>(
+                                                      random_data.randomDate()),
+                                            },
+                                            matchingRows: (rows) =>
+                                                rows.eqOrNull(
+                                              'user_id',
+                                              widget!.providerID,
+                                            ),
+                                          );
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Successfully Rejected',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .error,
+                                            ),
+                                          );
+                                          Navigator.pop(context);
+                                        },
                                   text: FFLocalizations.of(context).getText(
                                     '1s0lwab8' /* Submit Rejection */,
                                   ),
                                   options: FFButtonOptions(
-                                    height: 48.33,
+                                    height: 48.73,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
                                     iconPadding: EdgeInsetsDirectional.fromSTEB(
@@ -463,7 +501,8 @@ class _ProviderRejectionDialogueWidgetState
                                       width: 1.0,
                                     ),
                                     borderRadius: BorderRadius.circular(20.0),
-                                    hoverColor: Color(0xFFDC2626),
+                                    disabledColor: Color(0xFF5B656B),
+                                    hoverColor: Color(0xFFF20606),
                                   ),
                                 ),
                               ),

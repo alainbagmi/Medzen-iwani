@@ -21,6 +21,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+// Web-specific imports (conditional)
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' if (dart.library.io) 'chime_meeting_enhanced_stub.dart' as html;
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:ui_web' if (dart.library.io) 'chime_meeting_enhanced_stub.dart' as ui_web;
+
 /// ✨ ENHANCED CHIME VIDEO CALL WIDGET - AWS Demo Features + Web Support
 ///
 /// Features matching AWS Chime SDK official demo: - ✅ Multi-participant video
@@ -91,13 +97,19 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   bool _sdkReady = false;
   Timer? _sdkLoadTimeout;
 
+  // Web-specific state
+  String? _webViewId;
+  bool _webViewRegistered = false;
+  Function? _webMessageHandler;
+  html.IFrameElement? _webIframe; // Store iframe reference for postMessage
+
   // Enhanced state management (matching AWS demo)
   final Map<String, Map<String, dynamic>> _attendees = {};
   final Map<int, String> _videoTiles = {};
   String? _activeSpeakerId;
   bool _isMuted = false;
   bool _isVideoOff = false;
-  final bool _showRoster = false;
+  bool _showRoster = false;
   bool _showChat = false;
   int _participantCount = 0;
   String? _meetingId;
@@ -135,7 +147,88 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         '📹 Initial camera enabled: ${widget.initialCameraEnabled} (video off: $_isVideoOff)');
 
     _extractMeetingId();
-    _checkPermissionsAndInitialize();
+
+    // Initialize web view for web platform
+    if (kIsWeb) {
+      _initializeWebView();
+    } else {
+      _checkPermissionsAndInitialize();
+    }
+  }
+
+  /// Initialize web video call using iframe and HtmlElementView
+  void _initializeWebView() {
+    debugPrint('🌐 Initializing web video call...');
+
+    // Generate unique view ID
+    _webViewId = 'chime-video-${DateTime.now().millisecondsSinceEpoch}';
+
+    // Register the view factory for web
+    if (!_webViewRegistered) {
+      // ignore: undefined_prefixed_name
+      ui_web.platformViewRegistry.registerViewFactory(
+        _webViewId!,
+        (int viewId) {
+          final iframe = html.IFrameElement()
+            ..id = _webViewId!
+            ..style.border = 'none'
+            ..style.width = '100%'
+            ..style.height = '100%'
+            // Critical: Allow camera, microphone, and display-capture for video calls
+            ..allow = 'camera; microphone; display-capture; autoplay; fullscreen; encrypted-media'
+            ..setAttribute('allowfullscreen', 'true');
+
+          // Set the HTML content via srcdoc
+          final htmlContent = _getEnhancedChimeHTML();
+          iframe.setAttribute('srcdoc', htmlContent);
+
+          // Store iframe reference for later postMessage communication
+          _webIframe = iframe;
+
+          return iframe;
+        },
+      );
+      _webViewRegistered = true;
+      debugPrint('✅ Web view factory registered: $_webViewId');
+    }
+
+    // Set up message listener for communication from iframe
+    _setupWebMessageListener();
+
+    // Start SDK load timeout
+    _startSdkLoadTimeout();
+
+    // Initialize message subscription for realtime chat
+    if (widget.appointmentId != null) {
+      _subscribeToMessages();
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  /// Set up message listener to receive messages from the iframe
+  void _setupWebMessageListener() {
+    if (!kIsWeb) return;
+
+    _webMessageHandler = (dynamic event) {
+      try {
+        // Check if message is from our iframe
+        final data = event.data;
+        if (data is String) {
+          _handleMessageFromWebView(data);
+        } else if (data is Map) {
+          _handleMessageFromWebView(jsonEncode(data));
+        }
+      } catch (e) {
+        debugPrint('⚠️ Error handling web message: $e');
+      }
+    };
+
+    // ignore: undefined_prefixed_name
+    html.window.addEventListener('message', _webMessageHandler as html.EventListener);
+    debugPrint('✅ Web message listener set up');
   }
 
   /// Check camera/microphone permissions before initializing WebView
@@ -229,8 +322,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
     }
 
-    // Continue with initialization
-    _initializeWebView();
+    // Continue with initialization (mobile uses InAppWebView)
+    _initializeMobileWebView();
     _startSdkLoadTimeout();
 
     // Initialize message subscription for realtime chat
@@ -349,6 +442,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     // Unsubscribe from message channel
     if (_messageChannel != null) {
       SupaFlow.client.removeChannel(_messageChannel!);
+    }
+
+    // Cleanup web message listener
+    if (kIsWeb && _webMessageHandler != null) {
+      // ignore: undefined_prefixed_name
+      html.window.removeEventListener('message', _webMessageHandler as html.EventListener);
+      debugPrint('✅ Web message listener removed');
     }
 
     // Clear processed message IDs to free memory
@@ -495,7 +595,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     }
   }
 
-  void _initializeWebView() {
+  void _initializeMobileWebView() {
     // With flutter_inappwebview, the WebView is initialized in the build method
     // The controller is obtained via onWebViewCreated callback
     debugPrint('🔧 InAppWebView initialization will occur in build method');
@@ -811,8 +911,16 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     _joinMeeting();
   }
 
-  void _handleMeetingEnd(String message) {
+  Future<void> _handleMeetingEnd(String message) async {
     debugPrint('📞 Meeting ended: $message');
+
+    // Stop transcription first (for providers) - this aggregates the transcript
+    if (_isTranscriptionEnabled && widget.isProvider == true) {
+      debugPrint('🛑 Stopping transcription before ending call...');
+      await _stopTranscription();
+      debugPrint('✅ Transcription stopped and transcript aggregated');
+    }
+
     if (widget.onCallEnded != null) {
       widget.onCallEnded!();
     }
@@ -2086,8 +2194,51 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           });
       ''';
 
-      await _webViewController?.evaluateJavascript(source: script);
-      debugPrint('✅ Join meeting script executed');
+      // Web platform: Use postMessage to communicate with iframe
+      // Mobile platform: Use InAppWebView's evaluateJavascript
+      if (kIsWeb) {
+        debugPrint('🌐 Web platform: Sending join meeting data via postMessage');
+
+        // Create the join meeting data as JSON
+        final joinData = {
+          'type': 'JOIN_MEETING',
+          'meeting': wrappedMeeting,
+          'attendee': wrappedAttendee,
+          'userName': widget.userName,
+          'userRole': widget.userRole ?? '',
+          'userProfileImage': widget.userProfileImage ?? '',
+          'isProvider': widget.isProvider,
+          'meetingId': meetingMap['MeetingId'] ?? '',
+          'providerName': widget.providerName ?? '',
+          'providerRole': widget.providerRole ?? '',
+          'patientName': widget.patientName ?? '',
+          'callTitle': titleText,
+          'initialMicOff': initialMicOff,
+          'initialVideoOff': initialVideoOff,
+        };
+
+        // Post message to iframe's contentWindow (NOT the main window!)
+        final jsonData = jsonEncode(joinData);
+        if (_webIframe?.contentWindow != null) {
+          // ignore: undefined_prefixed_name
+          _webIframe!.contentWindow!.postMessage(jsonData, '*');
+          debugPrint('✅ Join meeting data posted to iframe contentWindow');
+        } else {
+          // Fallback: try to find iframe by ID if reference not available
+          // ignore: undefined_prefixed_name
+          final iframe = html.document.getElementById(_webViewId ?? '') as html.IFrameElement?;
+          if (iframe?.contentWindow != null) {
+            iframe!.contentWindow!.postMessage(jsonData, '*');
+            debugPrint('✅ Join meeting data posted via getElementById fallback');
+          } else {
+            debugPrint('❌ Cannot find iframe contentWindow to post message');
+          }
+        }
+      } else {
+        // Mobile: use InAppWebView's evaluateJavascript
+        await _webViewController?.evaluateJavascript(source: script);
+        debugPrint('✅ Join meeting script executed');
+      }
     } catch (e) {
       debugPrint('❌ Error joining meeting: $e');
       _showErrorSnackBar('Failed to join meeting: $e');
@@ -2105,15 +2256,30 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     <script>
         // ============================================
-        // FLUTTER_INAPPWEBVIEW COMPATIBILITY SHIM
-        // Creates FlutterChannel object that maps to flutter_inappwebview.callHandler
-        // This allows existing FlutterChannel.postMessage() calls to work
+        // FLUTTER COMMUNICATION SHIM (Web + Mobile)
+        // Creates FlutterChannel object that works with:
+        // - flutter_inappwebview (Android/iOS mobile)
+        // - parent.postMessage (Web iframe)
         // ============================================
         (function() {
-            // Create FlutterChannel shim for flutter_inappwebview
+            // Detect if running in an iframe (web) or native webview (mobile)
+            const isInIframe = window !== window.parent;
+            const isMobileWebView = !!(window.flutter_inappwebview);
+
+            // Create FlutterChannel shim
             window.FlutterChannel = {
                 postMessage: function(msg) {
-                    // Use flutter_inappwebview's callHandler
+                    // Web platform: Use parent.postMessage for iframe communication
+                    if (isInIframe) {
+                        try {
+                            window.parent.postMessage(msg, '*');
+                        } catch (e) {
+                            console.warn('⚠️ Failed to post message to parent:', e);
+                        }
+                        return;
+                    }
+
+                    // Mobile platform: Use flutter_inappwebview's callHandler
                     if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
                         window.flutter_inappwebview.callHandler('FlutterChannel', msg);
                     } else {
@@ -2122,12 +2288,99 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                         setTimeout(() => {
                             if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
                                 window.flutter_inappwebview.callHandler('FlutterChannel', msg);
+                            } else if (isInIframe) {
+                                // Retry as iframe message
+                                window.parent.postMessage(msg, '*');
                             }
                         }, 100);
                     }
                 }
             };
-            console.log('✅ FlutterChannel shim installed for flutter_inappwebview');
+
+            const platform = isInIframe ? 'Web (iframe)' : (isMobileWebView ? 'Mobile (InAppWebView)' : 'Unknown');
+            console.log('✅ FlutterChannel shim installed for ' + platform);
+
+            // ============================================
+            // WEB PLATFORM: Listen for messages from parent Flutter app
+            // This handles JOIN_MEETING and other commands from Flutter
+            // ============================================
+            if (isInIframe) {
+                window.addEventListener('message', async function(event) {
+                    try {
+                        // Try to parse as JSON
+                        let data = event.data;
+                        if (typeof data === 'string') {
+                            try {
+                                data = JSON.parse(data);
+                            } catch (e) {
+                                // Not JSON, ignore
+                                return;
+                            }
+                        }
+
+                        // Handle JOIN_MEETING command from Flutter
+                        if (data && data.type === 'JOIN_MEETING') {
+                            console.log('📨 Received JOIN_MEETING from Flutter');
+                            console.log('   Meeting:', JSON.stringify(data.meeting).substring(0, 100) + '...');
+                            console.log('   Attendee:', JSON.stringify(data.attendee).substring(0, 100) + '...');
+                            console.log('   User:', data.userName, 'Role:', data.userRole);
+                            console.log('   Is Provider:', data.isProvider);
+
+                            // Set global variables
+                            window.currentAttendeeName = data.userName;
+                            window.currentUserRole = data.userRole;
+                            window.currentUserProfileImage = data.userProfileImage;
+                            window.callTitle = data.callTitle;
+                            window.isProviderUser = data.isProvider;
+                            window.currentMeetingId = data.meetingId;
+                            window.providerName = data.providerName;
+                            window.providerRole = data.providerRole;
+                            window.patientName = data.patientName;
+
+                            // Update leave button title based on user role
+                            const leaveBtn = document.getElementById('leave-btn');
+                            if (leaveBtn) {
+                                leaveBtn.title = data.isProvider ? 'End Call for Everyone' : 'Leave Call';
+                            }
+
+                            // Call joinMeeting with the provided data
+                            try {
+                                await joinMeeting(data.meeting, data.attendee);
+                                console.log('✅ Meeting joined successfully via postMessage');
+
+                                // Apply initial mic/camera state
+                                if (data.initialMicOff && window.audioVideo) {
+                                    console.log('🔇 Applying initial mute state');
+                                    window.audioVideo.realtimeMuteLocalAudio();
+                                    window.isMuted = true;
+                                    const muteBtn = document.getElementById('mute-btn');
+                                    if (muteBtn) {
+                                        muteBtn.classList.add('active');
+                                    }
+                                }
+
+                                if (data.initialVideoOff && window.audioVideo) {
+                                    console.log('📹 Applying initial video off state');
+                                    window.audioVideo.stopLocalVideoTile();
+                                    window.isVideoOff = true;
+                                    const videoBtn = document.getElementById('video-btn');
+                                    if (videoBtn) {
+                                        videoBtn.classList.add('active');
+                                    }
+                                }
+
+                                window.FlutterChannel?.postMessage('MEETING_JOINED');
+                            } catch (err) {
+                                console.error('❌ Failed to join meeting via postMessage:', err);
+                                window.FlutterChannel?.postMessage('MEETING_ERROR:' + err.message);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Error processing parent message:', e);
+                    }
+                });
+                console.log('✅ Parent message listener registered for JOIN_MEETING');
+            }
         })();
 
         // ============================================
@@ -4076,9 +4329,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
                     console.error('⚠️ User denied camera/microphone permission');
 
-                    // On WebView, try audio-only as fallback
-                    if (isWebView) {
-                        console.log('📹 Trying audio-only fallback for WebView...');
+                    // On WebView or Desktop Web, try audio-only as fallback
+                    if (isWebView || isDesktopWeb) {
+                        console.log('📹 Trying audio-only fallback...');
                         try {
                             const audioStream = await tryGetUserMedia({ audio: true, video: false }, 2, 300);
                             console.log('✅ Audio-only permissions granted');
@@ -5708,67 +5961,85 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   @override
   Widget build(BuildContext context) {
-    // Web platform: Show not supported message (InAppWebView doesn't work on web)
-    // Users should use the mobile app for video calls
+    // Web platform: Use HtmlElementView with iframe for video calls
     if (kIsWeb) {
-      return Container(
-        width: widget.width,
-        height: widget.height,
-        color: const Color(0xFFFFFFFF),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+      if (_webViewId == null || !_webViewRegistered) {
+        // Still initializing
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          color: const Color(0xFFFFFFFF),
+          child: const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.videocam_off,
-                  size: 80,
-                  color: Color(0xFF25D366),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Video Calls Not Available on Web',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'For the best video call experience, please use the MedZen mobile app on your Android or iOS device.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    if (widget.onCallEnded != null) {
-                      widget.onCallEnded!();
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Go Back'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF25D366),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                CircularProgressIndicator(color: Color(0xFF25D366)),
+                SizedBox(height: 16),
+                Text(
+                  'Initializing video call...',
+                  style: TextStyle(color: Colors.black),
                 ),
               ],
             ),
           ),
+        );
+      }
+
+      // Web video call using HtmlElementView
+      return Container(
+        width: widget.width,
+        height: widget.height,
+        color: const Color(0xFFFFFFFF),
+        child: Stack(
+          children: [
+            // Iframe containing the video call
+            HtmlElementView(viewType: _webViewId!),
+
+            // Loading indicator while SDK initializes
+            if (_isLoading || !_sdkReady)
+              Container(
+                color: Colors.white.withValues(alpha: 0.9),
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(color: Color(0xFF25D366)),
+                      SizedBox(height: 16),
+                      Text(
+                        'Connecting to meeting...',
+                        style: TextStyle(color: Colors.black),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Meeting header overlay (only show when chat is NOT visible)
+            if (_sdkReady && _meetingId != null && !_showChat)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildMeetingHeader(),
+              ),
+
+            // Live caption overlay at the bottom
+            if (_showCaptionOverlay && _currentCaption != null && !_showChat)
+              Positioned(
+                bottom: 100, // Above the control bar
+                left: 16,
+                right: 16,
+                child: _buildCaptionOverlay(),
+              ),
+
+            // Transcription indicator (top-right corner)
+            if (_sdkReady && !_showChat)
+              Positioned(
+                top: 50,
+                right: 16,
+                child: _buildTranscriptionIndicator(),
+              ),
+          ],
         ),
       );
     }

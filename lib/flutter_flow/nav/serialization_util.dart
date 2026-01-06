@@ -259,6 +259,8 @@ dynamic deserializeParam<T>(
             return EmailLogsRow(data);
           case PathologyReportsRow:
             return PathologyReportsRow(data);
+          case SystemAdminPatientViewRow:
+            return SystemAdminPatientViewRow(data);
           case InfectiousDiseaseVisitsRow:
             return InfectiousDiseaseVisitsRow(data);
           case PatientProfilesRow:
@@ -277,10 +279,14 @@ dynamic deserializeParam<T>(
             return SpatialRefSysRow(data);
           case MedicationsRow:
             return MedicationsRow(data);
+          case CustomVocabulariesRow:
+            return CustomVocabulariesRow(data);
           case NurseProfilesRow:
             return NurseProfilesRow(data);
           case PharmacistProfilesRow:
             return PharmacistProfilesRow(data);
+          case UnreadMessageCountsRow:
+            return UnreadMessageCountsRow(data);
           case OpenehrIntegrationHealthRow:
             return OpenehrIntegrationHealthRow(data);
           case UserMedicalConditionsRow:
@@ -293,6 +299,10 @@ dynamic deserializeParam<T>(
             return EndocrinologyVisitsRow(data);
           case MedicalProviderProfilesRow:
             return MedicalProviderProfilesRow(data);
+          case VProviderTypeDetailsRow:
+            return VProviderTypeDetailsRow(data);
+          case AiConversationLanguageStatsRow:
+            return AiConversationLanguageStatsRow(data);
           case OncologyTreatmentsRow:
             return OncologyTreatmentsRow(data);
           case MedicationDispensingRow:
@@ -303,28 +313,44 @@ dynamic deserializeParam<T>(
             return AiMessagesRow(data);
           case VitalSignsRow:
             return VitalSignsRow(data);
+          case AppointmentRemindersRow:
+            return AppointmentRemindersRow(data);
+          case ClinicalNotesOverviewRow:
+            return ClinicalNotesOverviewRow(data);
           case DocumentEmbeddingsRow:
             return DocumentEmbeddingsRow(data);
           case RadiologyReportsRow:
             return RadiologyReportsRow(data);
+          case ConversationParticipantsRow:
+            return ConversationParticipantsRow(data);
+          case AiMessagesWithAudioRow:
+            return AiMessagesWithAudioRow(data);
           case ArchetypeFormFieldsRow:
             return ArchetypeFormFieldsRow(data);
           case ImmunizationsRow:
             return ImmunizationsRow(data);
+          case EdgeFunctionLogsRow:
+            return EdgeFunctionLogsRow(data);
           case FacilityDepartmentAssignmentsRow:
             return FacilityDepartmentAssignmentsRow(data);
           case LabTestCategoriesRow:
             return LabTestCategoriesRow(data);
+          case PaymentSumaryRow:
+            return PaymentSumaryRow(data);
           case ArchetypesRow:
             return ArchetypesRow(data);
           case ProviderScheduleExceptionsRow:
             return ProviderScheduleExceptionsRow(data);
           case DoctorProfilesRow:
             return DoctorProfilesRow(data);
+          case VideoCallParticipantsViewRow:
+            return VideoCallParticipantsViewRow(data);
           case SystemAdminProfilesRow:
             return SystemAdminProfilesRow(data);
           case VProviderSpecialtySearchRow:
             return VProviderSpecialtySearchRow(data);
+          case VideoCallAuditLogRow:
+            return VideoCallAuditLogRow(data);
           case MedicalProviderTypesRow:
             return MedicalProviderTypesRow(data);
           case NephrologyVisitsRow:
@@ -335,12 +361,16 @@ dynamic deserializeParam<T>(
             return MedicalRecordEmbeddingsRow(data);
           case GeometryColumnsRow:
             return GeometryColumnsRow(data);
+          case WithdrawalListViewRow:
+            return WithdrawalListViewRow(data);
           case BloodDonorsRow:
             return BloodDonorsRow(data);
           case UserSubscriptionsRow:
             return UserSubscriptionsRow(data);
           case EhrbaseSyncQueueRow:
             return EhrbaseSyncQueueRow(data);
+          case PaymentOverviewRow:
+            return PaymentOverviewRow(data);
           case LabTestTypesRow:
             return LabTestTypesRow(data);
           case VEhrByRoleRow:
@@ -353,6 +383,10 @@ dynamic deserializeParam<T>(
             return PublicationsRow(data);
           case SpecialtyServicesRow:
             return SpecialtyServicesRow(data);
+          case LanguagePreferencesRow:
+            return LanguagePreferencesRow(data);
+          case MedicalProviderFacilityViewRow:
+            return MedicalProviderFacilityViewRow(data);
           case ClinicalConsultationsRow:
             return ClinicalConsultationsRow(data);
           case FacilityTypeAssignmentsRow:
@@ -369,26 +403,34 @@ dynamic deserializeParam<T>(
             return MedicalRecordConditionsRow(data);
           case MedicalPractitionersViewRow:
             return MedicalPractitionersViewRow(data);
+          case CustomVocabularyAnalyticsRow:
+            return CustomVocabularyAnalyticsRow(data);
           case AdmissionDischargesRow:
             return AdmissionDischargesRow(data);
-          case VPendingProviderApplicationsRow:
-            return VPendingProviderApplicationsRow(data);
           case FacilityAdminProfilesRow:
             return FacilityAdminProfilesRow(data);
           case FacilitiesRow:
             return FacilitiesRow(data);
           case PrescriptionMedicationsRow:
             return PrescriptionMedicationsRow(data);
+          case ChimeMessagesRow:
+            return ChimeMessagesRow(data);
           case PatientMedicalReportExportsRow:
             return PatientMedicalReportExportsRow(data);
           case AppointmentsRow:
             return AppointmentsRow(data);
+          case PushNotificationTargetsRow:
+            return PushNotificationTargetsRow(data);
           case GastroenterologyProceduresRow:
             return GastroenterologyProceduresRow(data);
+          case WithdrawalTotalsRow:
+            return WithdrawalTotalsRow(data);
           case TemplatesRow:
             return TemplatesRow(data);
           case NeurologyExamsRow:
             return NeurologyExamsRow(data);
+          case AllReviewsRow:
+            return AllReviewsRow(data);
           case MedicalRecordsRow:
             return MedicalRecordsRow(data);
           case SearchIndexesRow:
@@ -397,36 +439,52 @@ dynamic deserializeParam<T>(
             return FacilityDepartmentsRow(data);
           case SystemAdminAppointmentStatsRow:
             return SystemAdminAppointmentStatsRow(data);
+          case ProviderTypesRow:
+            return ProviderTypesRow(data);
           case SubscriptionPlansRow:
             return SubscriptionPlansRow(data);
           case ProviderAvailabilityRow:
             return ProviderAvailabilityRow(data);
           case SystemDashboardStatsRow:
             return SystemDashboardStatsRow(data);
+          case ChimeMessagingChannelsRow:
+            return ChimeMessagingChannelsRow(data);
           case PrescriptionsRow:
             return PrescriptionsRow(data);
           case StorageFileOwnershipRow:
             return StorageFileOwnershipRow(data);
           case UserMedicationsRow:
             return UserMedicationsRow(data);
+          case AiAssistantsRow:
+            return AiAssistantsRow(data);
           case GeographyColumnsRow:
             return GeographyColumnsRow(data);
           case VideoCallSessionsRow:
             return VideoCallSessionsRow(data);
           case FeedbackRow:
             return FeedbackRow(data);
+          case LiveCaptionSegmentsRow:
+            return LiveCaptionSegmentsRow(data);
+          case WithdrawalsOverviewRow:
+            return WithdrawalsOverviewRow(data);
           case NotificationPreferencesRow:
             return NotificationPreferencesRow(data);
           case MedicalPractitionersDetailsViewRow:
             return MedicalPractitionersDetailsViewRow(data);
           case LabTechnicianProfilesRow:
             return LabTechnicianProfilesRow(data);
+          case PaymentTotalsRow:
+            return PaymentTotalsRow(data);
           case UssdMenusRow:
             return UssdMenusRow(data);
+          case PasswordResetTokensRow:
+            return PasswordResetTokensRow(data);
           case AnnouncementsRow:
             return AnnouncementsRow(data);
           case WaitlistRow:
             return WaitlistRow(data);
+          case ClinicalNotesRow:
+            return ClinicalNotesRow(data);
           case AllergiesRow:
             return AllergiesRow(data);
           case ProfilePicturesRow:
@@ -457,6 +515,8 @@ dynamic deserializeParam<T>(
             return UserProfilesRow(data);
           case UssdActionsRow:
             return UssdActionsRow(data);
+          case FacilityAdminPatientViewRow:
+            return FacilityAdminPatientViewRow(data);
           case UserAllergiesRow:
             return UserAllergiesRow(data);
           case FacilityProvidersRow:
@@ -469,6 +529,8 @@ dynamic deserializeParam<T>(
             return ProviderTypeAssignmentsRow(data);
           case PharmacyStockRow:
             return PharmacyStockRow(data);
+          case AiLanguageUsageStatsRow:
+            return AiLanguageUsageStatsRow(data);
           case FacilityTypesRow:
             return FacilityTypesRow(data);
           case DoctorPerformanceReportsRow:
@@ -477,14 +539,20 @@ dynamic deserializeParam<T>(
             return VProviderSpecialtyDetailsRow(data);
           case MessagesRow:
             return MessagesRow(data);
+          case ConsultationMedicalEntitiesRow:
+            return ConsultationMedicalEntitiesRow(data);
           case UssdSessionsRow:
             return UssdSessionsRow(data);
           case LabOrdersRow:
             return LabOrdersRow(data);
           case AntenatalVisitsRow:
             return AntenatalVisitsRow(data);
+          case WithdrawalsRow:
+            return WithdrawalsRow(data);
           case DocumentsRow:
             return DocumentsRow(data);
+          case ChatConversationsRow:
+            return ChatConversationsRow(data);
           case SearchAnalyticsRow:
             return SearchAnalyticsRow(data);
           case ProviderSpecialtiesRow:
@@ -503,6 +571,8 @@ dynamic deserializeParam<T>(
             return MessageReactionsRow(data);
           case VSpecialtiesByCategoryRow:
             return VSpecialtiesByCategoryRow(data);
+          case ActiveSessionsRow:
+            return ActiveSessionsRow(data);
           case EhrCompositionsRow:
             return EhrCompositionsRow(data);
           case MediaLibraryRow:
@@ -511,16 +581,24 @@ dynamic deserializeParam<T>(
             return UsersRow(data);
           case SystemAdminClinicalStatsRow:
             return SystemAdminClinicalStatsRow(data);
+          case VideoCallParticipantsRow:
+            return VideoCallParticipantsRow(data);
+          case ChimeMessageAuditRow:
+            return ChimeMessageAuditRow(data);
           case ReviewResponsesRow:
             return ReviewResponsesRow(data);
           case InvoiceLineItemsRow:
             return InvoiceLineItemsRow(data);
+          case MedicalRecordingMetadataRow:
+            return MedicalRecordingMetadataRow(data);
           case SpecialtiesRow:
             return SpecialtiesRow(data);
           case UserActivityLogsRow:
             return UserActivityLogsRow(data);
           case VPowersyncReplicationStatusRow:
             return VPowersyncReplicationStatusRow(data);
+          case FacilityAdminDetailsRow:
+            return FacilityAdminDetailsRow(data);
           case ReviewsRow:
             return ReviewsRow(data);
           case PromotionUsageRow:

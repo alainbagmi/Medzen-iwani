@@ -15,7 +15,7 @@ MedZen is a healthcare platform built with FlutterFlow, Firebase Auth, Supabase,
 | Build APK | `flutter build apk --release` |
 | Build iOS | `flutter build ios --release` |
 | Build Web | `flutter build web` |
-| Deploy Supabase (all) | `npx supabase functions deploy bedrock-ai-chat check-user chime-meeting-token chime-messaging send-push-notification sync-to-ehrbase generate-clinical-note start-medical-transcription chime-recording-callback chime-transcription-callback chime-entity-extraction cleanup-expired-recordings ingest-call-transcript finalize-call-draft storage-sign-url call-send-message upload-profile-picture cleanup-old-profile-pictures` |
+| Deploy Supabase (all) | See full command below (20 functions) |
 | Deploy single edge fn | `npx supabase functions deploy <function-name>` |
 | Deploy Firebase | `firebase deploy --only functions` |
 | Test all systems | `./test_all_systems.sh` |
@@ -71,6 +71,7 @@ CREATE POLICY "name" ON table FOR SELECT USING (auth.uid() IS NULL OR user_id = 
 - Provider-only meeting creation; patients join via `appointmentId`
 - Pass Firebase token in `x-firebase-token` header (lowercase)
 - **v3 API Breaking Change**: Use `startVideoInput()` NOT `chooseVideoInputDevice()` (deprecated in v3)
+- **File Attachments**: Chat supports file uploads to `chime_storage` bucket with metadata stored in `chime_messages` table
 
 ### 6. Edge Functions and Firebase Token
 Edge functions verify Firebase tokens internally. Use HTTP directly, not `SupaFlow.client.functions.invoke()`:
@@ -101,8 +102,23 @@ NEVER hardcode credentials. Use `firebase functions:config:set` only.
 ### 11. Git Pre-commit Hook
 A pre-commit hook (`.git/hooks/pre-commit`) protects critical Firebase functions from accidental deletion:
 - Verifies `onUserCreated`, `onUserDeleted`, `addFcmToken`, `sendPushNotificationsTrigger`, `sendVideoCallNotification` exist
+- Expects `index.js` to have 600+ lines (rejects truncated files)
 - Only runs checks when `firebase/functions/index.js` is staged for commit
 - Blocks commits if any critical function is missing
+
+**⚠️ IMPORTANT**: If pre-commit fails, restore missing functions from git history before committing:
+```bash
+git show HEAD:firebase/functions/index.js > firebase/functions/index.js.backup
+# Compare and restore missing functions
+```
+
+### 12. PostGIS Location Services
+The database uses PostGIS extension for location-based features:
+- Users/facilities have `location` column (POINT geometry type) and `lat`/`lng` numeric columns
+- Use `updateUserLocation()` action to set user coordinates
+- Use `getNearby*()` actions for proximity searches (facilities, providers, patients, blood donors)
+- `calculateDistanceKm()` uses Haversine formula for distance calculations
+- All nearby searches use 50km default radius, sortable by distance
 
 ## Architecture
 
@@ -111,10 +127,12 @@ Flutter App
     │
     ├── Firebase Auth (authentication only)
     │
-    ├── Supabase (database + edge functions)
+    ├── Supabase (database + edge functions + storage)
     │   ├── users table (firebase_uid links to Firebase)
     │   ├── appointments, video_call_sessions, chime_messages
-    │   └── ai_conversations, ai_messages
+    │   ├── ai_conversations, ai_messages
+    │   ├── clinical_notes, ehrbase_sync_queue
+    │   └── Storage: chime_storage (chat files), profile_pictures
     │
     ├── AWS Chime SDK (video calls via edge function → AWS Lambda)
     │
@@ -145,14 +163,17 @@ Flutter App
 | Edge Functions | `supabase/functions/*/index.ts` |
 | Migrations | `supabase/migrations/*.sql` |
 | Environment | `assets/environment_values/environment.json` |
+| Pages | `lib/all_users_page/`, `lib/care_centers/`, `lib/chat_a_i/`, `lib/finance/` |
 
 ## Cloud Functions
 
 **Firebase (`firebase/functions/index.js`):**
-- `addFcmToken` - Register device FCM token to Firestore
+- `onUserCreated` - Create Supabase user record when Firebase Auth user is created (links Firebase → Supabase)
 - `onUserDeleted` - Cleanup Firestore user doc on Firebase Auth deletion
+- `addFcmToken` - Register device FCM token to Firestore
 - `sendPushNotificationsTrigger` - Send FCM on Firestore `ff_push_notifications` doc create
 - `sendScheduledPushNotifications` - Cron job (every 60 min) for scheduled notifications
+- `sendVideoCallNotification` - Send push notification for incoming video calls
 
 **Supabase Edge Functions (`supabase/functions/*/index.ts`):**
 
@@ -165,7 +186,7 @@ Flutter App
 *Video Call Functions:*
 - `chime-meeting-token` - Create/join video meetings via AWS Chime
 - `chime-messaging` - Real-time chat during video calls
-- `call-send-message` - Send message during active call
+- `call-send-message` - Send message during active call (with file attachment support)
 - `start-medical-transcription` - Start AWS Transcribe Medical for video calls
 - `chime-recording-callback` - Handle S3 recording uploads
 - `chime-transcription-callback` - Handle transcription completion
@@ -188,6 +209,29 @@ Flutter App
 
 **Note:** Edge functions prefixed with `test-` or ending in `-test`/`-test-auth` are for development testing only and should not be deployed to production. PowerSync functions are deployed separately when needed: `npx supabase functions deploy powersync-token refresh-powersync-views`
 
+**Full Deploy Command (20 production functions):**
+```bash
+npx supabase functions deploy \
+  bedrock-ai-chat check-user chime-meeting-token chime-messaging \
+  send-push-notification sync-to-ehrbase generate-clinical-note \
+  start-medical-transcription chime-recording-callback chime-transcription-callback \
+  chime-entity-extraction cleanup-expired-recordings ingest-call-transcript \
+  finalize-call-draft storage-sign-url call-send-message \
+  upload-profile-picture cleanup-old-profile-pictures \
+  powersync-token refresh-powersync-views
+```
+
+**Standard Deploy (18 functions, excluding PowerSync):**
+```bash
+npx supabase functions deploy \
+  bedrock-ai-chat check-user chime-meeting-token chime-messaging \
+  send-push-notification sync-to-ehrbase generate-clinical-note \
+  start-medical-transcription chime-recording-callback chime-transcription-callback \
+  chime-entity-extraction cleanup-expired-recordings ingest-call-transcript \
+  finalize-call-draft storage-sign-url call-send-message \
+  upload-profile-picture cleanup-old-profile-pictures
+```
+
 ## Custom Code
 
 **Actions (`lib/custom_code/actions/`):**
@@ -199,6 +243,7 @@ Flutter App
 - `buildConversationHistory` - Build message history for AI context
 - `initializeMessaging` - Initialize FCM push notifications
 - `initializeSessionTracking` - Setup device session tracking
+- `requestWebMediaPermissions` - Request camera/mic permissions on web
 - `streamResponse` - Stream AI responses
 - `generatePostCallSummary` - Generate clinical note from video call transcript
 - `signClinicalNote` - Sign clinical note and sync to OpenEHR
@@ -209,19 +254,18 @@ Flutter App
 - `controlMedicalTranscription` - Start/stop medical transcription
 
 **Location Actions (PostGIS-based):**
-- `getNearbyFacilities` - Find facilities near given lat/lng coordinates
-- `getNearbyFacilitiesForUser` - Find facilities near a user's stored location
+- `getNearbyFacilities` - Find facilities near given lat/lng coordinates (50km radius)
 - `getNearbyProviders` - Find medical providers near given coordinates
 - `getNearbyPatients` - Find patients near given coordinates (for providers)
 - `getNearbyBloodDonors` - Find blood donors near given coordinates
-- `getNearbyPlaces` - General nearby places search via Google Places API
+- `getNearbyPlaces` - Combined search for facilities, providers, and blood donors
 - `updateUserLocation` - Update user's lat/lng in the database
-- `getUserLastLocation` - Get user's last stored location
 - `calculateDistanceKm` - Calculate distance between two points using Haversine formula
 
 **Widgets (`lib/custom_code/widgets/`):**
-- `ChimeMeetingEnhanced` - AWS Chime video call WebView
+- `ChimeMeetingEnhanced` - AWS Chime video call WebView with file sharing
 - `ChimePreJoiningDialog` - Pre-call dialog for camera/mic permissions check
+- `PostCallClinicalNotesDialog` - Post-call clinical notes review and signing
 - `ActivityDetector` - User inactivity detection (pauses during video calls)
 - `CountryPhonePicker` - International phone number input
 
@@ -241,6 +285,12 @@ final userToken = await FirebaseAuth.instance.currentUser?.getIdToken(true);
 
 // Video call navigation
 await joinRoom(context, sessionId, providerId, patientId, appointmentId, isProvider, userName, profileImage, providerName, providerRole);
+
+// Update user location (PostGIS)
+await updateUserLocation(userId, latitude, longitude);
+
+// Find nearby facilities
+final facilities = await getNearbyFacilities(latitude, longitude, radiusKm: 50);
 ```
 
 ## Session Security
@@ -258,7 +308,12 @@ await joinRoom(context, sessionId, providerId, patientId, appointmentId, isProvi
 5. WebView connects to Chime meeting
 6. Optional: start-medical-transcription enables AWS Transcribe Medical
 7. Chat messages stored in chime_messages table (appointment_id based)
-8. On call end: transcript available in video_call_sessions.transcript
+   - Text messages: message_type='text'
+   - File attachments: message_type='file', metadata stored in file_url/file_name/file_type/file_size
+   - Files uploaded to chime_storage bucket
+8. Real-time notifications sent via call_notifications table
+9. On call end: transcript available in video_call_sessions.transcript
+10. PostCallClinicalNotesDialog shown for provider to review AI-generated clinical note
 ```
 
 **Chime SDK v3 Method Reference:**
@@ -281,7 +336,7 @@ await joinRoom(context, sessionId, providerId, patientId, appointmentId, isProvi
 ## Clinical Notes Workflow
 After a video call with transcription enabled:
 1. `generatePostCallSummary()` checks transcription status and generates clinical note
-2. Provider reviews the AI-generated SOAP note
+2. Provider reviews the AI-generated SOAP note in `PostCallClinicalNotesDialog`
 3. `signAndSyncClinicalNote()` signs the note and queues OpenEHR sync
 4. Background job syncs to EHRbase via `sync-to-ehrbase` edge function
 
@@ -292,7 +347,7 @@ Key tables: `clinical_notes`, `ehrbase_sync_queue`, `video_call_sessions`
 **Core Tables:**
 | Table | Purpose |
 |-------|---------|
-| `users` | User profiles (links via `firebase_uid`) |
+| `users` | User profiles (links via `firebase_uid`, has lat/lng + PostGIS location) |
 | `patient_profiles` | Extended patient information |
 | `medical_provider_profiles` | Provider credentials, specialties |
 | `facility_admin_profiles` | Facility administrator details |
@@ -305,9 +360,11 @@ Key tables: `clinical_notes`, `ehrbase_sync_queue`, `video_call_sessions`
 |-------|---------|
 | `appointments` | Scheduled appointments |
 | `appointment_overview` | View with patient/provider details |
-| `video_call_sessions` | Call records with Chime meeting data |
-| `chime_messages` | Chat messages during video calls |
+| `video_call_sessions` | Call records with Chime meeting data, transcripts |
+| `chime_messages` | Chat messages during video calls (with file attachment support) |
 | `live_caption_segments` | Real-time transcription segments |
+| `call_notifications` | Real-time notifications during video calls |
+| `transcription_usage_daily` | Daily transcription cost tracking |
 
 **AI & Clinical:**
 | Table | Purpose |
@@ -324,6 +381,12 @@ Key tables: `clinical_notes`, `ehrbase_sync_queue`, `video_call_sessions`
 | `active_sessions` | Device session tracking |
 | `language_preferences` | User language settings |
 | `custom_vocabularies` | Medical vocabulary for transcription |
+
+**Storage Buckets:**
+| Bucket | Purpose |
+|--------|---------|
+| `chime_storage` | Video call chat file attachments |
+| `profile_pictures` | User profile images |
 
 ## Supported Languages
 English (en), French (fr), Afrikaans (af), Arabic (ar)
@@ -345,6 +408,8 @@ English (en), French (fr), Afrikaans (af), Arabic (ar)
 | Analyzer 10k issues | Normal - FlutterFlow-generated warnings, verify build works |
 | @override error | Method not in base class - remove annotation or check parent |
 | Supabase connection | Ensure `npx supabase link --project-ref noaeltglphdlkbflipit` was run |
+| File upload fails | Check `chime_storage` bucket policies, ensure RLS allows authenticated users |
+| Location search empty | Verify PostGIS extension enabled, lat/lng columns populated |
 
 ## Environment Configuration
 Environment values loaded from `assets/environment_values/environment.json` via `FFDevEnvironmentValues()`:
@@ -380,6 +445,12 @@ SELECT * FROM ehrbase_sync_queue WHERE sync_status = 'failed' ORDER BY created_a
 
 # View RLS-enabled tables
 SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND rowsecurity = true;
+
+# Check transcription costs
+SELECT * FROM transcription_usage_daily ORDER BY usage_date DESC LIMIT 7;
+
+# Find nearby facilities (example using PostGIS)
+SELECT * FROM get_nearby_facilities(3.8480, 11.5021, 50); -- Yaoundé, Cameroon coordinates
 ```
 
 ## Test Scripts
@@ -389,6 +460,8 @@ The repository contains many test scripts in the root directory:
 - `test_ai_chat_e2e.sh` - End-to-end AI chat tests
 - `test_clinical_note_workflow.sh` - Clinical notes and EHR sync tests
 - `test_realtime_chat.sh` - Real-time messaging tests
+- `test_file_attachments.sh` - File upload and attachment tests
+- `test_nearby_places.sh` - PostGIS location search tests
 
 AWS deployment scripts are in `aws-deployment/`:
 - `00-prerequisites.sh` through `07-setup-monitoring.sh` - Full deployment pipeline

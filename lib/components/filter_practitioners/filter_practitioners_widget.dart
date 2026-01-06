@@ -208,12 +208,12 @@ class _FilterPractitionersWidgetState extends State<FilterPractitionersWidget>
                                   options: [
                                     ChipData(
                                         FFLocalizations.of(context).getText(
-                                          'hgxdg8zi' /* Female */,
+                                          'hgxdg8zi' /* female */,
                                         ),
                                         FontAwesomeIcons.female),
                                     ChipData(
                                         FFLocalizations.of(context).getText(
-                                          'b7q928jp' /* Male */,
+                                          'b7q928jp' /* male */,
                                         ),
                                         FontAwesomeIcons.male)
                                   ],
@@ -535,6 +535,7 @@ class _FilterPractitionersWidgetState extends State<FilterPractitionersWidget>
                                       Future(() async {
                                         _model.selectedspecialtyValueController
                                             ?.reset();
+                                        _model.selectedspecialtyValue = null;
                                       }),
                                       Future(() async {
                                         safeSetState(() {
@@ -548,6 +549,7 @@ class _FilterPractitionersWidgetState extends State<FilterPractitionersWidget>
                                     'uj30otb3' /* Clear all */,
                                   ),
                                   options: FFButtonOptions(
+                                    width: 150.0,
                                     height: 44.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
@@ -569,6 +571,7 @@ class _FilterPractitionersWidgetState extends State<FilterPractitionersWidget>
                                           ),
                                           color: FlutterFlowTheme.of(context)
                                               .primaryBackground,
+                                          fontSize: 16.0,
                                           letterSpacing: 0.0,
                                           fontWeight:
                                               FlutterFlowTheme.of(context)
@@ -592,13 +595,15 @@ class _FilterPractitionersWidgetState extends State<FilterPractitionersWidget>
                               Align(
                                 alignment: AlignmentDirectional(0.0, 0.05),
                                 child: FFButtonWidget(
-                                  onPressed: () {
-                                    print('Button pressed ...');
+                                  onPressed: () async {
+                                    Navigator.pop(
+                                        context, _model.selectedGenderValue);
                                   },
                                   text: FFLocalizations.of(context).getText(
                                     '9k75943v' /* Apply filters */,
                                   ),
                                   options: FFButtonOptions(
+                                    width: 150.0,
                                     height: 44.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),

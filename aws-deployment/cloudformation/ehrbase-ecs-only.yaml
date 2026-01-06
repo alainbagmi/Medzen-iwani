@@ -1,0 +1,405 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'MedZen EHRbase ECS Infrastructure (uses existing RDS)'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: medzen-ehrbase
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Default: production
+    Description: Environment name
+
+  ExistingRDSEndpoint:
+    Type: String
+    Description: Existing RDS endpoint address
+    Default: medzen-ehrbase-db.c1uqcwiquyme.eu-central-1.rds.amazonaws.com
+
+  ExistingRDSSecurityGroup:
+    Type: String
+    Description: Existing RDS security group ID
+    Default: sg-0180e692cc099834d
+
+  DatabaseUsername:
+    Type: String
+    Default: ehrbase_admin
+    NoEcho: false
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: RDS master password (same as original database)
+
+  EHRbaseUsername:
+    Type: String
+    Default: ehrbase_user
+    NoEcho: false
+
+  EHRbasePassword:
+    Type: String
+    NoEcho: true
+    Description: EHRbase application user password
+
+  EHRbaseDockerImage:
+    Type: String
+    Default: ehrbase/ehrbase:2.24.0
+    Description: EHRbase Docker image from Docker Hub
+
+  DomainName:
+    Type: String
+    Default: ehr.medzenhealth.app
+    Description: Domain name for EHRbase
+
+  CertificateArn:
+    Type: String
+    Description: ACM certificate ARN for HTTPS
+    Default: arn:aws:acm:eu-central-1:558069890522:certificate/4b1aea8a-dcca-4f41-8b45-119362f5bf86
+
+Resources:
+  # Security Groups
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Application Load Balancer
+      VpcId: vpc-051aa9df8b64bf141
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Allow HTTPS from anywhere
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-alb-sg
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for ECS tasks
+      VpcId: vpc-051aa9df8b64bf141
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+          Description: Allow traffic from ALB
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-ecs-sg
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Update RDS security group to allow ECS access
+  RDSIngressFromECS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ExistingRDSSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref ECSSecurityGroup
+      Description: Allow PostgreSQL from ECS tasks
+
+  # Application Load Balancer
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub ${ProjectName}-alb
+      Type: application
+      Scheme: internet-facing
+      IpAddressType: ipv4
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+      Subnets:
+        - subnet-00232b25bc1ac407a
+        - subnet-05029419c6c61a536
+        - subnet-01fb2fc3f56bce55e
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-alb
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Target Group
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub ${ProjectName}-tg
+      Port: 8080
+      Protocol: HTTP
+      VpcId: vpc-051aa9df8b64bf141
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckPath: /ehrbase/
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: '200,404'
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-tg
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # HTTPS Listener
+  HTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  # HTTP Listener (redirect to HTTPS)
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: '443'
+            StatusCode: HTTP_301
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${ProjectName}-cluster
+      CapacityProviders:
+        - FARGATE
+        - FARGATE_SPOT
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: FARGATE
+          Weight: 1
+          Base: 1
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-cluster
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ECS Task Execution Role
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - arn:aws:secretsmanager:eu-central-1:558069890522:secret:medzen-ehrbase/*
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-task-execution-role
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ECS Task Role
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-task-role
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # CloudWatch Log Group
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /ecs/${ProjectName}
+      RetentionInDays: 30
+
+  # ECS Task Definition
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${ProjectName}-task
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '2048'
+      Memory: '4096'
+      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt ECSTaskRole.Arn
+      ContainerDefinitions:
+        - Name: ehrbase
+          Image: !Ref EHRbaseDockerImage
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: DB_URL
+              Value: !Sub jdbc:postgresql://${ExistingRDSEndpoint}:5432/ehrbase
+            - Name: DB_USER
+              Value: ehrbase_restricted
+            - Name: DB_USER_ADMIN
+              Value: !Ref DatabaseUsername
+            - Name: SECURITY_AUTHTYPE
+              Value: BASIC
+            - Name: SECURITY_AUTHUSER
+              Value: !Ref EHRbaseUsername
+            - Name: SERVER_NODENAME
+              Value: aws-ecs-node
+            - Name: SPRING_PROFILES_ACTIVE
+              Value: docker
+            - Name: JAVA_TOOL_OPTIONS
+              Value: -Xmx2560m
+          Secrets:
+            - Name: DB_PASS
+              ValueFrom: 'arn:aws:secretsmanager:eu-central-1:558069890522:secret:medzen-ehrbase/db_user_password-zXnFSm'
+            - Name: DB_PASS_ADMIN
+              ValueFrom: 'arn:aws:secretsmanager:eu-central-1:558069890522:secret:medzen-ehrbase/db_admin_password-iGnyHW'
+            - Name: SECURITY_AUTHPASSWORD
+              ValueFrom: 'arn:aws:secretsmanager:eu-central-1:558069890522:secret:medzen-ehrbase/ehrbase_basic_auth-XBG9eM:password::'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ehrbase
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-task-definition
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ECS Service
+  ECSService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - HTTPSListener
+      - HTTPListener
+    Properties:
+      ServiceName: !Sub ${ProjectName}-service
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 2
+      LaunchType: FARGATE
+      HealthCheckGracePeriodSeconds: 180
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - subnet-00232b25bc1ac407a
+            - subnet-05029419c6c61a536
+            - subnet-01fb2fc3f56bce55e
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+      LoadBalancers:
+        - ContainerName: ehrbase
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${ProjectName}-service
+        - Key: Project
+          Value: MedZen
+        - Key: Environment
+          Value: !Ref Environment
+
+Outputs:
+  LoadBalancerDNS:
+    Description: DNS name of the load balancer
+    Value: !GetAtt ApplicationLoadBalancer.DNSName
+    Export:
+      Name: !Sub ${ProjectName}-alb-dns
+
+  LoadBalancerArn:
+    Description: ARN of the load balancer
+    Value: !Ref ApplicationLoadBalancer
+    Export:
+      Name: !Sub ${ProjectName}-alb-arn
+
+  ECSClusterName:
+    Description: Name of the ECS cluster
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub ${ProjectName}-cluster-name
+
+  ECSServiceName:
+    Description: Name of the ECS service
+    Value: !GetAtt ECSService.Name
+    Export:
+      Name: !Sub ${ProjectName}-service-name
+
+  RDSEndpoint:
+    Description: RDS database endpoint
+    Value: !Ref ExistingRDSEndpoint
+    Export:
+      Name: !Sub ${ProjectName}-rds-endpoint
+
+  EHRbaseURL:
+    Description: EHRbase base URL
+    Value: !Sub https://${DomainName}/ehrbase
+    Export:
+      Name: !Sub ${ProjectName}-ehrbase-url

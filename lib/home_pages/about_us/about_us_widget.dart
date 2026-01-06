@@ -18,7 +18,7 @@ class AboutUsWidget extends StatefulWidget {
   const AboutUsWidget({super.key});
 
   static String routeName = 'AboutUs';
-  static String routePath = '/aboutUs';
+  static String routePath = 'aboutUs';
 
   @override
   State<AboutUsWidget> createState() => _AboutUsWidgetState();
@@ -2992,164 +2992,6 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                           ),
                         ),
                       ),
-                      Padding(
-                        padding: EdgeInsets.all(6.0),
-                        child: Material(
-                          color: Colors.transparent,
-                          elevation: 40.0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24.0),
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            height: 100.0,
-                            decoration: BoxDecoration(
-                              color: FlutterFlowTheme.of(context)
-                                  .secondaryBackground,
-                              boxShadow: [
-                                BoxShadow(
-                                  blurRadius: 4.0,
-                                  color: Color(0x1A000000),
-                                  offset: Offset(
-                                    0.0,
-                                    2.0,
-                                  ),
-                                )
-                              ],
-                              borderRadius: BorderRadius.circular(24.0),
-                              border: Border.all(
-                                color: FlutterFlowTheme.of(context).primaryText,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(4.0),
-                              child: Material(
-                                color: Colors.transparent,
-                                elevation: 40.0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24.0),
-                                ),
-                                child: Container(
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    boxShadow: [
-                                      BoxShadow(
-                                        blurRadius: 4.0,
-                                        color: Color(0x1A000000),
-                                        offset: Offset(
-                                          0.0,
-                                          2.0,
-                                        ),
-                                      )
-                                    ],
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        FlutterFlowTheme.of(context).primary,
-                                        Color(0xFF39D2C0)
-                                      ],
-                                      stops: [0.8, 1.0],
-                                      begin: AlignmentDirectional(1.0, 1.0),
-                                      end: AlignmentDirectional(-1.0, -1.0),
-                                    ),
-                                    borderRadius: BorderRadius.circular(24.0),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.max,
-                                    children: [
-                                      Icon(
-                                        Icons.medical_services_rounded,
-                                        color:
-                                            FlutterFlowTheme.of(context).info,
-                                        size: 48.0,
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.max,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              FFLocalizations.of(context)
-                                                  .getText(
-                                                '55jlritf' /* Your Trusted Telemedicine Solu... */,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                              style: FlutterFlowTheme.of(
-                                                      context)
-                                                  .titleMedium
-                                                  .override(
-                                                    font: GoogleFonts.readexPro(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontStyle:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .titleMedium
-                                                              .fontStyle,
-                                                    ),
-                                                    color: FlutterFlowTheme.of(
-                                                            context)
-                                                        .info,
-                                                    letterSpacing: 0.0,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontStyle:
-                                                        FlutterFlowTheme.of(
-                                                                context)
-                                                            .titleMedium
-                                                            .fontStyle,
-                                                  ),
-                                            ),
-                                            Text(
-                                              FFLocalizations.of(context)
-                                                  .getText(
-                                                '5i4hjqxb' /* Healthcare anytime, anywhere */,
-                                              ),
-                                              style:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                                        color:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .info,
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontStyle,
-                                                      ),
-                                            ),
-                                          ].divide(SizedBox(height: 8.0)),
-                                        ),
-                                      ),
-                                    ].divide(SizedBox(width: 16.0)),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                       if (responsiveVisibility(
                         context: context,
                         tablet: false,
@@ -3170,9 +3012,7 @@ class _AboutUsWidgetState extends State<AboutUsWidget> {
                           updateCallback: () => safeSetState(() {}),
                           child: MedzenFooterWidget(),
                         ),
-                    ]
-                        .divide(SizedBox(height: 10.0))
-                        .around(SizedBox(height: 10.0)),
+                    ],
                   ),
                 ),
               ),

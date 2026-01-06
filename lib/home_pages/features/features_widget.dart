@@ -15,7 +15,7 @@ class FeaturesWidget extends StatefulWidget {
   const FeaturesWidget({super.key});
 
   static String routeName = 'Features';
-  static String routePath = '/features';
+  static String routePath = 'features';
 
   @override
   State<FeaturesWidget> createState() => _FeaturesWidgetState();

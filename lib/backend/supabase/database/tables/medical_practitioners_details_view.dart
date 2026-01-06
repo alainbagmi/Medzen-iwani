@@ -41,4 +41,7 @@ class MedicalPractitionersDetailsViewRow extends SupabaseDataRow {
 
   String? get providerid => getField<String>('providerid');
   set providerid(String? value) => setField<String>('providerid', value);
+
+  String? get bio => getField<String>('bio');
+  set bio(String? value) => setField<String>('bio', value);
 }

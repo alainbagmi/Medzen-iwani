@@ -1,0 +1,143 @@
+-- Migration: Fix trigger with explicit UUID casting
+-- Description: Ensures all comparisons handle potential type mismatches
+
+-- Drop existing trigger and function
+DROP TRIGGER IF EXISTS tr_clinical_note_sync ON clinical_notes;
+DROP TRIGGER IF EXISTS tr_clinical_note_sync_insert ON clinical_notes;
+DROP FUNCTION IF EXISTS fn_queue_clinical_note_sync() CASCADE;
+
+-- Create the trigger function with explicit UUID casting everywhere
+CREATE OR REPLACE FUNCTION fn_queue_clinical_note_sync()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_ehr_id TEXT;
+    v_patient_name TEXT;
+    v_provider_name TEXT;
+    v_provider_specialty TEXT;
+    v_patient_id UUID;
+    v_provider_id UUID;
+BEGIN
+    -- Cast to UUID explicitly to avoid any type mismatch
+    v_patient_id := NEW.patient_id::uuid;
+    v_provider_id := NEW.provider_id::uuid;
+
+    -- Only process when status becomes 'final' (signed)
+    IF NEW.status = 'final' AND (OLD IS NULL OR OLD.status IS DISTINCT FROM 'final') THEN
+
+        -- Get patient's EHR ID using explicit UUID variable
+        SELECT u.ehr_id, (u.first_name || ' ' || u.last_name)
+        INTO v_ehr_id, v_patient_name
+        FROM users u
+        WHERE u.id = v_patient_id;
+
+        -- Skip if patient has no EHR ID
+        IF v_ehr_id IS NULL OR v_ehr_id = '' THEN
+            RAISE NOTICE 'Clinical note % skipped: patient % has no EHR ID', NEW.id, v_patient_id;
+            RETURN NEW;
+        END IF;
+
+        -- Get provider name using explicit UUID variable
+        SELECT (u.first_name || ' ' || u.last_name)
+        INTO v_provider_name
+        FROM users u
+        WHERE u.id = v_provider_id;
+
+        -- Get provider specialty - cast user_id comparison explicitly
+        -- medical_provider_profiles.user_id might be TEXT in some schemas
+        BEGIN
+            SELECT COALESCE(mpp.primary_specialization, mpp.professional_role, 'General Practice')
+            INTO v_provider_specialty
+            FROM medical_provider_profiles mpp
+            WHERE mpp.user_id::uuid = v_provider_id;
+        EXCEPTION WHEN OTHERS THEN
+            -- If the cast fails, try text comparison
+            SELECT COALESCE(mpp.primary_specialization, mpp.professional_role, 'General Practice')
+            INTO v_provider_specialty
+            FROM medical_provider_profiles mpp
+            WHERE mpp.user_id::text = v_provider_id::text;
+        END;
+
+        -- Default if no specialty found
+        IF v_provider_specialty IS NULL THEN
+            v_provider_specialty := 'General Practice';
+        END IF;
+
+        -- Check if already queued (prevent duplicates)
+        IF NOT EXISTS (
+            SELECT 1 FROM ehrbase_sync_queue
+            WHERE table_name = 'clinical_notes'
+            AND record_id = NEW.id::text
+            AND sync_status IN ('pending', 'processing')
+        ) THEN
+            -- Insert into sync queue
+            INSERT INTO ehrbase_sync_queue (
+                table_name,
+                record_id,
+                template_id,
+                sync_type,
+                sync_status,
+                ehr_id,
+                retry_count,
+                data_snapshot,
+                created_at
+            ) VALUES (
+                'clinical_notes',
+                NEW.id::text,
+                'medzen.clinical.notes.v1',
+                'create',
+                'pending',
+                v_ehr_id,
+                0,
+                jsonb_build_object(
+                    'note_id', NEW.id::text,
+                    'appointment_id', COALESCE(NEW.appointment_id::text, ''),
+                    'session_id', COALESCE(NEW.session_id::text, ''),
+                    'patient_id', v_patient_id::text,
+                    'patient_name', COALESCE(v_patient_name, 'Unknown Patient'),
+                    'provider_id', v_provider_id::text,
+                    'provider_name', COALESCE(v_provider_name, 'Unknown Provider'),
+                    'provider_specialty', v_provider_specialty,
+                    'note_type', COALESCE(NEW.note_type, 'soap'),
+                    'chief_complaint', COALESCE(NEW.chief_complaint, ''),
+                    'history_of_present_illness', COALESCE(NEW.history_of_present_illness, ''),
+                    'subjective', COALESCE(NEW.subjective, ''),
+                    'objective', COALESCE(NEW.objective, ''),
+                    'assessment', COALESCE(NEW.assessment, ''),
+                    'plan', COALESCE(NEW.plan, ''),
+                    'icd10_codes', COALESCE(NEW.icd10_codes, '[]'::jsonb),
+                    'cpt_codes', COALESCE(NEW.cpt_codes, '[]'::jsonb),
+                    'medical_entities', COALESCE(NEW.medical_entities, '{}'::jsonb),
+                    'signed_by', COALESCE(NEW.provider_signature, ''),
+                    'signed_at', COALESCE(NEW.signed_at::text, ''),
+                    'transcript_language', COALESCE(NEW.transcript_language, 'en')
+                ),
+                NOW()
+            );
+
+            -- Update ehrbase_sync_status on the clinical note
+            NEW.ehrbase_sync_status := 'queued';
+
+            RAISE NOTICE 'Clinical note % queued for EHRbase sync (patient: %, ehr_id: %)',
+                NEW.id, v_patient_id, v_ehr_id;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION fn_queue_clinical_note_sync() TO authenticated, service_role;
+
+-- Create triggers
+CREATE TRIGGER tr_clinical_note_sync
+    BEFORE UPDATE ON clinical_notes
+    FOR EACH ROW
+    WHEN (NEW.status = 'final')
+    EXECUTE FUNCTION fn_queue_clinical_note_sync();
+
+CREATE TRIGGER tr_clinical_note_sync_insert
+    BEFORE INSERT ON clinical_notes
+    FOR EACH ROW
+    WHEN (NEW.status = 'final')
+    EXECUTE FUNCTION fn_queue_clinical_note_sync();

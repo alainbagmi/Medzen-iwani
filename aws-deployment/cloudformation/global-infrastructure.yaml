@@ -23,17 +23,17 @@ Parameters:
 
   PrimaryRegion:
     Type: String
-    Default: af-south-1
-    Description: Primary region for EHRbase
+    Default: eu-central-1
+    Description: Primary region for Chime/Bedrock/EU services
 
   SecondaryRegion:
     Type: String
     Default: eu-west-1
-    Description: Secondary region for AI/Chime
+    Description: Secondary/DR region for failover and read replicas
 
   DRRegion:
     Type: String
-    Default: us-east-1
+    Default: eu-west-1
     Description: Disaster recovery region
 
 Resources:
@@ -383,18 +383,16 @@ Resources:
           Tags:
             - Key: Environment
               Value: !Ref Environment
-        - Region: !Ref SecondaryRegion
-          PointInTimeRecoverySpecification:
-            PointInTimeRecoveryEnabled: true
-          Tags:
-            - Key: Environment
-              Value: !Ref Environment
+            - Key: Role
+              Value: Primary
         - Region: !Ref DRRegion
           PointInTimeRecoverySpecification:
             PointInTimeRecoveryEnabled: true
           Tags:
             - Key: Environment
               Value: !Ref Environment
+            - Key: Role
+              Value: Secondary-DR
 
   # ============================================
   # Secrets Manager for Cross-Region Secrets

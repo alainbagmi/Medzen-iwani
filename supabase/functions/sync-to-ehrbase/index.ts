@@ -48,6 +48,10 @@ const TEMPLATE_ID_MAP: Record<string, string> = {
 
   // Pharmacy & Stock
   'medzen.pharmacy_stock_management.v1': 'IDCR Medication List.v0',
+
+  // Clinical Notes - AI Generated from Video Consultations
+  'medzen.clinical.notes.v1': 'RIPPLE - Clinical Notes.v1',
+  'medzen.clinical_notes.v1': 'RIPPLE - Clinical Notes.v1',
 }
 
 // Helper function to get mapped template ID
@@ -727,6 +731,9 @@ function buildCompositionFromTemplate(templateId: string, data: any, originalTem
     composition.content.push(buildPathologyReportContent(data))
   } else if (patternMatchId.includes('physiotherapy_session')) {
     composition.content.push(buildPhysiotherapySessionContent(data))
+  } else if (patternMatchId.includes('clinical.notes') || patternMatchId.includes('clinical_notes')) {
+    // AI-generated clinical notes from video consultations
+    composition.content.push(...buildClinicalNotesContent(data))
   }
 
   return composition
@@ -801,6 +808,158 @@ function buildGenericDemographicsContent(data: any): any[] {
       code_string: 'UTF-8'
     }
   })
+
+  return content
+}
+
+/**
+ * Builds clinical notes content from AI-generated SOAP notes
+ * Used for syncing telemedicine consultation notes to EHRbase
+ */
+function buildClinicalNotesContent(data: any): any[] {
+  const content: any[] = []
+
+  // Build SOAP note sections as narrative text
+  const soapSections: string[] = []
+
+  // Chief Complaint
+  if (data.chief_complaint) {
+    soapSections.push(`CHIEF COMPLAINT:\n${data.chief_complaint}`)
+  }
+
+  // History of Present Illness
+  if (data.history_of_present_illness) {
+    soapSections.push(`\nHISTORY OF PRESENT ILLNESS:\n${data.history_of_present_illness}`)
+  }
+
+  // Subjective
+  if (data.subjective) {
+    soapSections.push(`\nSUBJECTIVE:\n${data.subjective}`)
+  }
+
+  // Objective
+  if (data.objective) {
+    soapSections.push(`\nOBJECTIVE:\n${data.objective}`)
+  }
+
+  // Assessment
+  if (data.assessment) {
+    soapSections.push(`\nASSESSMENT:\n${data.assessment}`)
+  }
+
+  // Plan
+  if (data.plan) {
+    soapSections.push(`\nPLAN:\n${data.plan}`)
+  }
+
+  // ICD-10 Codes
+  if (data.icd10_codes && Array.isArray(data.icd10_codes) && data.icd10_codes.length > 0) {
+    const icd10Text = data.icd10_codes
+      .map((code: any) => `  - ${code.code}: ${code.description} (confidence: ${(code.confidence * 100).toFixed(0)}%)`)
+      .join('\n')
+    soapSections.push(`\nICD-10 DIAGNOSIS CODES:\n${icd10Text}`)
+  }
+
+  // CPT Codes
+  if (data.cpt_codes && Array.isArray(data.cpt_codes) && data.cpt_codes.length > 0) {
+    const cptText = data.cpt_codes
+      .map((code: any) => `  - ${code.code}: ${code.description} (confidence: ${(code.confidence * 100).toFixed(0)}%)`)
+      .join('\n')
+    soapSections.push(`\nCPT PROCEDURE CODES:\n${cptText}`)
+  }
+
+  // Medical Entities
+  if (data.medical_entities && Array.isArray(data.medical_entities) && data.medical_entities.length > 0) {
+    const entitiesText = data.medical_entities
+      .map((entity: any) => `  - [${entity.type}] ${entity.text}${entity.icd10 ? ` (${entity.icd10})` : ''} - ${(entity.confidence * 100).toFixed(0)}% confidence`)
+      .join('\n')
+    soapSections.push(`\nEXTRACTED MEDICAL ENTITIES:\n${entitiesText}`)
+  }
+
+  // Metadata
+  const metadataText = [
+    `Note Type: ${data.note_type || 'SOAP'}`,
+    `Status: ${data.status || 'draft'}`,
+    data.ai_generated ? 'AI Generated: Yes' : null,
+    data.ai_model ? `AI Model: ${data.ai_model}` : null,
+    data.ai_confidence_score ? `AI Confidence: ${(data.ai_confidence_score * 100).toFixed(0)}%` : null,
+    data.transcript_language ? `Transcript Language: ${data.transcript_language}` : null,
+    data.provider_signature ? `Signed By: ${data.provider_signature}` : null,
+    data.signed_at ? `Signed At: ${data.signed_at}` : null,
+  ].filter(Boolean).join('\n')
+  soapSections.push(`\nMETADATA:\n${metadataText}`)
+
+  const fullNoteText = soapSections.join('\n')
+
+  // Create EVALUATION entry with clinical synopsis
+  content.push({
+    _type: 'EVALUATION',
+    archetype_node_id: 'openEHR-EHR-EVALUATION.clinical_synopsis.v1',
+    name: { _type: 'DV_TEXT', value: 'Clinical Note' },
+    data: {
+      _type: 'ITEM_TREE',
+      archetype_node_id: 'at0001',
+      items: [
+        {
+          _type: 'ELEMENT',
+          archetype_node_id: 'at0002',
+          name: { _type: 'DV_TEXT', value: 'Synopsis' },
+          value: { _type: 'DV_TEXT', value: fullNoteText }
+        }
+      ]
+    },
+    language: {
+      _type: 'CODE_PHRASE',
+      terminology_id: { _type: 'TERMINOLOGY_ID', value: 'ISO_639-1' },
+      code_string: 'en'
+    },
+    encoding: {
+      _type: 'CODE_PHRASE',
+      terminology_id: { _type: 'TERMINOLOGY_ID', value: 'IANA_character-sets' },
+      code_string: 'UTF-8'
+    }
+  })
+
+  // Add problem/diagnosis entries for each ICD-10 code
+  if (data.icd10_codes && Array.isArray(data.icd10_codes)) {
+    data.icd10_codes.forEach((code: any, index: number) => {
+      content.push({
+        _type: 'EVALUATION',
+        archetype_node_id: 'openEHR-EHR-EVALUATION.problem_diagnosis.v1',
+        name: { _type: 'DV_TEXT', value: `Diagnosis ${index + 1}` },
+        data: {
+          _type: 'ITEM_TREE',
+          archetype_node_id: 'at0001',
+          items: [
+            {
+              _type: 'ELEMENT',
+              archetype_node_id: 'at0002',
+              name: { _type: 'DV_TEXT', value: 'Problem/Diagnosis name' },
+              value: {
+                _type: 'DV_CODED_TEXT',
+                value: code.description,
+                defining_code: {
+                  _type: 'CODE_PHRASE',
+                  terminology_id: { _type: 'TERMINOLOGY_ID', value: 'ICD-10' },
+                  code_string: code.code
+                }
+              }
+            }
+          ]
+        },
+        language: {
+          _type: 'CODE_PHRASE',
+          terminology_id: { _type: 'TERMINOLOGY_ID', value: 'ISO_639-1' },
+          code_string: 'en'
+        },
+        encoding: {
+          _type: 'CODE_PHRASE',
+          terminology_id: { _type: 'TERMINOLOGY_ID', value: 'IANA_character-sets' },
+          code_string: 'UTF-8'
+        }
+      })
+    })
+  }
 
   return content
 }

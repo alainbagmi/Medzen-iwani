@@ -1,0 +1,580 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'MedZen Transcription Monitoring - CloudWatch Alerts for Transcription Failures and Cost Optimization'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: medzen
+    Description: Project name for resource naming
+
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+
+  AlertEmail:
+    Type: String
+    Description: Email address for alert notifications
+    Default: ''
+
+  # Cost optimization thresholds
+  MaxTranscriptionDurationMinutes:
+    Type: Number
+    Default: 120
+    Description: Maximum allowed transcription duration in minutes
+
+  DailyTranscriptionBudgetUSD:
+    Type: Number
+    Default: 50
+    Description: Daily budget for transcription costs in USD
+
+  MonthlyTranscriptionBudgetUSD:
+    Type: Number
+    Default: 1000
+    Description: Monthly budget for transcription costs in USD
+
+  # Failure thresholds
+  TranscriptionFailureThreshold:
+    Type: Number
+    Default: 3
+    Description: Number of failures to trigger alert
+
+  TranscriptionLatencyThresholdMs:
+    Type: Number
+    Default: 30000
+    Description: Transcription latency threshold in milliseconds
+
+Resources:
+  # ============================================
+  # SNS Topic for Alerts
+  # ============================================
+  TranscriptionAlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${ProjectName}-transcription-alerts'
+      DisplayName: MedZen Transcription Alerts
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  TranscriptionAlertsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlertEmail
+    Properties:
+      TopicArn: !Ref TranscriptionAlertsTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  # ============================================
+  # CloudWatch Dashboard
+  # ============================================
+  TranscriptionDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub '${ProjectName}-transcription-monitoring'
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Transcription Job Status",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["${ProjectName}/Transcription", "SuccessfulJobs", { "stat": "Sum", "period": 3600 }],
+                  ["${ProjectName}/Transcription", "FailedJobs", { "stat": "Sum", "period": 3600, "color": "#d62728" }],
+                  ["${ProjectName}/Transcription", "InProgressJobs", { "stat": "Average", "period": 300 }]
+                ],
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 12,
+              "y": 0,
+              "width": 12,
+              "height": 6,
+              "properties": {
+                "title": "Transcription Duration & Cost",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["${ProjectName}/Transcription", "TotalDurationMinutes", { "stat": "Sum", "period": 3600 }],
+                  ["${ProjectName}/Transcription", "EstimatedCostUSD", { "stat": "Sum", "period": 3600, "color": "#ff7f0e" }],
+                  ["${ProjectName}/Transcription", "AverageDurationMinutes", { "stat": "Average", "period": 3600 }]
+                ],
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 0,
+              "y": 6,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "Transcription Errors by Type",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["${ProjectName}/Transcription", "TimeoutErrors", { "stat": "Sum", "period": 3600 }],
+                  ["${ProjectName}/Transcription", "APIErrors", { "stat": "Sum", "period": 3600 }],
+                  ["${ProjectName}/Transcription", "ValidationErrors", { "stat": "Sum", "period": 3600 }],
+                  ["${ProjectName}/Transcription", "DurationLimitExceeded", { "stat": "Sum", "period": 3600 }]
+                ],
+                "view": "bar"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 8,
+              "y": 6,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "Lambda Performance",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["AWS/Lambda", "Errors", "FunctionName", "${ProjectName}-recording-handler", { "stat": "Sum", "period": 300 }],
+                  ["AWS/Lambda", "Errors", "FunctionName", "${ProjectName}-transcription-processor", { "stat": "Sum", "period": 300 }]
+                ],
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "x": 16,
+              "y": 6,
+              "width": 8,
+              "height": 6,
+              "properties": {
+                "title": "Daily Cost Tracking",
+                "region": "${AWS::Region}",
+                "metrics": [
+                  ["${ProjectName}/Transcription", "DailyCostUSD", { "stat": "Maximum", "period": 86400 }],
+                  ["${ProjectName}/Transcription", "DailyBudgetUSD", { "stat": "Maximum", "period": 86400, "color": "#2ca02c" }]
+                ],
+                "view": "singleValue"
+              }
+            }
+          ]
+        }
+
+  # ============================================
+  # CloudWatch Alarms - Transcription Failures
+  # ============================================
+
+  # Alarm: Transcription Job Failures
+  TranscriptionFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-job-failures'
+      AlarmDescription: !Sub 'Transcription job failures exceeded ${TranscriptionFailureThreshold} in 15 minutes'
+      MetricName: FailedJobs
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Sum
+      Period: 900  # 15 minutes
+      EvaluationPeriods: 1
+      Threshold: !Ref TranscriptionFailureThreshold
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+      OKActions:
+        - !Ref TranscriptionAlertsTopic
+      Dimensions:
+        - Name: Environment
+          Value: !Ref Environment
+
+  # Alarm: Transcription Callback Errors
+  TranscriptionCallbackErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-callback-errors'
+      AlarmDescription: 'Transcription callback Lambda errors detected'
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300  # 5 minutes
+      EvaluationPeriods: 2
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub '${ProjectName}-transcription-processor'
+
+  # Alarm: Recording Handler Errors
+  RecordingHandlerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-recording-handler-errors'
+      AlarmDescription: 'Recording handler Lambda errors detected'
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300  # 5 minutes
+      EvaluationPeriods: 2
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+      Dimensions:
+        - Name: FunctionName
+          Value: !Sub '${ProjectName}-recording-handler'
+
+  # Alarm: Transcription Processing Latency
+  TranscriptionLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-high-latency'
+      AlarmDescription: !Sub 'Transcription processing latency exceeded ${TranscriptionLatencyThresholdMs}ms'
+      MetricName: ProcessingDurationMs
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Average
+      Period: 900  # 15 minutes
+      EvaluationPeriods: 2
+      Threshold: !Ref TranscriptionLatencyThresholdMs
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+
+  # ============================================
+  # CloudWatch Alarms - Cost Optimization
+  # ============================================
+
+  # Alarm: Duration Limit Exceeded
+  DurationLimitExceededAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-duration-limit-exceeded'
+      AlarmDescription: !Sub 'Transcription exceeds ${MaxTranscriptionDurationMinutes} minute limit'
+      MetricName: DurationLimitExceeded
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Sum
+      Period: 3600  # 1 hour
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+
+  # Alarm: Daily Budget Exceeded
+  DailyBudgetExceededAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-daily-budget-exceeded'
+      AlarmDescription: !Sub 'Daily transcription cost exceeded $${DailyTranscriptionBudgetUSD} USD'
+      MetricName: DailyCostUSD
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Maximum
+      Period: 86400  # 24 hours
+      EvaluationPeriods: 1
+      Threshold: !Ref DailyTranscriptionBudgetUSD
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+
+  # Alarm: Daily Budget Warning (80%)
+  DailyBudgetWarningAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-daily-budget-warning'
+      AlarmDescription: 'Daily transcription cost reached 80% of budget'
+      MetricName: DailyCostUSD
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Maximum
+      Period: 86400  # 24 hours
+      EvaluationPeriods: 1
+      Threshold: !Sub '${DailyTranscriptionBudgetUSD} * 0.8'
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+
+  # Alarm: High Transcription Volume
+  HighTranscriptionVolumeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-high-volume'
+      AlarmDescription: 'Unusually high number of transcription jobs (possible abuse or misconfiguration)'
+      MetricName: TotalJobs
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Sum
+      Period: 3600  # 1 hour
+      EvaluationPeriods: 1
+      Threshold: 50  # 50 transcription jobs per hour is suspicious
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+
+  # Alarm: Long-Running Transcriptions
+  LongRunningTranscriptionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-transcription-stuck-jobs'
+      AlarmDescription: 'Transcription jobs running longer than expected (possible stuck job)'
+      MetricName: InProgressJobsDuration
+      Namespace: !Sub '${ProjectName}/Transcription'
+      Statistic: Maximum
+      Period: 1800  # 30 minutes
+      EvaluationPeriods: 4  # 2 hours of stuck jobs
+      Threshold: !Sub '${MaxTranscriptionDurationMinutes} * 60 * 1000'  # Convert to ms
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref TranscriptionAlertsTopic
+
+  # ============================================
+  # CloudWatch Metric Filters (for Supabase Edge Function Logs)
+  # ============================================
+
+  # Note: These filters assume logs are being forwarded to CloudWatch from Supabase
+  # You can use CloudWatch Log Agent or a Lambda to forward Supabase function logs
+
+  TranscriptionErrorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/medzen/transcription/${Environment}'
+      RetentionInDays: 30
+
+  TranscriptionFailureMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref TranscriptionErrorLogGroup
+      FilterPattern: '[timestamp, requestId, level="ERROR", message]'
+      MetricTransformations:
+        - MetricName: EdgeFunctionErrors
+          MetricNamespace: !Sub '${ProjectName}/Transcription'
+          MetricValue: '1'
+          DefaultValue: 0
+
+  TranscriptionTimeoutMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref TranscriptionErrorLogGroup
+      FilterPattern: '"timeout" OR "TIMEOUT" OR "timed out"'
+      MetricTransformations:
+        - MetricName: TimeoutErrors
+          MetricNamespace: !Sub '${ProjectName}/Transcription'
+          MetricValue: '1'
+          DefaultValue: 0
+
+  # ============================================
+  # EventBridge Rules for Automated Response
+  # ============================================
+
+  # Rule: Auto-stop long-running transcriptions
+  AutoStopLongTranscriptionsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${ProjectName}-auto-stop-long-transcriptions'
+      Description: 'Automatically stop transcriptions exceeding duration limit'
+      State: ENABLED
+      ScheduleExpression: 'rate(15 minutes)'
+      Targets:
+        - Id: CheckLongRunningTranscriptions
+          Arn: !GetAtt TranscriptionCleanupLambda.Arn
+
+  TranscriptionCleanupLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TranscriptionCleanupLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt AutoStopLongTranscriptionsRule.Arn
+
+  # Lambda to cleanup long-running transcriptions
+  TranscriptionCleanupLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-transcription-cleanup'
+      Description: 'Cleans up long-running or stuck transcription jobs'
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: 256
+      Timeout: 60
+      Role: !GetAtt TranscriptionCleanupRole.Arn
+      Environment:
+        Variables:
+          SUPABASE_URL: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/supabase-url}}'
+          SUPABASE_SERVICE_KEY: !Sub '{{resolve:ssm:/${ProjectName}/${Environment}/supabase-service-key}}'
+          MAX_DURATION_MINUTES: !Ref MaxTranscriptionDurationMinutes
+          PROJECT_NAME: !Ref ProjectName
+      Code:
+        ZipFile: |
+          const https = require('https');
+          const { CloudWatchClient, PutMetricDataCommand } = require('@aws-sdk/client-cloudwatch');
+
+          const cloudwatch = new CloudWatchClient({ region: process.env.AWS_REGION });
+          const MAX_DURATION_MS = parseInt(process.env.MAX_DURATION_MINUTES) * 60 * 1000;
+
+          async function supabaseRequest(method, path, data = null) {
+            return new Promise((resolve, reject) => {
+              const url = new URL(path, process.env.SUPABASE_URL);
+              const options = {
+                method,
+                headers: {
+                  'apikey': process.env.SUPABASE_SERVICE_KEY,
+                  'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                }
+              };
+
+              const req = https.request(url, options, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => {
+                  try { resolve(JSON.parse(body)); }
+                  catch (e) { resolve(body); }
+                });
+              });
+
+              req.on('error', reject);
+              if (data) req.write(JSON.stringify(data));
+              req.end();
+            });
+          }
+
+          async function publishMetric(metricName, value, unit = 'Count') {
+            await cloudwatch.send(new PutMetricDataCommand({
+              Namespace: `${process.env.PROJECT_NAME}/Transcription`,
+              MetricData: [{
+                MetricName: metricName,
+                Value: value,
+                Unit: unit,
+                Dimensions: [{ Name: 'Environment', Value: process.env.ENVIRONMENT || 'production' }]
+              }]
+            }));
+          }
+
+          exports.handler = async (event) => {
+            try {
+              // Find transcriptions that have been running too long
+              const cutoffTime = new Date(Date.now() - MAX_DURATION_MS).toISOString();
+
+              const stuckJobs = await supabaseRequest(
+                'GET',
+                `/rest/v1/video_call_sessions?select=id,meeting_id,live_transcription_started_at&transcription_status=eq.in_progress&live_transcription_started_at=lt.${cutoffTime}`
+              );
+
+              if (Array.isArray(stuckJobs) && stuckJobs.length > 0) {
+                console.log(`Found ${stuckJobs.length} stuck transcription jobs`);
+
+                // Mark as timed out
+                for (const job of stuckJobs) {
+                  await supabaseRequest(
+                    'PATCH',
+                    `/rest/v1/video_call_sessions?id=eq.${job.id}`,
+                    {
+                      transcription_status: 'timeout',
+                      transcription_error: 'Exceeded maximum duration limit',
+                      updated_at: new Date().toISOString()
+                    }
+                  );
+
+                  console.log(`Marked job ${job.id} as timed out`);
+                }
+
+                // Publish metric
+                await publishMetric('DurationLimitExceeded', stuckJobs.length);
+              }
+
+              // Calculate and publish cost metrics
+              const today = new Date().toISOString().split('T')[0];
+              const completedToday = await supabaseRequest(
+                'GET',
+                `/rest/v1/video_call_sessions?select=id,transcription_duration_seconds&transcription_status=eq.COMPLETED&updated_at=gte.${today}T00:00:00Z`
+              );
+
+              if (Array.isArray(completedToday)) {
+                const totalMinutes = completedToday.reduce(
+                  (sum, j) => sum + (j.transcription_duration_seconds || 0) / 60, 0
+                );
+                // AWS Transcribe Medical: $0.0750 per minute
+                const estimatedCost = totalMinutes * 0.0750;
+
+                await publishMetric('DailyCostUSD', estimatedCost, 'None');
+                await publishMetric('TotalDurationMinutes', totalMinutes, 'None');
+              }
+
+              return { statusCode: 200, body: 'Cleanup complete' };
+
+            } catch (error) {
+              console.error('Cleanup error:', error);
+              await publishMetric('CleanupErrors', 1);
+              throw error;
+            }
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  TranscriptionCleanupRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-transcription-cleanup-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CloudWatchMetrics
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+        - PolicyName: SSMParameterAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ProjectName}/${Environment}/*'
+
+  TranscriptionCleanupLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-transcription-cleanup'
+      RetentionInDays: 14
+
+Conditions:
+  HasAlertEmail: !Not [!Equals [!Ref AlertEmail, '']]
+
+Outputs:
+  AlertsTopicArn:
+    Description: SNS Topic ARN for transcription alerts
+    Value: !Ref TranscriptionAlertsTopic
+    Export:
+      Name: !Sub '${ProjectName}-transcription-alerts-topic'
+
+  DashboardUrl:
+    Description: CloudWatch Dashboard URL
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-transcription-monitoring'
+
+  CleanupLambdaArn:
+    Description: Transcription Cleanup Lambda ARN
+    Value: !GetAtt TranscriptionCleanupLambda.Arn

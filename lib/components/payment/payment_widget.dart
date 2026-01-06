@@ -1,5 +1,6 @@
 import '/backend/api_requests/api_calls.dart';
 import '/backend/supabase/supabase.dart';
+import '/components/payment_progress/payment_progress_widget.dart';
 import '/components/payment_referal/payment_referal_widget.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_credit_card_form.dart';
@@ -282,8 +283,10 @@ class _PaymentWidgetState extends State<PaymentWidget>
                             ],
                           ),
                         ),
-                        if (_model.paymentMethodValue != null &&
-                            _model.paymentMethodValue != '')
+                        if ((_model.paymentMethodValue != null &&
+                                _model.paymentMethodValue != '') &&
+                            ((_model.paymentMethodValue != 'CARD') ||
+                                (_model.paymentMethodValue != 'CARTE')))
                           Padding(
                             padding: EdgeInsetsDirectional.fromSTEB(
                                 24.0, 12.0, 24.0, 0.0),
@@ -311,7 +314,14 @@ class _PaymentWidgetState extends State<PaymentWidget>
                               ],
                             ),
                           ),
-                        if (_model.paymentMethodValue == 'CARD')
+                        if ((_model.paymentMethodValue == 'CARD') &&
+                            responsiveVisibility(
+                              context: context,
+                              phone: false,
+                              tablet: false,
+                              tabletLandscape: false,
+                              desktop: false,
+                            ))
                           Padding(
                             padding: EdgeInsetsDirectional.fromSTEB(
                                 24.0, 12.0, 24.0, 0.0),
@@ -371,6 +381,33 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                        if ((_model.paymentMethodValue == 'CARD') ||
+                            (_model.paymentMethodValue != 'CARTE'))
+                          Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                10.0, 0.0, 0.0, 0.0),
+                            child: Text(
+                              FFLocalizations.of(context).getText(
+                                'dy2pzba5' /* Card details are required only... */,
+                              ),
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    font: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w600,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                    color: FlutterFlowTheme.of(context).error,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FontWeight.w600,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontStyle,
+                                  ),
                             ),
                           ),
                         Divider(
@@ -554,7 +591,7 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                                   .fontStyle,
                                         ),
                                     elevation: 40.0,
-                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderRadius: BorderRadius.circular(20.0),
                                     hoverColor: Color(0xFFEE0505),
                                     hoverBorderSide: BorderSide(
                                       color: FlutterFlowTheme.of(context)
@@ -573,13 +610,220 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                         await PaymentGroup.initializePaymentCall
                                             .call(
                                       amount: widget!.amount?.toString(),
-                                      transactionID:
-                                          'Medzen-${random_data.randomInteger(0, 1000).toString()}',
+                                      transactionID: 'Medzen-${dateTimeFormat(
+                                        "jms",
+                                        random_data.randomDate(),
+                                        locale: FFLocalizations.of(context)
+                                            .languageCode,
+                                      )}',
                                     );
 
                                     if ((_model.initialisepayment?.succeeded ??
                                         true)) {
-                                      if (_model.paymentMethodValue != 'CARD') {
+                                      if ((_model.paymentMethodValue ==
+                                              'CARD') ||
+                                          (_model.paymentMethodValue ==
+                                              'CARTE')) {
+                                        await launchURL(PaymentGroup
+                                            .initializePaymentCall
+                                            .transactionURL(
+                                          (_model.initialisepayment?.jsonBody ??
+                                              ''),
+                                        )!);
+                                        if (widget!.servicetype ==
+                                            'appointment') {
+                                          _model.appointmentCard =
+                                              await AppointmentsTable().insert({
+                                            'patient_id':
+                                                FFAppState().AuthuserID,
+                                            'provider_id': widget!.providerid,
+                                            'start_date':
+                                                supaSerialize<DateTime>(
+                                                    widget!.startdate),
+                                            'appointment_type': widget!.service,
+                                            'appointment_number':
+                                                'Appt-${random_data.randomInteger(0, 10).toString()}',
+                                            'status': 'pending',
+                                            'consultation_mode':
+                                                widget!.consultationmode,
+                                            'scheduled_start':
+                                                supaSerialize<DateTime>(
+                                                    widget!.startdate),
+                                            'scheduled_end':
+                                                supaSerialize<DateTime>(
+                                                    widget!.starttime),
+                                            'facility_id': widget!.facilityid,
+                                          });
+                                          await PaymentsTable().insert({
+                                            'payment_for': widget!.service,
+                                            'payment_method': () {
+                                              if (_model.paymentMethodValue ==
+                                                  'ORANGE') {
+                                                return 'orange_money';
+                                              } else if (_model
+                                                      .paymentMethodValue ==
+                                                  'MTN') {
+                                                return 'mtn_momo';
+                                              } else {
+                                                return 'visa';
+                                              }
+                                            }(),
+                                            'payment_reference': PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'gross_amount': widget!.amount,
+                                            'payment_status': 'pending',
+                                            'payer_id': FFAppState().AuthuserID,
+                                            'transaction_id': PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'external_transaction_id':
+                                                PaymentGroup
+                                                    .initializePaymentCall
+                                                    .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'appointment_id':
+                                                _model.appointmentCard?.id,
+                                            'payment_url': PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionURL(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'facility_id': widget!.facilityid,
+                                            'recipient_id': widget!.providerid,
+                                          });
+                                          // Check Payment Status
+                                          _model.checkCardPayment =
+                                              await PaymentGroup
+                                                  .getPaymentStatusCall
+                                                  .call(
+                                            transactionID: PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                          );
+
+                                          if (PaymentGroup.getPaymentStatusCall
+                                                  .transactionStatus(
+                                                (_model.checkPayment
+                                                        ?.jsonBody ??
+                                                    ''),
+                                              ) ==
+                                              'SUCCESS') {
+                                            await AppointmentsTable().update(
+                                              data: {
+                                                'status': 'scheduled',
+                                              },
+                                              matchingRows: (rows) =>
+                                                  rows.eqOrNull(
+                                                'id',
+                                                _model.appointmentCard?.id,
+                                              ),
+                                            );
+                                            await PaymentsTable().update(
+                                              data: {
+                                                'payment_status': 'SUCCESS',
+                                              },
+                                              matchingRows: (rows) =>
+                                                  rows.eqOrNull(
+                                                'transaction_id',
+                                                PaymentGroup
+                                                    .initializePaymentCall
+                                                    .transactionID(
+                                                  (_model.initialisepayment
+                                                          ?.jsonBody ??
+                                                      ''),
+                                                ),
+                                              ),
+                                            );
+
+                                            context.pushNamed(
+                                                AppointmentsWidget.routeName);
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Appointment booked successfully',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryText,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .success,
+                                              ),
+                                            );
+                                          } else {
+                                            context.pushNamed(
+                                                AppointmentsWidget.routeName);
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Payment might have failed . please refresh or try again later',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryText,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .error,
+                                              ),
+                                            );
+                                          }
+                                        } else {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Only appointments are available at this time',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryBackground,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .error,
+                                            ),
+                                          );
+                                        }
+                                      } else {
                                         _model.mobileMoney = await PaymentGroup
                                             .mobileMoneyCall
                                             .call(
@@ -598,149 +842,44 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                           phone: _model.userPhoneNumber,
                                         );
 
-                                        if ((_model.mobileMoney?.succeeded ??
-                                            true)) {
-                                          if (widget!.servicetype ==
-                                              'appointment') {
-                                            _model.appointment =
-                                                await AppointmentsTable()
-                                                    .insert({
-                                              'patient_id':
-                                                  FFAppState().AuthuserID,
-                                              'provider_id': widget!.providerid,
-                                              'start_date':
-                                                  supaSerialize<DateTime>(
-                                                      widget!.startdate),
-                                              'appointment_type':
-                                                  widget!.service,
-                                              // appointment_number removed - let database auto-generate via sequence
-                                              'status': 'scheduled',
-                                              'consultation_mode':
-                                                  widget!.consultationmode,
-                                              'scheduled_start':
-                                                  supaSerialize<DateTime>(
-                                                      widget!.startdate),
-                                              'scheduled_end':
-                                                  supaSerialize<DateTime>(
-                                                      widget!.starttime),
-                                            });
-                                            await PaymentsTable().insert({
-                                              'payment_for': widget!.service,
-                                              'net_amount': widget!.amount,
-                                              'payment_method': () {
-                                                if (_model.paymentMethodValue ==
-                                                    'ORANGE') {
-                                                  return 'orange_money';
-                                                } else if (_model
-                                                        .paymentMethodValue ==
-                                                    'MTN') {
-                                                  return 'mtn_momo';
-                                                } else {
-                                                  return 'visa';
-                                                }
-                                              }(),
-                                              'payment_reference': PaymentGroup
-                                                  .initializePaymentCall
-                                                  .transactionID(
-                                                (_model.initialisepayment
-                                                        ?.jsonBody ??
-                                                    ''),
-                                              ),
-                                              'gross_amount': widget!.amount,
-                                              'payment_status': 'completed',
-                                              'payer_id':
-                                                  FFAppState().AuthuserID,
-                                              'transaction_id': PaymentGroup
-                                                  .initializePaymentCall
-                                                  .transactionID(
-                                                (_model.initialisepayment
-                                                        ?.jsonBody ??
-                                                    ''),
-                                              ),
-                                              'external_transaction_id':
-                                                  PaymentGroup
-                                                      .initializePaymentCall
-                                                      .transactionID(
-                                                (_model.initialisepayment
-                                                        ?.jsonBody ??
-                                                    ''),
-                                              ),
-                                              'appointment_id':
-                                                  _model.appointment?.id,
-                                            });
-                                            Navigator.pop(context);
-                                            ScaffoldMessenger.of(context)
-                                                .clearSnackBars();
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Payment Successful',
-                                                  style: TextStyle(
-                                                    color: FlutterFlowTheme.of(
-                                                            context)
-                                                        .primaryBackground,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                duration: Duration(
-                                                    milliseconds: 4000),
-                                                backgroundColor:
-                                                    FlutterFlowTheme.of(context)
-                                                        .success,
-                                              ),
-                                            );
-
-                                            context.pushNamed(
-                                                AppointmentsWidget.routeName);
-                                          } else {
-                                            Navigator.pop(context);
-                                            ScaffoldMessenger.of(context)
-                                                .clearSnackBars();
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  'Payment Successful',
-                                                  style: TextStyle(
-                                                    color: FlutterFlowTheme.of(
-                                                            context)
-                                                        .primaryBackground,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                duration: Duration(
-                                                    milliseconds: 4000),
-                                                backgroundColor:
-                                                    FlutterFlowTheme.of(context)
-                                                        .success,
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          await showDialog(
-                                            context: context,
-                                            builder: (alertDialogContext) {
-                                              return AlertDialog(
-                                                title: Text('Payment Failed'),
-                                                content: Text(
-                                                    'Payment failed or expired please try again '),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            alertDialogContext),
-                                                    child: Text('Ok'),
-                                                  ),
-                                                ],
-                                              );
-                                            },
-                                          );
+                                        if (widget!.servicetype ==
+                                            'appointment') {
+                                          _model.appointment =
+                                              await AppointmentsTable().insert({
+                                            'patient_id':
+                                                FFAppState().AuthuserID,
+                                            'provider_id': widget!.providerid,
+                                            'start_date':
+                                                supaSerialize<DateTime>(
+                                                    widget!.startdate),
+                                            'appointment_type': widget!.service,
+                                            'appointment_number':
+                                                'Appt-${random_data.randomInteger(0, 10).toString()}',
+                                            'status': 'pending',
+                                            'consultation_mode':
+                                                widget!.consultationmode,
+                                            'scheduled_start':
+                                                supaSerialize<DateTime>(
+                                                    widget!.startdate),
+                                            'scheduled_end':
+                                                supaSerialize<DateTime>(
+                                                    widget!.starttime),
+                                            'facility_id': widget!.facilityid,
+                                          });
                                           await PaymentsTable().insert({
-                                            'payment_for': widget!.servicetype,
-                                            'net_amount': widget!.amount,
-                                            'payment_method':
-                                                _model.paymentMethodValue,
+                                            'payment_for': widget!.service,
+                                            'payment_method': () {
+                                              if (_model.paymentMethodValue ==
+                                                  'ORANGE') {
+                                                return 'orange_money';
+                                              } else if (_model
+                                                      .paymentMethodValue ==
+                                                  'MTN') {
+                                                return 'mtn_momo';
+                                              } else {
+                                                return 'visa';
+                                              }
+                                            }(),
                                             'payment_reference': PaymentGroup
                                                 .initializePaymentCall
                                                 .transactionID(
@@ -749,9 +888,177 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                                   ''),
                                             ),
                                             'gross_amount': widget!.amount,
-                                            'payer_id': FFAppState().AuthuserID,
                                             'payment_status': 'pending',
+                                            'payer_id': FFAppState().AuthuserID,
+                                            'transaction_id': PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'external_transaction_id':
+                                                PaymentGroup
+                                                    .initializePaymentCall
+                                                    .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'appointment_id':
+                                                _model.appointment?.id,
+                                            'payment_url': PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionURL(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                            'facility_id': widget!.facilityid,
+                                            'recipient_id': widget!.providerid,
                                           });
+                                          await showModalBottomSheet(
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            enableDrag: false,
+                                            context: context,
+                                            builder: (context) {
+                                              return Padding(
+                                                padding:
+                                                    MediaQuery.viewInsetsOf(
+                                                        context),
+                                                child: PaymentProgressWidget(
+                                                  paymentmethod: _model
+                                                      .paymentMethodValue!,
+                                                ),
+                                              );
+                                            },
+                                          ).then(
+                                              (value) => safeSetState(() {}));
+
+                                          // Check Payment Status
+                                          _model.checkPayment =
+                                              await PaymentGroup
+                                                  .getPaymentStatusCall
+                                                  .call(
+                                            transactionID: PaymentGroup
+                                                .initializePaymentCall
+                                                .transactionID(
+                                              (_model.initialisepayment
+                                                      ?.jsonBody ??
+                                                  ''),
+                                            ),
+                                          );
+
+                                          if (PaymentGroup.getPaymentStatusCall
+                                                  .transactionStatus(
+                                                (_model.checkPayment
+                                                        ?.jsonBody ??
+                                                    ''),
+                                              ) ==
+                                              'SUCCESS') {
+                                            await AppointmentsTable().update(
+                                              data: {
+                                                'status': 'scheduled',
+                                              },
+                                              matchingRows: (rows) =>
+                                                  rows.eqOrNull(
+                                                'id',
+                                                _model.appointment?.id,
+                                              ),
+                                            );
+                                            await PaymentsTable().update(
+                                              data: {
+                                                'payment_status': PaymentGroup
+                                                    .getPaymentStatusCall
+                                                    .transactionStatus(
+                                                  (_model.checkPayment
+                                                          ?.jsonBody ??
+                                                      ''),
+                                                ),
+                                              },
+                                              matchingRows: (rows) =>
+                                                  rows.eqOrNull(
+                                                'transaction_id',
+                                                PaymentGroup
+                                                    .initializePaymentCall
+                                                    .transactionID(
+                                                  (_model.initialisepayment
+                                                          ?.jsonBody ??
+                                                      ''),
+                                                ),
+                                              ),
+                                            );
+
+                                            context.pushNamed(
+                                                AppointmentsWidget.routeName);
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Appointment booked successfully',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryText,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .success,
+                                              ),
+                                            );
+                                          } else {
+                                            context.pushNamed(
+                                                AppointmentsWidget.routeName);
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Payment might have failed . please refresh or try again later',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryText,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .error,
+                                              ),
+                                            );
+                                          }
+                                        } else {
+                                          Navigator.pop(context);
+                                          ScaffoldMessenger.of(context)
+                                              .clearSnackBars();
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Payment Failed',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryBackground,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .success,
+                                            ),
+                                          );
                                         }
                                       }
                                     } else {
@@ -761,7 +1068,7 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                           return AlertDialog(
                                             title: Text('Payment Failed'),
                                             content: Text(
-                                                'Sorry wwe are unable to create your payment please try again later'),
+                                                'Sorry we are unable to process your payment please try again later'),
                                             actions: [
                                               TextButton(
                                                 onPressed: () => Navigator.pop(
@@ -772,7 +1079,6 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                           );
                                         },
                                       );
-                                      Navigator.pop(context);
                                     }
 
                                     safeSetState(() {});
@@ -781,6 +1087,7 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                     'rpcrguni' /* Pay Now */,
                                   ),
                                   options: FFButtonOptions(
+                                    width: 110.0,
                                     height: 44.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
@@ -816,7 +1123,7 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                     borderSide: BorderSide(
                                       width: 1.0,
                                     ),
-                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderRadius: BorderRadius.circular(20.0),
                                     hoverColor:
                                         FlutterFlowTheme.of(context).primary,
                                     hoverBorderSide: BorderSide(
@@ -851,7 +1158,17 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                         return Padding(
                                           padding:
                                               MediaQuery.viewInsetsOf(context),
-                                          child: PaymentReferalWidget(),
+                                          child: PaymentReferalWidget(
+                                            amount: widget!.amount,
+                                            providerid: widget!.providerid,
+                                            facilityid: widget!.facilityid,
+                                            startdate: widget!.startdate,
+                                            starttime: widget!.starttime,
+                                            consultationmode:
+                                                widget!.consultationmode,
+                                            service: widget!.service,
+                                            helptype: 'new',
+                                          ),
                                         );
                                       },
                                     ).then((value) => safeSetState(() {}));
@@ -869,7 +1186,7 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                         24.0, 0.0, 24.0, 0.0),
                                     iconPadding: EdgeInsetsDirectional.fromSTEB(
                                         0.0, 0.0, 0.0, 0.0),
-                                    color: FlutterFlowTheme.of(context).primary,
+                                    color: Color(0xFF305A8B),
                                     textStyle: FlutterFlowTheme.of(context)
                                         .titleSmall
                                         .override(
@@ -900,9 +1217,8 @@ class _PaymentWidgetState extends State<PaymentWidget>
                                       color: Colors.transparent,
                                       width: 1.0,
                                     ),
-                                    borderRadius: BorderRadius.circular(8.0),
-                                    hoverColor:
-                                        FlutterFlowTheme.of(context).accent1,
+                                    borderRadius: BorderRadius.circular(20.0),
+                                    hoverColor: Color(0xFF0757F9),
                                     hoverBorderSide: BorderSide(
                                       color:
                                           FlutterFlowTheme.of(context).primary,

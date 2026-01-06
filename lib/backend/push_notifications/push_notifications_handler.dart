@@ -85,10 +85,14 @@ class _PushNotificationsHandlerState extends State<PushNotificationsHandler> {
   @override
   Widget build(BuildContext context) => _loading
       ? Container(
-          color: Colors.transparent,
-          child: Image.asset(
-            'assets/images/medzen.logo.png',
-            fit: BoxFit.contain,
+          color: FlutterFlowTheme.of(context).primaryBackground,
+          child: Center(
+            child: Image.asset(
+              'assets/images/medzen.logo.png',
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.contain,
+            ),
           ),
         )
       : widget.child;
@@ -116,9 +120,6 @@ class ParameterData {
 final parametersBuilderMap =
     <String, Future<ParameterData> Function(Map<String, dynamic>)>{
   'Provider_confirmation_page': ParameterData.none(),
-  'videoCall': ParameterData.none(),
-  'JoinCall': ParameterData.none(),
-  'provider_landing_page': ParameterData.none(),
   'Role_page': ParameterData.none(),
   'PatientAccountCreation': ParameterData.none(),
   'systemAdminLanding_page': ParameterData.none(),
@@ -131,59 +132,46 @@ final parametersBuilderMap =
   'HomePage': ParameterData.none(),
   'Features': ParameterData.none(),
   'AboutUs': ParameterData.none(),
-  'SplashScreen': ParameterData.none(),
   'Publications': ParameterData.none(),
-  'facilityStatusPage': ParameterData.none(),
   'systemAdminAccountCreation': ParameterData.none(),
   'FacilityAdminAccountCreation': ParameterData.none(),
-  'admin_patientStatusPage': ParameterData.none(),
-  'appoitmentStatusPage': ParameterData.none(),
-  'providerStatusPage': ParameterData.none(),
-  'PaymentStatusPage': ParameterData.none(),
-  'facilityDetailsPage': ParameterData.none(),
   'patient_landing_page': ParameterData.none(),
   'Appointments': (data) async => ParameterData(
         allParams: {
-          'username': getParameter<String>(data, 'username'),
-          'usernumber': getParameter<String>(data, 'usernumber'),
-          'avatarUrl': getParameter<String>(data, 'avatarUrl'),
+          'facilityid': getParameter<String>(data, 'facilityid'),
         },
       ),
-  'FacilityRegistrationPage': (data) async => ParameterData(
+  'CareCenterRegistrationPage': (data) async => ParameterData(
         allParams: {
           'departmentsChosen': getParameter<String>(data, 'departmentsChosen'),
         },
       ),
   'AdminStatusPage': ParameterData.none(),
-  'TermsAndCOnditionsPage': ParameterData.none(),
   'PaymentHistory': (data) async => ParameterData(
         allParams: {
-          'username': getParameter<String>(data, 'username'),
-          'userNumber': getParameter<String>(data, 'userNumber'),
-          'avatar': getParameter<String>(data, 'avatar'),
+          'facilityid': getParameter<String>(data, 'facilityid'),
         },
       ),
-  'MedicalPractitioners': ParameterData.none(),
+  'MedicalPractitioners': (data) async => ParameterData(
+        allParams: {
+          'gender': getParameter<String>(data, 'gender'),
+          'specialty': getParameter<String>(data, 'specialty'),
+        },
+      ),
   'PractionerDetail': (data) async => ParameterData(
         allParams: {
           'providerid': getParameter<String>(data, 'providerid'),
         },
       ),
-  'facilitySearchPage': ParameterData.none(),
-  'PatientsNotificationsPage': ParameterData.none(),
+  'CareCenterSearchPage': ParameterData.none(),
   'ProviderProfile_page': ParameterData.none(),
   'PatientsMedicationPage': ParameterData.none(),
   'Patient_Diagnostics': ParameterData.none(),
-  'Admin_PatientsAdminEditPage': ParameterData.none(),
-  'FacilitySettingsPage': ParameterData.none(),
   'signIn': ParameterData.none(),
   'patientsSettingsPage': ParameterData.none(),
   'facilityAdminSettingsPage': ParameterData.none(),
   'ProviderSettingsPage': ParameterData.none(),
   'systemAdmin_settings_Page': ParameterData.none(),
-  'ProviderNotificationsPage': ParameterData.none(),
-  'facilityNotificationsPage': ParameterData.none(),
-  'SystemAdminNotificationsPage': ParameterData.none(),
   'systemAdminProfilePage': (data) async => ParameterData(
         allParams: {
           'patientAuthUser': getParameter<String>(data, 'patientAuthUser'),
@@ -202,11 +190,80 @@ final parametersBuilderMap =
         },
       ),
   'FacilityAdminDocumentPage': ParameterData.none(),
-  'SystAdminDocumentPage': ParameterData.none(),
-  'systAdminPaymentPage': ParameterData.none(),
-  'facilityAdminPaymentPage': ParameterData.none(),
-  'providersWallet': ParameterData.none(),
-  'availability': ParameterData.none(),
+  'CareCentersTypes': ParameterData.none(),
+  'CareCenters': (data) async => ParameterData(
+        allParams: {
+          'facilitytype': getParameter<String>(data, 'facilitytype'),
+        },
+      ),
+  'CareCenterDetails': (data) async => ParameterData(
+        allParams: {
+          'facilityID': getParameter<String>(data, 'facilityID'),
+        },
+      ),
+  'chat': (data) async => ParameterData(
+        allParams: {
+          'conversationId': getParameter<String>(data, 'conversationId'),
+        },
+      ),
+  'AIChatHistoryPage': ParameterData.none(),
+  'admin_patientsPage': ParameterData.none(),
+  'provider_landing_page': ParameterData.none(),
+  'CareCenterStatusPage': (data) async => ParameterData(
+        allParams: {
+          'facilityID': getParameter<String>(data, 'facilityID'),
+        },
+      ),
+  'Admin_providerStatusPage': (data) async => ParameterData(
+        allParams: {
+          'facilityID': getParameter<String>(data, 'facilityID'),
+        },
+      ),
+  'ResetPasswordFromLink': (data) async => ParameterData(
+        allParams: {
+          'token': getParameter<String>(data, 'token'),
+        },
+      ),
+  'Finance': ParameterData.none(),
+  'Notifications': ParameterData.none(),
+  'ProviderSummary_Page': (data) async => ParameterData(
+        allParams: {
+          'providerID': getParameter<String>(data, 'providerID'),
+          'image': getParameter<String>(data, 'image'),
+          'name': getParameter<String>(data, 'name'),
+          'specialty': getParameter<String>(data, 'specialty'),
+          'licenseNumb': getParameter<String>(data, 'licenseNumb'),
+          'phone': getParameter<String>(data, 'phone'),
+          'eMCName': getParameter<String>(data, 'eMCName'),
+          'eMCRelationship': getParameter<String>(data, 'eMCRelationship'),
+          'eMCPhone': getParameter<String>(data, 'eMCPhone'),
+          'licenseExpiration': getParameter<String>(data, 'licenseExpiration'),
+        },
+      ),
+  'chatHistoryPage': (data) async => ParameterData(
+        allParams: {
+          'userRole': getParameter<String>(data, 'userRole'),
+        },
+      ),
+  'ChatHistoryDetail': (data) async => ParameterData(
+        allParams: {
+          'appointmentID': getParameter<String>(data, 'appointmentID'),
+          'appointmentDate': getParameter<DateTime>(data, 'appointmentDate'),
+          'username': getParameter<String>(data, 'username'),
+        },
+      ),
+  'TermsAndConditions': ParameterData.none(),
+  'AboutUsPage': ParameterData.none(),
+  'facilityadmin_patientsPage': (data) async => ParameterData(
+        allParams: {
+          'facilityID': getParameter<String>(data, 'facilityID'),
+        },
+      ),
+  'careCenterSettingsPage': (data) async => ParameterData(
+        allParams: {
+          'facilityID': getParameter<String>(data, 'facilityID'),
+        },
+      ),
 };
 
 Map<String, dynamic> getInitialParameterData(Map<String, dynamic> data) {

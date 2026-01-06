@@ -1,3 +1,4 @@
+import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -216,7 +217,7 @@ class _ResetPasswordWidgetState extends State<ResetPasswordWidget>
                                     '6549a6ub' /* Cancel */,
                                   ),
                                   options: FFButtonOptions(
-                                    width: 105.59,
+                                    width: 110.0,
                                     height: 44.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
@@ -261,13 +262,118 @@ class _ResetPasswordWidgetState extends State<ResetPasswordWidget>
                               Align(
                                 alignment: AlignmentDirectional(0.0, 0.05),
                                 child: FFButtonWidget(
-                                  onPressed: () {
-                                    print('Button pressed ...');
+                                  onPressed: () async {
+                                    _model.apiResultiz7 =
+                                        await AWSResetPwdCall.call(
+                                      phone: _model.resetphone,
+                                      email: '${_model.resetphone}@medzen.com',
+                                    );
+
+                                    if ((_model.apiResultiz7?.succeeded ??
+                                        true)) {
+                                      if ((String var1) {
+                                        return var1.startsWith('+237');
+                                      }(_model.resetphone!)) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'A Password reset link has been sent to your phone',
+                                              style: TextStyle(
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .primaryText,
+                                              ),
+                                            ),
+                                            duration:
+                                                Duration(milliseconds: 4000),
+                                            backgroundColor:
+                                                FlutterFlowTheme.of(context)
+                                                    .success,
+                                          ),
+                                        );
+                                      } else {
+                                        _model.apiResultl69 =
+                                            await TwillioSendSmsCall.call(
+                                          phone: _model.resetphone,
+                                          message:
+                                              'Please use the following link to reset your password :${AWSResetPwdCall.resetLink(
+                                            (_model.apiResultiz7?.jsonBody ??
+                                                ''),
+                                          )}',
+                                        );
+
+                                        if ((_model.apiResultl69?.succeeded ??
+                                            true)) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'A Password reset link has been sent to your phone',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .success,
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Unable to reset password at the moment',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .error,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Unable to reset password at the moment',
+                                            style: TextStyle(
+                                              color:
+                                                  FlutterFlowTheme.of(context)
+                                                      .primaryText,
+                                            ),
+                                          ),
+                                          duration:
+                                              Duration(milliseconds: 4000),
+                                          backgroundColor:
+                                              FlutterFlowTheme.of(context)
+                                                  .error,
+                                        ),
+                                      );
+                                    }
+
+                                    Navigator.pop(context);
+
+                                    safeSetState(() {});
                                   },
                                   text: FFLocalizations.of(context).getText(
                                     'g75ka7ic' /* Send Link */,
                                   ),
                                   options: FFButtonOptions(
+                                    width: 110.0,
                                     height: 44.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),

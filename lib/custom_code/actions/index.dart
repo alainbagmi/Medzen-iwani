@@ -1,8 +1,24 @@
 export 'join_room.dart' show joinRoom;
-export 'load_agora_sdk_script.dart' show loadAgoraSdkScript;
-export 'htmlfile.dart' show htmlfile;
-export 'upload_profile_picture_with_cleanup.dart'
-    show uploadProfilePictureWithCleanup;
-export 'start_video_call_from_appointment.dart'
-    show startVideoCallFromAppointment;
-export 'start_video_call_simple.dart' show startVideoCallSimple;
+export 'stream_response.dart' show streamResponse;
+export 'send_bedrock_message.dart' show sendBedrockMessage;
+export 'detect_user_role.dart' show detectUserRole;
+export 'get_assistant_by_type.dart' show getAssistantByType;
+export 'create_a_i_conversation.dart' show createAIConversation;
+export 'build_conversation_history.dart' show buildConversationHistory;
+export 'initialize_messaging.dart' show initializeMessaging;
+export 'initialize_session_tracking.dart' show initializeSessionTracking;
+export 'control_medical_transcription.dart' show controlMedicalTranscription;
+export 'get_transcript_status.dart' show getTranscriptStatus;
+export 'get_clinical_notes.dart' show getClinicalNotes;
+export 'sign_clinical_note.dart' show signClinicalNote;
+export 'sync_clinical_note_to_openehr.dart' show syncClinicalNoteToOpenehr;
+export 'generate_clinical_note.dart' show generateClinicalNote;
+export 'get_nearby_places.dart' show getNearbyPlaces;
+export 'get_nearby_providers.dart' show getNearbyProviders;
+export 'get_nearby_patients.dart' show getNearbyPatients;
+export 'get_nearby_blood_donors.dart' show getNearbyBloodDonors;
+export 'get_nearby_facilities.dart' show getNearbyFacilities;
+export 'update_user_location.dart' show updateUserLocation;
+export 'calculate_distance_km.dart' show calculateDistanceKm;
+export 'web_media_permissions_stub.dart' show webMediaPermissionsStub;
+export 'request_web_media_permissions.dart' show requestWebMediaPermissions;

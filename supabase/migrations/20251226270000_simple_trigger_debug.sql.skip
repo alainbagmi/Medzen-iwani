@@ -1,0 +1,103 @@
+-- Migration: Simple trigger for debugging
+-- Description: Replace with minimal trigger to find the uuid=text error source
+
+-- Drop existing triggers
+DROP TRIGGER IF EXISTS tr_clinical_note_sync ON clinical_notes;
+DROP TRIGGER IF EXISTS tr_clinical_note_sync_insert ON clinical_notes;
+DROP FUNCTION IF EXISTS fn_queue_clinical_note_sync() CASCADE;
+
+-- Create an ultra-simple trigger function
+CREATE OR REPLACE FUNCTION fn_queue_clinical_note_sync()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_patient_uuid UUID;
+    v_provider_uuid UUID;
+    v_ehr_id TEXT;
+BEGIN
+    -- Exit early if not going to 'final'
+    IF NEW.status != 'final' OR (OLD IS NOT NULL AND OLD.status = 'final') THEN
+        RETURN NEW;
+    END IF;
+
+    -- Store UUIDs in variables (they should already be UUID type)
+    v_patient_uuid := NEW.patient_id;
+    v_provider_uuid := NEW.provider_id;
+
+    RAISE NOTICE 'Trigger fired for note %. Patient: %, Provider: %',
+        NEW.id, v_patient_uuid, v_provider_uuid;
+
+    -- Check patient's EHR ID - use explicit type matching
+    SELECT ehr_id INTO v_ehr_id
+    FROM users
+    WHERE id = v_patient_uuid;
+
+    IF v_ehr_id IS NULL OR v_ehr_id = '' THEN
+        RAISE NOTICE 'Patient % has no EHR ID, skipping sync', v_patient_uuid;
+        RETURN NEW;
+    END IF;
+
+    RAISE NOTICE 'Patient % has EHR ID: %', v_patient_uuid, v_ehr_id;
+
+    -- Check if already queued - record_id is TEXT type
+    IF EXISTS (
+        SELECT 1 FROM ehrbase_sync_queue
+        WHERE table_name = 'clinical_notes'
+        AND record_id = NEW.id::text
+        AND sync_status IN ('pending', 'processing')
+    ) THEN
+        RAISE NOTICE 'Note % already queued, skipping', NEW.id;
+        RETURN NEW;
+    END IF;
+
+    -- Insert into sync queue with minimal data
+    INSERT INTO ehrbase_sync_queue (
+        table_name,
+        record_id,
+        template_id,
+        sync_type,
+        sync_status,
+        ehr_id,
+        retry_count,
+        data_snapshot,
+        created_at
+    ) VALUES (
+        'clinical_notes',
+        NEW.id::text,
+        'medzen.clinical.notes.v1',
+        'create',
+        'pending',
+        v_ehr_id,
+        0,
+        jsonb_build_object(
+            'note_id', NEW.id::text,
+            'patient_id', v_patient_uuid::text,
+            'provider_id', v_provider_uuid::text,
+            'status', NEW.status
+        ),
+        NOW()
+    );
+
+    -- Update sync status
+    NEW.ehrbase_sync_status := 'queued';
+
+    RAISE NOTICE 'Note % queued for EHRbase sync', NEW.id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute
+GRANT EXECUTE ON FUNCTION fn_queue_clinical_note_sync() TO authenticated, service_role;
+
+-- Create trigger - only on UPDATE to 'final'
+CREATE TRIGGER tr_clinical_note_sync
+    BEFORE UPDATE ON clinical_notes
+    FOR EACH ROW
+    WHEN (NEW.status = 'final')
+    EXECUTE FUNCTION fn_queue_clinical_note_sync();
+
+-- Also for inserts
+CREATE TRIGGER tr_clinical_note_sync_insert
+    BEFORE INSERT ON clinical_notes
+    FOR EACH ROW
+    WHEN (NEW.status = 'final')
+    EXECUTE FUNCTION fn_queue_clinical_note_sync();

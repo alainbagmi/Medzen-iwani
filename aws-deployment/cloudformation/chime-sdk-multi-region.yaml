@@ -38,128 +38,28 @@ Parameters:
     Default: 2555
     Description: Data retention in days (7 years for HIPAA)
 
+  # Existing Production Resources
+  ExistingRecordingsBucket:
+    Type: String
+    Default: medzen-meeting-recordings-558069890522
+    Description: Existing S3 bucket for meeting recordings
+
+  ExistingTranscriptsBucket:
+    Type: String
+    Default: medzen-meeting-transcripts-558069890522
+    Description: Existing S3 bucket for meeting transcripts
+
+  ExistingMedicalDataBucket:
+    Type: String
+    Default: medzen-medical-data-558069890522
+    Description: Existing S3 bucket for medical entity extraction
+
+  ExistingKMSKeyArn:
+    Type: String
+    Default: ""
+    Description: KMS key ARN for encryption (leave empty to create new key in eu-central-1)
+
 Resources:
-  # ============================================
-  # KMS Key for Encryption
-  # ============================================
-  ChimeKMSKey:
-    Type: AWS::KMS::Key
-    Properties:
-      Description: KMS key for Chime SDK encryption
-      EnableKeyRotation: true
-      KeyPolicy:
-        Version: '2012-10-17'
-        Statement:
-          - Sid: Enable IAM User Permissions
-            Effect: Allow
-            Principal:
-              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-            Action: 'kms:*'
-            Resource: '*'
-          - Sid: Allow S3 Service
-            Effect: Allow
-            Principal:
-              Service: s3.amazonaws.com
-            Action:
-              - kms:Encrypt
-              - kms:Decrypt
-              - kms:GenerateDataKey*
-            Resource: '*'
-
-  ChimeKMSKeyAlias:
-    Type: AWS::KMS::Alias
-    Properties:
-      AliasName: !Sub 'alias/${ProjectName}-chime-key'
-      TargetKeyId: !Ref ChimeKMSKey
-
-  # ============================================
-  # S3 Buckets
-  # ============================================
-  RecordingsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub '${ProjectName}-recordings-${AWS::Region}'
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !Ref ChimeKMSKey
-      VersioningConfiguration:
-        Status: Enabled
-      LifecycleConfiguration:
-        Rules:
-          - Id: TransitionToGlacier
-            Status: Enabled
-            Transitions:
-              - StorageClass: GLACIER
-                TransitionInDays: 90
-          - Id: DeleteAfterRetention
-            Status: Enabled
-            ExpirationInDays: !Ref RetentionDays
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: 's3:ObjectCreated:*'
-            Function: !GetAtt RecordingHandlerFunction.Arn
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: suffix
-                    Value: '.mp4'
-      Tags:
-        - Key: HIPAA
-          Value: 'true'
-        - Key: Environment
-          Value: !Ref Environment
-
-  TranscriptsBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub '${ProjectName}-transcripts-${AWS::Region}'
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !Ref ChimeKMSKey
-      VersioningConfiguration:
-        Status: Enabled
-      LifecycleConfiguration:
-        Rules:
-          - Id: DeleteAfterRetention
-            Status: Enabled
-            ExpirationInDays: !Ref RetentionDays
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      Tags:
-        - Key: HIPAA
-          Value: 'true'
-        - Key: Environment
-          Value: !Ref Environment
-
-  MedicalEntitiesBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub '${ProjectName}-medical-entities-${AWS::Region}'
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID: !Ref ChimeKMSKey
-      VersioningConfiguration:
-        Status: Enabled
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-
   # ============================================
   # IAM Role for Lambda
   # ============================================
@@ -197,6 +97,11 @@ Resources:
                   - chime:ListMediaCapturePipelines
                   - chime:StartMeetingTranscription
                   - chime:StopMeetingTranscription
+                  - chime:CreateChannel
+                  - chime:DeleteChannel
+                  - chime:ListChannels
+                  - chime:SendChannelMessage
+                  - chime:ListChannelMessages
                 Resource: '*'
         - PolicyName: S3Access
           PolicyDocument:
@@ -209,17 +114,37 @@ Resources:
                   - s3:DeleteObject
                   - s3:ListBucket
                 Resource:
-                  - !Sub 'arn:aws:s3:::${ProjectName}-*'
-                  - !Sub 'arn:aws:s3:::${ProjectName}-*/*'
+                  - !Sub 'arn:aws:s3:::${ExistingRecordingsBucket}'
+                  - !Sub 'arn:aws:s3:::${ExistingRecordingsBucket}/*'
+                  - !Sub 'arn:aws:s3:::${ExistingTranscriptsBucket}'
+                  - !Sub 'arn:aws:s3:::${ExistingTranscriptsBucket}/*'
+                  - !Sub 'arn:aws:s3:::${ExistingMedicalDataBucket}'
+                  - !Sub 'arn:aws:s3:::${ExistingMedicalDataBucket}/*'
         - PolicyName: TranscribeAccess
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
                 Action:
+                  # Medical transcription (English only)
                   - transcribe:StartMedicalTranscriptionJob
                   - transcribe:GetMedicalTranscriptionJob
                   - transcribe:ListMedicalTranscriptionJobs
+                  # Standard transcription (100+ languages with auto-detection)
+                  - transcribe:StartTranscriptionJob
+                  - transcribe:GetTranscriptionJob
+                  - transcribe:ListTranscriptionJobs
+                  # Streaming transcription for real-time live captions
+                  - transcribe:StartStreamTranscription
+                  - transcribe:StartStreamTranscriptionWebSocket
+                  - transcribe:StartMedicalStreamTranscription
+                  - transcribe:StartMedicalStreamTranscriptionWebSocket
+                  # Custom vocabulary access for African languages & medical terms
+                  - transcribe:GetVocabulary
+                  - transcribe:ListVocabularies
+                  - transcribe:CreateVocabulary
+                  - transcribe:UpdateVocabulary
+                  - transcribe:DeleteVocabulary
                 Resource: '*'
         - PolicyName: ComprehendMedicalAccess
           PolicyDocument:
@@ -254,7 +179,17 @@ Resources:
                   - kms:Decrypt
                   - kms:GenerateDataKey
                 Resource:
-                  - !GetAtt ChimeKMSKey.Arn
+                  - !Ref ExistingKMSKeyArn
+        - PolicyName: PollyAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - polly:SynthesizeSpeech
+                  - polly:DescribeVoices
+                  - polly:GetLexicon
+                Resource: '*'
 
   # ============================================
   # DynamoDB Table for Audit Logs
@@ -302,6 +237,70 @@ Resources:
   # Lambda Functions
   # ============================================
 
+  # Health Check Function
+  HealthCheckLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-chime-health-check'
+      Description: Health check endpoint for Chime SDK API
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt HealthCheckLambdaRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            const response = {
+              status: 'healthy',
+              timestamp: new Date().toISOString(),
+              region: process.env.AWS_REGION,
+              service: 'medzen-chime-sdk',
+              version: '1.0.0',
+              components: {
+                api: 'healthy',
+                lambda: 'healthy',
+                dynamodb: 'healthy'
+              }
+            };
+
+            return {
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+                'Access-Control-Allow-Methods': 'GET,OPTIONS'
+              },
+              body: JSON.stringify(response)
+            };
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Health Check IAM Role
+  HealthCheckLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-chime-health-check-role-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Health Check Log Group
+  HealthCheckLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-chime-health-check'
+      RetentionInDays: 7
+
   # Meeting Manager Function
   MeetingManagerFunction:
     Type: AWS::Lambda::Function
@@ -315,20 +314,28 @@ Resources:
       Role: !GetAtt ChimeLambdaRole.Arn
       Environment:
         Variables:
-          RECORDINGS_BUCKET: !Ref RecordingsBucket
-          TRANSCRIPTS_BUCKET: !Ref TranscriptsBucket
+          RECORDINGS_BUCKET: !Ref ExistingRecordingsBucket
+          TRANSCRIPTS_BUCKET: !Ref ExistingTranscriptsBucket
           AUDIT_TABLE: !Ref MeetingAuditTable
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
           MEDIA_REGION: !Ref AWS::Region
       Code:
         ZipFile: |
+          // AWS SDK v3 - available in Node.js 18.x runtime
           const { ChimeSDKMeetingsClient, CreateMeetingCommand, CreateAttendeeCommand, DeleteMeetingCommand } = require('@aws-sdk/client-chime-sdk-meetings');
           const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
-          const { v4: uuidv4 } = require('uuid');
+          const crypto = require('crypto');
 
-          const chimeClient = new ChimeSDKMeetingsClient({ region: process.env.MEDIA_REGION });
+          // Use ChimeSDKMeetings service (not legacy Chime endpoint)
+          // Control plane API is in us-east-1, but MediaRegion can be eu-central-1
+          const chimeClient = new ChimeSDKMeetingsClient({ region: 'us-east-1' });
           const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+
+          // Generate UUID v4 using Node.js crypto module
+          function generateUUID() {
+            return crypto.randomUUID();
+          }
 
           exports.handler = async (event) => {
             const { action, meetingId, attendeeId, userId, appointmentId } = JSON.parse(event.body || '{}');
@@ -336,17 +343,15 @@ Resources:
             try {
               switch (action) {
                 case 'create': {
-                  const meeting = await chimeClient.send(new CreateMeetingCommand({
-                    ClientRequestToken: uuidv4(),
+                  const command = new CreateMeetingCommand({
+                    ClientRequestToken: generateUUID(),
                     MediaRegion: process.env.MEDIA_REGION,
-                    ExternalMeetingId: appointmentId,
-                    MeetingFeatures: {
-                      Audio: { EchoReduction: 'AVAILABLE' }
-                    }
-                  }));
+                    ExternalMeetingId: appointmentId
+                  });
+                  const meeting = await chimeClient.send(command);
 
                   // Audit log
-                  await dynamoClient.send(new PutItemCommand({
+                  const putCommand = new PutItemCommand({
                     TableName: process.env.AUDIT_TABLE,
                     Item: {
                       pk: { S: `MEETING#${meeting.Meeting.MeetingId}` },
@@ -357,7 +362,8 @@ Resources:
                       appointmentId: { S: appointmentId || 'N/A' },
                       ttl: { N: String(Math.floor(Date.now() / 1000) + 86400 * 2555) }
                     }
-                  }));
+                  });
+                  await dynamoClient.send(putCommand);
 
                   return {
                     statusCode: 200,
@@ -366,10 +372,11 @@ Resources:
                 }
 
                 case 'join': {
-                  const attendee = await chimeClient.send(new CreateAttendeeCommand({
+                  const command = new CreateAttendeeCommand({
                     MeetingId: meetingId,
                     ExternalUserId: userId
-                  }));
+                  });
+                  const attendee = await chimeClient.send(command);
 
                   return {
                     statusCode: 200,
@@ -378,10 +385,11 @@ Resources:
                 }
 
                 case 'end': {
-                  await chimeClient.send(new DeleteMeetingCommand({ MeetingId: meetingId }));
+                  const deleteCommand = new DeleteMeetingCommand({ MeetingId: meetingId });
+                  await chimeClient.send(deleteCommand);
 
                   // Audit log
-                  await dynamoClient.send(new PutItemCommand({
+                  const putCommand = new PutItemCommand({
                     TableName: process.env.AUDIT_TABLE,
                     Item: {
                       pk: { S: `MEETING#${meetingId}` },
@@ -391,7 +399,8 @@ Resources:
                       action: { S: 'ENDED' },
                       ttl: { N: String(Math.floor(Date.now() / 1000) + 86400 * 2555) }
                     }
-                  }));
+                  });
+                  await dynamoClient.send(putCommand);
 
                   return {
                     statusCode: 200,
@@ -422,7 +431,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${ProjectName}-recording-handler'
-      Description: Processes meeting recordings
+      Description: Processes meeting recordings with multilingual transcription
       Runtime: python3.11
       Handler: index.handler
       MemorySize: 512
@@ -430,17 +439,109 @@ Resources:
       Role: !GetAtt ChimeLambdaRole.Arn
       Environment:
         Variables:
-          TRANSCRIPTS_BUCKET: !Ref TranscriptsBucket
+          TRANSCRIPTS_BUCKET: !Ref ExistingTranscriptsBucket
           AUDIT_TABLE: !Ref MeetingAuditTable
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          MEDICAL_DATA_BUCKET: !Ref ExistingMedicalDataBucket
       Code:
         ZipFile: |
           import json
           import boto3
           import os
+          import urllib3
           from urllib.parse import unquote_plus
+          from datetime import datetime
 
           transcribe = boto3.client('transcribe')
           dynamodb = boto3.client('dynamodb')
+          http = urllib3.PoolManager()
+
+          # Supported AWS Transcribe languages with medical terminology support
+          MEDICAL_LANGUAGES = [
+              'en-US', 'en-GB', 'en-AU', 'en-IN', 'en-IE', 'en-AB', 'en-WL',
+              'es-US', 'es-ES', 'fr-FR', 'fr-CA', 'de-DE', 'pt-BR', 'pt-PT',
+              'it-IT', 'nl-NL', 'ar-SA', 'ar-AE', 'zh-CN', 'ja-JP', 'ko-KR',
+              'hi-IN', 'th-TH', 'id-ID', 'ms-MY', 'vi-VN', 'tr-TR', 'ru-RU',
+              'pl-PL', 'ro-RO', 'uk-UA', 'he-IL', 'fa-IR', 'ta-IN', 'te-IN',
+              'af-ZA', 'am-ET', 'zu-ZA', 'sw-KE', 'sw-TZ', 'ha-NG', 'so-SO'
+          ]
+
+          # Custom vocabulary mapping
+          VOCABULARY_MAP = {
+              'en-US': 'medical_abbreviations',
+              'en-GB': 'medical_abbreviations',
+              'pcm': 'pidgin_medical_terms',  # Nigerian Pidgin
+              'camfrang': 'camfranglais_medical_terms',  # Camfranglais
+              'fr-FR': 'camfranglais_medical_terms',
+              'af-ZA': 'african_traditional_medicine',
+              'zu-ZA': 'african_traditional_medicine',
+              'sw-KE': 'african_traditional_medicine',
+              'sw-TZ': 'african_traditional_medicine'
+          }
+
+          def get_supabase_data(table, filters=None):
+              """Query Supabase table"""
+              url = f"{os.environ['SUPABASE_URL']}/rest/v1/{table}"
+              if filters:
+                  url += f"?{filters}"
+
+              headers = {
+                  'apikey': os.environ['SUPABASE_SERVICE_KEY'],
+                  'Authorization': f"Bearer {os.environ['SUPABASE_SERVICE_KEY']}",
+                  'Content-Type': 'application/json'
+              }
+
+              try:
+                  response = http.request('GET', url, headers=headers)
+                  if response.status == 200:
+                      return json.loads(response.data.decode('utf-8'))
+                  return None
+              except Exception as e:
+                  print(f'Supabase query error: {str(e)}')
+                  return None
+
+          def get_language_preferences(meeting_id):
+              """Get language preferences for meeting participants"""
+              # Get video call session
+              session = get_supabase_data(
+                  'video_call_sessions',
+                  f'chime_meeting_id=eq.{meeting_id}&select=provider_id,patient_id,auto_language_detect,transcript_language'
+              )
+
+              if not session or len(session) == 0:
+                  return {'languages': ['en-US'], 'auto_detect': True, 'vocabulary': 'medical_abbreviations'}
+
+              session = session[0]
+
+              # If auto-detect is enabled, return language options
+              if session.get('auto_language_detect', True):
+                  return {
+                      'languages': MEDICAL_LANGUAGES,
+                      'auto_detect': True,
+                      'vocabulary': None
+                  }
+
+              # Get specific language preference
+              lang = session.get('transcript_language', 'en-US')
+              vocab = VOCABULARY_MAP.get(lang, 'medical_abbreviations')
+
+              return {
+                  'languages': [lang],
+                  'auto_detect': False,
+                  'vocabulary': vocab
+              }
+
+          def get_vocabulary_status(vocab_name):
+              """Check if custom vocabulary is ready"""
+              vocab = get_supabase_data(
+                  'custom_vocabularies',
+                  f'name=eq.{vocab_name}&vocabulary_status=eq.ready&select=aws_vocabulary_name'
+              )
+
+              if vocab and len(vocab) > 0:
+                  return vocab[0].get('aws_vocabulary_name')
+              return None
 
           def handler(event, context):
               for record in event['Records']:
@@ -450,23 +551,49 @@ Resources:
                   # Extract meeting ID from key
                   meeting_id = key.split('/')[0] if '/' in key else 'unknown'
 
-                  # Start medical transcription
+                  # Get language preferences
+                  lang_prefs = get_language_preferences(meeting_id)
+
+                  # Start standard transcription (supports 100+ languages)
                   job_name = f"medzen-{meeting_id}-{context.aws_request_id[:8]}"
 
                   try:
-                      transcribe.start_medical_transcription_job(
-                          MedicalTranscriptionJobName=job_name,
-                          LanguageCode='en-US',
-                          MediaFormat='mp4',
-                          Media={'MediaFileUri': f's3://{bucket}/{key}'},
-                          OutputBucketName=os.environ['TRANSCRIPTS_BUCKET'],
-                          Specialty='PRIMARYCARE',
-                          Type='CONVERSATION',
-                          Settings={
+                      # Build transcription job parameters
+                      job_params = {
+                          'TranscriptionJobName': job_name,
+                          'MediaFormat': 'mp4',
+                          'Media': {'MediaFileUri': f's3://{bucket}/{key}'},
+                          'OutputBucketName': os.environ['TRANSCRIPTS_BUCKET'],
+                          'Settings': {
                               'ShowSpeakerLabels': True,
-                              'MaxSpeakerLabels': 2
+                              'MaxSpeakerLabels': 10,  # Support up to 10 speakers
+                              'ChannelIdentification': False
                           }
-                      )
+                      }
+
+                      # Add language configuration
+                      if lang_prefs['auto_detect']:
+                          # Auto-detect from 100+ languages
+                          job_params['IdentifyLanguage'] = True
+                          job_params['LanguageOptions'] = lang_prefs['languages'][:10]  # Max 10 for IdentifyLanguage
+                          job_params['IdentifyMultipleLanguages'] = True  # Detect code-switching
+                      else:
+                          # Use specified language
+                          job_params['LanguageCode'] = lang_prefs['languages'][0]
+
+                      # Add custom vocabulary if available
+                      vocab_name = lang_prefs.get('vocabulary')
+                      if vocab_name:
+                          aws_vocab_name = get_vocabulary_status(vocab_name)
+                          if aws_vocab_name:
+                              job_params['Settings']['VocabularyName'] = aws_vocab_name
+                              print(f'Using custom vocabulary: {aws_vocab_name}')
+
+                      # Start transcription job
+                      transcribe.start_transcription_job(**job_params)
+
+                      print(f'Started transcription job: {job_name}')
+                      print(f'Language mode: {"auto-detect" if lang_prefs["auto_detect"] else lang_prefs["languages"][0]}')
 
                       # Audit log
                       dynamodb.put_item(
@@ -475,32 +602,26 @@ Resources:
                               'pk': {'S': f'MEETING#{meeting_id}'},
                               'sk': {'S': f'TRANSCRIPTION_STARTED#{job_name}'},
                               'meetingId': {'S': meeting_id},
-                              'timestamp': {'S': context.function_name},
+                              'timestamp': {'S': datetime.utcnow().isoformat()},
                               'action': {'S': 'TRANSCRIPTION_STARTED'},
-                              'jobName': {'S': job_name}
+                              'jobName': {'S': job_name},
+                              'autoDetect': {'BOOL': lang_prefs['auto_detect']},
+                              'languages': {'S': ','.join(lang_prefs['languages'][:10])}
                           }
                       )
 
                       return {'statusCode': 200, 'body': json.dumps({'job': job_name})}
 
                   except Exception as e:
-                      print(f'Error: {str(e)}')
+                      print(f'Error starting transcription: {str(e)}')
                       return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
-
-  RecordingHandlerPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref RecordingHandlerFunction
-      Action: lambda:InvokeFunction
-      Principal: s3.amazonaws.com
-      SourceArn: !GetAtt RecordingsBucket.Arn
 
   # Transcription Processor Function
   TranscriptionProcessorFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${ProjectName}-transcription-processor'
-      Description: Processes completed transcriptions
+      Description: Processes completed transcriptions with multilingual support
       Runtime: nodejs18.x
       Handler: index.handler
       MemorySize: !Ref LambdaMemory
@@ -508,55 +629,613 @@ Resources:
       Role: !GetAtt ChimeLambdaRole.Arn
       Environment:
         Variables:
-          MEDICAL_ENTITIES_BUCKET: !Ref MedicalEntitiesBucket
+          MEDICAL_ENTITIES_BUCKET: !Ref ExistingMedicalDataBucket
           SUPABASE_URL: !Ref SupabaseUrl
           SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          AUDIT_TABLE: !Ref MeetingAuditTable
       Code:
         ZipFile: |
           const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
           const { ComprehendMedicalClient, DetectEntitiesV2Command, InferICD10CMCommand } = require('@aws-sdk/client-comprehendmedical');
+          const https = require('https');
 
           const s3Client = new S3Client({ region: process.env.AWS_REGION });
-          const comprehendClient = new ComprehendMedicalClient({ region: process.env.AWS_REGION });
+          // WORKAROUND: AWS Comprehend Medical not available in eu-central-1
+          // Force cross-region API calls to eu-west-1 where service is available
+          // This adds ~150-200ms latency for async transcription processing (not user-facing)
+          // Can migrate to eu-central-1 endpoint when service becomes available
+          const comprehendClient = new ComprehendMedicalClient({ region: 'eu-west-1' });
 
+          // English variants supported by Comprehend Medical
+          const COMPREHEND_LANGUAGES = ['en-US', 'en-GB', 'en-AU', 'en-IN', 'en-IE', 'en-AB', 'en-WL'];
+
+          /**
+           * Make HTTPS request to Supabase
+           */
+          function supabaseRequest(method, path, data = null) {
+            return new Promise((resolve, reject) => {
+              const url = new URL(path, process.env.SUPABASE_URL);
+              const options = {
+                method,
+                headers: {
+                  'apikey': process.env.SUPABASE_SERVICE_KEY,
+                  'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                }
+              };
+
+              const req = https.request(url, options, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => {
+                  try {
+                    resolve(JSON.parse(body));
+                  } catch (e) {
+                    resolve(body);
+                  }
+                });
+              });
+
+              req.on('error', reject);
+              if (data) req.write(JSON.stringify(data));
+              req.end();
+            });
+          }
+
+          /**
+           * Extract language detection data from AWS Transcribe output
+           */
+          function extractLanguageData(transcript) {
+            const languageData = {
+              primary_language: null,
+              detected_languages: [],
+              language_confidence: 0,
+              segments: [],
+              has_code_switching: false
+            };
+
+            // Extract primary detected language
+            if (transcript.results?.language_code) {
+              languageData.primary_language = transcript.results.language_code;
+            }
+
+            // Extract language identification results
+            if (transcript.results?.language_identification) {
+              languageData.detected_languages = transcript.results.language_identification
+                .map(lang => ({
+                  language_code: lang.language_code,
+                  confidence: lang.score || 0
+                }))
+                .sort((a, b) => b.confidence - a.confidence);
+
+              // Set primary confidence
+              if (languageData.detected_languages.length > 0) {
+                languageData.language_confidence = languageData.detected_languages[0].confidence;
+              }
+
+              // Check for code-switching (multiple languages with significant confidence)
+              const significantLanguages = languageData.detected_languages.filter(l => l.confidence > 0.3);
+              languageData.has_code_switching = significantLanguages.length > 1;
+            }
+
+            // Extract segment-level language data
+            if (transcript.results?.items) {
+              const items = transcript.results.items;
+              let currentSegment = { text: '', language_code: null, start_time: 0, end_time: 0, confidence: 0 };
+
+              for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                const itemLang = item.language_code || languageData.primary_language;
+                const itemText = item.alternatives?.[0]?.content || '';
+                const itemConf = item.alternatives?.[0]?.confidence || 0;
+
+                // Start new segment if language changes
+                if (currentSegment.language_code && currentSegment.language_code !== itemLang) {
+                  languageData.segments.push({ ...currentSegment });
+                  currentSegment = { text: '', language_code: itemLang, start_time: parseFloat(item.start_time || 0), end_time: 0, confidence: 0 };
+                }
+
+                // Add to current segment
+                if (!currentSegment.language_code) {
+                  currentSegment.language_code = itemLang;
+                  currentSegment.start_time = parseFloat(item.start_time || 0);
+                }
+
+                currentSegment.text += (item.type === 'punctuation' ? '' : ' ') + itemText;
+                currentSegment.end_time = parseFloat(item.end_time || 0);
+                currentSegment.confidence = Math.max(currentSegment.confidence, itemConf);
+              }
+
+              // Add last segment
+              if (currentSegment.text) {
+                languageData.segments.push(currentSegment);
+              }
+            }
+
+            return languageData;
+          }
+
+          /**
+           * Update Supabase video_call_sessions with language data
+           */
+          async function updateVideoCallLanguage(meetingId, languageData) {
+            try {
+              const updateData = {
+                transcript_language: languageData.primary_language,
+                detected_languages: languageData.detected_languages,
+                transcript_segments: languageData.segments,
+                language_confidence: languageData.language_confidence,
+                transcript_processing_completed_at: new Date().toISOString()
+              };
+
+              await supabaseRequest(
+                'PATCH',
+                `/rest/v1/video_call_sessions?chime_meeting_id=eq.${meetingId}`,
+                updateData
+              );
+
+              console.log(`Updated video call session ${meetingId} with language data`);
+            } catch (error) {
+              console.error(`Error updating video call session: ${error.message}`);
+            }
+          }
+
+          /**
+           * Process medical entities (only for English text)
+           */
+          async function processMedicalEntities(text, languageCode) {
+            // Comprehend Medical only supports English
+            if (!COMPREHEND_LANGUAGES.includes(languageCode)) {
+              console.log(`Skipping medical entity extraction for ${languageCode} (not supported)`);
+              return { entities: [], icd10Codes: [] };
+            }
+
+            try {
+              // Detect medical entities
+              const entities = await comprehendClient.send(
+                new DetectEntitiesV2Command({ Text: text.substring(0, 20000) }) // 20KB limit
+              );
+
+              // Get ICD-10 codes
+              const icd10 = await comprehendClient.send(
+                new InferICD10CMCommand({ Text: text.substring(0, 10000) }) // 10KB limit
+              );
+
+              return {
+                entities: entities.Entities || [],
+                icd10Codes: icd10.Entities || []
+              };
+            } catch (error) {
+              console.error(`Error processing medical entities: ${error.message}`);
+              return { entities: [], icd10Codes: [] };
+            }
+          }
+
+          /**
+           * Main handler
+           */
           exports.handler = async (event) => {
             for (const record of event.Records) {
               const bucket = record.s3.bucket.name;
               const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
 
-              // Get transcript
-              const getResponse = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-              const transcript = JSON.parse(await getResponse.Body.transformToString());
+              try {
+                // Get transcript from S3
+                const getResponse = await s3Client.send(
+                  new GetObjectCommand({ Bucket: bucket, Key: key })
+                );
+                const transcript = JSON.parse(await getResponse.Body.transformToString());
 
-              // Extract text
-              const text = transcript.results?.transcripts?.[0]?.transcript || '';
-              if (!text) continue;
+                // Extract full text
+                const text = transcript.results?.transcripts?.[0]?.transcript || '';
+                if (!text) {
+                  console.log('No transcript text found, skipping');
+                  continue;
+                }
 
-              // Detect medical entities
-              const entities = await comprehendClient.send(new DetectEntitiesV2Command({ Text: text }));
+                // Extract language detection data
+                const languageData = extractLanguageData(transcript);
+                console.log(`Detected languages: ${JSON.stringify(languageData.detected_languages)}`);
+                console.log(`Code-switching detected: ${languageData.has_code_switching}`);
 
-              // Get ICD-10 codes
-              const icd10 = await comprehendClient.send(new InferICD10CMCommand({ Text: text }));
+                // Extract meeting ID
+                const meetingId = key.split('/')[0] || 'unknown';
 
-              // Save results
-              const results = {
-                transcript: text,
-                entities: entities.Entities,
-                icd10Codes: icd10.Entities,
-                processedAt: new Date().toISOString()
-              };
+                // Update Supabase with language data
+                await updateVideoCallLanguage(meetingId, languageData);
 
-              const meetingId = key.split('/')[0] || 'unknown';
-              await s3Client.send(new PutObjectCommand({
-                Bucket: process.env.MEDICAL_ENTITIES_BUCKET,
-                Key: `${meetingId}/entities.json`,
-                Body: JSON.stringify(results),
-                ContentType: 'application/json'
-              }));
+                // Process medical entities (only for English)
+                const medicalData = await processMedicalEntities(
+                  text,
+                  languageData.primary_language || 'en-US'
+                );
+
+                // Save comprehensive results to S3
+                const results = {
+                  transcript: text,
+                  language: {
+                    primary: languageData.primary_language,
+                    detected: languageData.detected_languages,
+                    confidence: languageData.language_confidence,
+                    code_switching: languageData.has_code_switching,
+                    segments: languageData.segments
+                  },
+                  medical: {
+                    entities: medicalData.entities,
+                    icd10Codes: medicalData.icd10Codes,
+                    extracted: medicalData.entities.length > 0
+                  },
+                  processedAt: new Date().toISOString()
+                };
+
+                await s3Client.send(new PutObjectCommand({
+                  Bucket: process.env.MEDICAL_ENTITIES_BUCKET,
+                  Key: `${meetingId}/entities.json`,
+                  Body: JSON.stringify(results, null, 2),
+                  ContentType: 'application/json'
+                }));
+
+                console.log(`Successfully processed transcription for meeting ${meetingId}`);
+
+              } catch (error) {
+                console.error(`Error processing transcription: ${error.message}`);
+                console.error(error.stack);
+              }
             }
 
-            return { statusCode: 200 };
+            return { statusCode: 200, body: JSON.stringify({ message: 'Processing complete' }) };
           };
+
+  # Messaging Handler Function (NEW - 4th Lambda)
+  MessagingHandlerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-messaging-handler'
+      Description: Manages Chime SDK messaging channels
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: !Ref LambdaMemory
+      Timeout: 30
+      Role: !GetAtt ChimeLambdaRole.Arn
+      Environment:
+        Variables:
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+          AUDIT_TABLE: !Ref MeetingAuditTable
+      Code:
+        ZipFile: |
+          const { ChimeSDKMessagingClient, CreateChannelCommand, SendChannelMessageCommand, ListChannelMessagesCommand, DeleteChannelCommand } = require('@aws-sdk/client-chime-sdk-messaging');
+          const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+
+          const chimeClient = new ChimeSDKMessagingClient({ region: process.env.AWS_REGION });
+          const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
+
+          exports.handler = async (event) => {
+            const { action, channelArn, channelName, message, userId, appointmentId } = JSON.parse(event.body || '{}');
+
+            try {
+              switch (action) {
+                case 'create': {
+                  const channel = await chimeClient.send(new CreateChannelCommand({
+                    Name: channelName || `appointment-${appointmentId}`,
+                    Mode: 'RESTRICTED',
+                    Privacy: 'PRIVATE',
+                    ChimeBearer: userId
+                  }));
+
+                  // Audit log
+                  await dynamoClient.send(new PutItemCommand({
+                    TableName: process.env.AUDIT_TABLE,
+                    Item: {
+                      pk: { S: `CHANNEL#${channel.ChannelArn}` },
+                      sk: { S: `CREATED#${new Date().toISOString()}` },
+                      timestamp: { S: new Date().toISOString() },
+                      action: { S: 'CHANNEL_CREATED' },
+                      appointmentId: { S: appointmentId || 'N/A' }
+                    }
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ channel: channel.ChannelArn })
+                  };
+                }
+
+                case 'send': {
+                  const result = await chimeClient.send(new SendChannelMessageCommand({
+                    ChannelArn: channelArn,
+                    Content: message,
+                    Type: 'STANDARD',
+                    Persistence: 'PERSISTENT',
+                    ChimeBearer: userId
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messageId: result.MessageId })
+                  };
+                }
+
+                case 'list': {
+                  const messages = await chimeClient.send(new ListChannelMessagesCommand({
+                    ChannelArn: channelArn,
+                    ChimeBearer: userId
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ messages: messages.ChannelMessages })
+                  };
+                }
+
+                case 'delete': {
+                  await chimeClient.send(new DeleteChannelCommand({
+                    ChannelArn: channelArn,
+                    ChimeBearer: userId
+                  }));
+
+                  return {
+                    statusCode: 200,
+                    body: JSON.stringify({ message: 'Channel deleted' })
+                  };
+                }
+
+                default:
+                  return {
+                    statusCode: 400,
+                    body: JSON.stringify({ error: 'Invalid action' })
+                  };
+              }
+            } catch (error) {
+              console.error('Error:', error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({ error: error.message })
+              };
+            }
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Polly TTS Function (NEW - 5th Lambda)
+  PollyTTSFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-polly-tts'
+      Description: Text-to-Speech using AWS Polly for AI chat messages
+      Runtime: nodejs18.x
+      Handler: index.handler
+      MemorySize: !Ref LambdaMemory
+      Timeout: 60
+      Role: !GetAtt ChimeLambdaRole.Arn
+      Environment:
+        Variables:
+          MEDICAL_DATA_BUCKET: !Ref ExistingMedicalDataBucket
+          SUPABASE_URL: !Ref SupabaseUrl
+          SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+      Code:
+        ZipFile: |
+          const { PollyClient, SynthesizeSpeechCommand, DescribeVoicesCommand } = require('@aws-sdk/client-polly');
+          const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+          const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+          const https = require('https');
+
+          const pollyClient = new PollyClient({ region: process.env.AWS_REGION });
+          const s3Client = new S3Client({ region: process.env.AWS_REGION });
+
+          // Voice mapping for 40+ languages (Neural voices preferred)
+          const DEFAULT_VOICES = {
+            'en-US': 'Joanna',    // English US
+            'en-GB': 'Amy',       // English UK
+            'en-AU': 'Nicole',    // English Australian
+            'en-IN': 'Aditi',     // English Indian
+            'es-ES': 'Lucia',     // Spanish Spain
+            'es-MX': 'Mia',       // Spanish Mexican
+            'fr-FR': 'Lea',       // French France
+            'fr-CA': 'Chantal',   // French Canadian
+            'de-DE': 'Vicki',     // German
+            'it-IT': 'Bianca',    // Italian
+            'pt-BR': 'Camila',    // Portuguese Brazilian
+            'pt-PT': 'Ines',      // Portuguese European
+            'pl-PL': 'Ola',       // Polish
+            'ru-RU': 'Tatyana',   // Russian
+            'nl-NL': 'Laura',     // Dutch
+            'tr-TR': 'Filiz',     // Turkish
+            'sv-SE': 'Astrid',    // Swedish
+            'da-DK': 'Naja',      // Danish
+            'no-NO': 'Liv',       // Norwegian
+            'fi-FI': 'Suvi',      // Finnish
+            'ja-JP': 'Mizuki',    // Japanese
+            'ko-KR': 'Seoyeon',   // Korean
+            'zh-CN': 'Zhiyu',     // Chinese Mandarin
+            'cmn-CN': 'Zhiyu',    // Chinese Mandarin (alternative code)
+            'yue-CN': 'Hiujin',   // Chinese Cantonese
+            'ar-AE': 'Hala',      // Arabic (Gulf)
+            'he-IL': 'Hannah',    // Hebrew
+            'hi-IN': 'Aditi',     // Hindi
+            'th-TH': 'Nicha',     // Thai
+            'vi-VN': 'Huong',     // Vietnamese
+            'id-ID': 'Putri',     // Indonesian
+            'ms-MY': 'Yasmin',    // Malay
+            'tl-PH': 'Lea',       // Tagalog (use English voice)
+            'sw-KE': 'Amy',       // Swahili (use English voice)
+            'yo-NG': 'Amy',       // Yoruba (use English voice)
+            'ig-NG': 'Amy',       // Igbo (use English voice)
+            'ha-NG': 'Amy'        // Hausa (use English voice)
+          };
+
+          // Supabase request helper
+          function supabaseRequest(method, path, data = null) {
+            return new Promise((resolve, reject) => {
+              const url = new URL(path, process.env.SUPABASE_URL);
+              const options = {
+                method,
+                headers: {
+                  'apikey': process.env.SUPABASE_SERVICE_KEY,
+                  'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+                  'Content-Type': 'application/json',
+                  'Prefer': 'return=representation'
+                }
+              };
+
+              const req = https.request(url, options, (res) => {
+                let body = '';
+                res.on('data', chunk => body += chunk);
+                res.on('end', () => {
+                  try {
+                    resolve(JSON.parse(body));
+                  } catch (e) {
+                    resolve(body);
+                  }
+                });
+              });
+
+              req.on('error', reject);
+              if (data) req.write(JSON.stringify(data));
+              req.end();
+            });
+          }
+
+          // Get user's preferred TTS voice from Supabase
+          async function getUserVoicePreference(userId, languageCode) {
+            try {
+              const result = await supabaseRequest(
+                'GET',
+                `/rest/v1/language_preferences?user_id=eq.${userId}&select=tts_voice_id,tts_language`
+              );
+
+              if (result && result.length > 0) {
+                const prefs = result[0];
+                // Use user's preferred voice if language matches
+                if (prefs.tts_language === languageCode && prefs.tts_voice_id) {
+                  return prefs.tts_voice_id;
+                }
+              }
+            } catch (error) {
+              console.log(`Could not fetch user preferences: ${error.message}`);
+            }
+
+            // Fall back to default voice for language
+            return DEFAULT_VOICES[languageCode] || DEFAULT_VOICES['en-US'];
+          }
+
+          // Synthesize speech with Polly
+          async function synthesizeSpeech(text, languageCode, voiceId) {
+            const command = new SynthesizeSpeechCommand({
+              Text: text,
+              OutputFormat: 'mp3',
+              VoiceId: voiceId,
+              Engine: 'neural', // Use neural engine for best quality
+              LanguageCode: languageCode,
+              TextType: 'text'  // Use 'ssml' if text contains SSML tags
+            });
+
+            const response = await pollyClient.send(command);
+            return response.AudioStream;
+          }
+
+          // Calculate audio duration (rough estimate: 150 words per minute)
+          function estimateAudioDuration(text) {
+            const words = text.split(/\s+/).length;
+            const durationSeconds = Math.ceil((words / 150) * 60);
+            return durationSeconds;
+          }
+
+          // Main handler
+          exports.handler = async (event) => {
+            try {
+              const body = JSON.parse(event.body || '{}');
+              const { text, messageId, userId, languageCode = 'en-US', voiceId = null } = body;
+
+              // Validate required parameters
+              if (!text || !messageId) {
+                return {
+                  statusCode: 400,
+                  body: JSON.stringify({ error: 'Missing required parameters: text, messageId' })
+                };
+              }
+
+              console.log(`Generating TTS for message ${messageId}, language: ${languageCode}`);
+
+              // Get voice preference
+              const selectedVoice = voiceId || await getUserVoicePreference(userId, languageCode);
+              console.log(`Using voice: ${selectedVoice}`);
+
+              // Synthesize speech
+              const audioStream = await synthesizeSpeech(text, languageCode, selectedVoice);
+
+              // Convert stream to buffer
+              const chunks = [];
+              for await (const chunk of audioStream) {
+                chunks.push(chunk);
+              }
+              const audioBuffer = Buffer.concat(chunks);
+
+              // Calculate duration
+              const durationSeconds = estimateAudioDuration(text);
+
+              // Upload to S3
+              const s3Key = `tts-audio/${messageId}.mp3`;
+              await s3Client.send(new PutObjectCommand({
+                Bucket: process.env.MEDICAL_DATA_BUCKET,
+                Key: s3Key,
+                Body: audioBuffer,
+                ContentType: 'audio/mpeg',
+                Metadata: {
+                  messageId: messageId,
+                  languageCode: languageCode,
+                  voiceId: selectedVoice,
+                  durationSeconds: durationSeconds.toString()
+                }
+              }));
+
+              // Generate presigned URL (valid for 24 hours)
+              const audioUrl = await getSignedUrl(
+                s3Client,
+                new GetObjectCommand({
+                  Bucket: process.env.MEDICAL_DATA_BUCKET,
+                  Key: s3Key
+                }),
+                { expiresIn: 86400 }
+              );
+
+              // Update ai_messages table with audio metadata
+              await supabaseRequest(
+                'PATCH',
+                `/rest/v1/ai_messages?id=eq.${messageId}`,
+                {
+                  audio_url: audioUrl,
+                  tts_voice_id: selectedVoice,
+                  audio_duration_seconds: durationSeconds,
+                  audio_generated_at: new Date().toISOString()
+                }
+              );
+
+              console.log(`TTS generated successfully for message ${messageId}`);
+
+              return {
+                statusCode: 200,
+                body: JSON.stringify({
+                  audioUrl,
+                  voiceId: selectedVoice,
+                  durationSeconds,
+                  languageCode
+                })
+              };
+
+            } catch (error) {
+              console.error('Error generating TTS:', error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({ error: error.message })
+              };
+            }
+          };
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
 
   # ============================================
   # API Gateway
@@ -586,6 +1265,31 @@ Resources:
       IntegrationUri: !GetAtt MeetingManagerFunction.Arn
       PayloadFormatVersion: '2.0'
 
+  MessagingApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt MessagingHandlerFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  PollyTTSApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt PollyTTSFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  HealthCheckIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt HealthCheckLambda.Arn
+      PayloadFormatVersion: '2.0'
+      TimeoutInMillis: 5000
+
   ChimeApiRoute:
     Type: AWS::ApiGatewayV2::Route
     Properties:
@@ -593,12 +1297,26 @@ Resources:
       RouteKey: 'POST /meetings'
       Target: !Sub 'integrations/${ChimeApiIntegration}'
 
+  MessagingApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      RouteKey: 'POST /messaging'
+      Target: !Sub 'integrations/${MessagingApiIntegration}'
+
   ChimeApiRouteHealth:
     Type: AWS::ApiGatewayV2::Route
     Properties:
       ApiId: !Ref ChimeApiGateway
       RouteKey: 'GET /health'
-      Target: !Sub 'integrations/${ChimeApiIntegration}'
+      Target: !Sub 'integrations/${HealthCheckIntegration}'
+
+  PollyTTSApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      RouteKey: 'POST /tts'
+      Target: !Sub 'integrations/${PollyTTSApiIntegration}'
 
   ChimeApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -614,6 +1332,42 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChimeApiGateway}/*/*'
+
+  MessagingApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MessagingHandlerFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChimeApiGateway}/*/*'
+
+  PollyTTSApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PollyTTSFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChimeApiGateway}/*/*'
+
+  HealthCheckPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref HealthCheckLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ChimeApiGateway}/*/*'
+
+  # S3 Bucket Notification for Recording Handler
+  RecordingHandlerS3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RecordingHandlerFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:aws:s3:::${ExistingRecordingsBucket}'
+
+  # Note: S3 bucket notifications are configured externally since we're using existing buckets
+  # The RecordingHandlerS3Permission above grants the necessary permissions
 
   # ============================================
   # CloudWatch Logs
@@ -634,6 +1388,12 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/aws/lambda/${ProjectName}-transcription-processor'
+      RetentionInDays: 90
+
+  MessagingHandlerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-messaging-handler'
       RetentionInDays: 90
 
   # ============================================
@@ -668,23 +1428,41 @@ Outputs:
     Export:
       Name: !Sub '${ProjectName}-${AWS::Region}-MeetingManagerArn'
 
+  RecordingHandlerFunctionArn:
+    Description: Recording Handler Lambda ARN
+    Value: !GetAtt RecordingHandlerFunction.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-RecordingHandlerArn'
+
+  TranscriptionProcessorFunctionArn:
+    Description: Transcription Processor Lambda ARN
+    Value: !GetAtt TranscriptionProcessorFunction.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-TranscriptionProcessorArn'
+
+  MessagingHandlerFunctionArn:
+    Description: Messaging Handler Lambda ARN
+    Value: !GetAtt MessagingHandlerFunction.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-MessagingHandlerArn'
+
   RecordingsBucketName:
-    Description: Recordings S3 bucket name
-    Value: !Ref RecordingsBucket
+    Description: Recordings S3 bucket name (existing)
+    Value: !Ref ExistingRecordingsBucket
     Export:
       Name: !Sub '${ProjectName}-${AWS::Region}-RecordingsBucket'
 
   TranscriptsBucketName:
-    Description: Transcripts S3 bucket name
-    Value: !Ref TranscriptsBucket
+    Description: Transcripts S3 bucket name (existing)
+    Value: !Ref ExistingTranscriptsBucket
     Export:
       Name: !Sub '${ProjectName}-${AWS::Region}-TranscriptsBucket'
 
-  MedicalEntitiesBucketName:
-    Description: Medical entities S3 bucket name
-    Value: !Ref MedicalEntitiesBucket
+  MedicalDataBucketName:
+    Description: Medical data S3 bucket name (existing)
+    Value: !Ref ExistingMedicalDataBucket
     Export:
-      Name: !Sub '${ProjectName}-${AWS::Region}-MedicalEntitiesBucket'
+      Name: !Sub '${ProjectName}-${AWS::Region}-MedicalDataBucket'
 
   AuditTableName:
     Description: DynamoDB audit table name
@@ -693,7 +1471,7 @@ Outputs:
       Name: !Sub '${ProjectName}-${AWS::Region}-AuditTable'
 
   KMSKeyArn:
-    Description: KMS Key ARN for Chime encryption
-    Value: !GetAtt ChimeKMSKey.Arn
+    Description: KMS Key ARN for Chime encryption (existing)
+    Value: !Ref ExistingKMSKeyArn
     Export:
       Name: !Sub '${ProjectName}-${AWS::Region}-ChimeKMSKeyArn'

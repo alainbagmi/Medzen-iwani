@@ -1,0 +1,22 @@
+-- Migration: Minimal trigger to isolate the issue
+-- Description: Create a bare-minimum trigger and add functionality one step at a time
+
+-- Create an ultra-minimal trigger function (no external queries)
+CREATE OR REPLACE FUNCTION fn_queue_clinical_note_sync()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Just log and return - no external queries
+    RAISE NOTICE 'Trigger fired for note %', NEW.id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute
+GRANT EXECUTE ON FUNCTION fn_queue_clinical_note_sync() TO authenticated, service_role;
+
+-- Create trigger only on UPDATE
+CREATE TRIGGER tr_clinical_note_sync
+    BEFORE UPDATE ON clinical_notes
+    FOR EACH ROW
+    WHEN (NEW.status = 'final')
+    EXECUTE FUNCTION fn_queue_clinical_note_sync();

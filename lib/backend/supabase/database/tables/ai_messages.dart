@@ -38,4 +38,82 @@ class AiMessagesRow extends SupabaseDataRow {
 
   DateTime? get createdAt => getField<DateTime>('created_at');
   set createdAt(DateTime? value) => setField<DateTime>('created_at', value);
+
+  dynamic? get messageMetadata => getField<dynamic>('message_metadata');
+  set messageMetadata(dynamic? value) =>
+      setField<dynamic>('message_metadata', value);
+
+  double? get confidenceScore => getField<double>('confidence_score');
+  set confidenceScore(double? value) =>
+      setField<double>('confidence_score', value);
+
+  List<String> get sources => getListField<String>('sources');
+  set sources(List<String>? value) => setListField<String>('sources', value);
+
+  dynamic? get actionItems => getField<dynamic>('action_items');
+  set actionItems(dynamic? value) => setField<dynamic>('action_items', value);
+
+  String? get language => getField<String>('language');
+  set language(String? value) => setField<String>('language', value);
+
+  dynamic? get speechConfig => getField<dynamic>('speech_config');
+  set speechConfig(dynamic? value) => setField<dynamic>('speech_config', value);
+
+  double? get languageConfidence => getField<double>('language_confidence');
+  set languageConfidence(double? value) =>
+      setField<double>('language_confidence', value);
+
+  bool? get detectedCodeMixing => getField<bool>('detected_code_mixing');
+  set detectedCodeMixing(bool? value) =>
+      setField<bool>('detected_code_mixing', value);
+
+  dynamic? get languageAlternatives =>
+      getField<dynamic>('language_alternatives');
+  set languageAlternatives(dynamic? value) =>
+      setField<dynamic>('language_alternatives', value);
+
+  String? get audioUrl => getField<String>('audio_url');
+  set audioUrl(String? value) => setField<String>('audio_url', value);
+
+  String? get ttsVoiceId => getField<String>('tts_voice_id');
+  set ttsVoiceId(String? value) => setField<String>('tts_voice_id', value);
+
+  double? get audioDurationSeconds =>
+      getField<double>('audio_duration_seconds');
+  set audioDurationSeconds(double? value) =>
+      setField<double>('audio_duration_seconds', value);
+
+  DateTime? get audioGeneratedAt => getField<DateTime>('audio_generated_at');
+  set audioGeneratedAt(DateTime? value) =>
+      setField<DateTime>('audio_generated_at', value);
+
+  String? get languageCode => getField<String>('language_code');
+  set languageCode(String? value) => setField<String>('language_code', value);
+
+  int? get inputTokens => getField<int>('input_tokens');
+  set inputTokens(int? value) => setField<int>('input_tokens', value);
+
+  int? get outputTokens => getField<int>('output_tokens');
+  set outputTokens(int? value) => setField<int>('output_tokens', value);
+
+  int? get totalTokens => getField<int>('total_tokens');
+  set totalTokens(int? value) => setField<int>('total_tokens', value);
+
+  String? get modelUsed => getField<String>('model_used');
+  set modelUsed(String? value) => setField<String>('model_used', value);
+
+  int? get responseTimeMs => getField<int>('response_time_ms');
+  set responseTimeMs(int? value) => setField<int>('response_time_ms', value);
+
+  String? get senderId => getField<String>('sender_id');
+  set senderId(String? value) => setField<String>('sender_id', value);
+
+  String? get receiverId => getField<String>('receiver_id');
+  set receiverId(String? value) => setField<String>('receiver_id', value);
+
+  String? get senderName => getField<String>('sender_name');
+  set senderName(String? value) => setField<String>('sender_name', value);
+
+  String? get receiverName => getField<String>('receiver_name');
+  set receiverName(String? value) => setField<String>('receiver_name', value);
 }

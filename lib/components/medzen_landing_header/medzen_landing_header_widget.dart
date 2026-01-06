@@ -48,11 +48,11 @@ class _MedzenLandingHeaderWidgetState extends State<MedzenLandingHeaderWidget> {
       color: Colors.transparent,
       elevation: 20.0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
+        borderRadius: BorderRadius.circular(0.0),
       ),
       child: Container(
         width: MediaQuery.sizeOf(context).width * 1.0,
-        height: 100.0,
+        height: 75.33,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -63,7 +63,7 @@ class _MedzenLandingHeaderWidgetState extends State<MedzenLandingHeaderWidget> {
             begin: AlignmentDirectional(0.0, -1.0),
             end: AlignmentDirectional(0, 1.0),
           ),
-          borderRadius: BorderRadius.circular(24.0),
+          borderRadius: BorderRadius.circular(0.0),
           shape: BoxShape.rectangle,
         ),
         child: Align(
@@ -86,6 +86,8 @@ class _MedzenLandingHeaderWidgetState extends State<MedzenLandingHeaderWidget> {
                           elevation: 40.0,
                           shape: const CircleBorder(),
                           child: Container(
+                            width: 77.5,
+                            height: 77.5,
                             decoration: BoxDecoration(
                               color: FlutterFlowTheme.of(context)
                                   .primaryBackground,
@@ -99,7 +101,7 @@ class _MedzenLandingHeaderWidgetState extends State<MedzenLandingHeaderWidget> {
                               borderRadius: BorderRadius.circular(24.0),
                               child: Image.asset(
                                 'assets/images/medzen.logo.png',
-                                width: 100.0,
+                                width: 93.87,
                                 fit: BoxFit.cover,
                               ),
                             ),

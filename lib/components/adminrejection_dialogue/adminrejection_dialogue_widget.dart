@@ -1,3 +1,5 @@
+import '/backend/api_requests/api_calls.dart';
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_choice_chips.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -17,19 +19,14 @@ export 'adminrejection_dialogue_model.dart';
 class AdminrejectionDialogueWidget extends StatefulWidget {
   const AdminrejectionDialogueWidget({
     super.key,
-    String? name,
-    String? service,
-    String? specialty,
-    double? amount,
-  })  : this.name = name ?? 'Name of doctor or facility',
-        this.service = service ?? 'Services',
-        this.specialty = specialty ?? 'specialty or location',
-        this.amount = amount ?? 3000.0;
+    String? admindUserID,
+    required this.username,
+    required this.phone,
+  }) : this.admindUserID = admindUserID ?? 'Name of doctor or facility';
 
-  final String name;
-  final String service;
-  final String specialty;
-  final double amount;
+  final String admindUserID;
+  final String? username;
+  final String? phone;
 
   @override
   State<AdminrejectionDialogueWidget> createState() =>
@@ -227,9 +224,13 @@ class _AdminrejectionDialogueWidgetState
                                                 'ft1w7cjf' /* ID Expired */,
                                               ))
                                             ],
-                                            onChanged: (val) => safeSetState(
-                                                () =>
-                                                    _model.reasonsValues = val),
+                                            onChanged: (val) async {
+                                              safeSetState(() =>
+                                                  _model.reasonsValues = val);
+                                              _model.submitrejectionSelected =
+                                                  true;
+                                              safeSetState(() {});
+                                            },
                                             selectedChipStyle: ChipStyle(
                                               backgroundColor:
                                                   FlutterFlowTheme.of(context)
@@ -375,7 +376,7 @@ class _AdminrejectionDialogueWidgetState
                                     'sll7x6wj' /* Cancel */,
                                   ),
                                   options: FFButtonOptions(
-                                    height: 40.0,
+                                    height: 60.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
                                     iconPadding: EdgeInsetsDirectional.fromSTEB(
@@ -418,20 +419,163 @@ class _AdminrejectionDialogueWidgetState
                               ),
                               Expanded(
                                 child: FFButtonWidget(
-                                  onPressed: (_model
-                                                  .reasonsValues?.firstOrNull ==
-                                              null ||
-                                          _model.reasonsValues?.firstOrNull ==
-                                              '')
+                                  onPressed: (_model.submitrejectionSelected ==
+                                          false)
                                       ? null
-                                      : () {
-                                          print('Button pressed ...');
+                                      : () async {
+                                          await FacilityAdminProfilesTable()
+                                              .update(
+                                            data: {
+                                              'application_status': 'revoked',
+                                              'rejection_reason': _model
+                                                  .reasonsValues?.firstOrNull,
+                                            },
+                                            matchingRows: (rows) =>
+                                                rows.eqOrNull(
+                                              'user_id',
+                                              widget!.admindUserID,
+                                            ),
+                                          );
+                                          if ((String var1) {
+                                            return var1.startsWith('+237');
+                                          }(widget!.phone!)) {
+                                            _model.awssms =
+                                                await AwsSmsCall.call(
+                                              phonenumber: widget!.phone,
+                                              message:
+                                                  'Hi ${widget!.username}Your account has been rejected  because  of an ${_model.reasonsValues?.firstOrNull}',
+                                            );
+
+                                            if ((_model.awssms?.succeeded ??
+                                                true)) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Successfully Rejected',
+                                                    style: TextStyle(
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .primaryText,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                  duration: Duration(
+                                                      milliseconds: 4000),
+                                                  backgroundColor:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .error,
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Failed to send sms',
+                                                    style: TextStyle(
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .primaryText,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                  duration: Duration(
+                                                      milliseconds: 4000),
+                                                  backgroundColor:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .success,
+                                                ),
+                                              );
+                                            }
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  'Successfully Approved',
+                                                  style: TextStyle(
+                                                    color: FlutterFlowTheme.of(
+                                                            context)
+                                                        .primaryText,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                duration: Duration(
+                                                    milliseconds: 4000),
+                                                backgroundColor:
+                                                    FlutterFlowTheme.of(context)
+                                                        .success,
+                                              ),
+                                            );
+                                            _model.twilliosms =
+                                                await TwillioSendSmsCall.call(
+                                              phone: widget!.phone,
+                                              message:
+                                                  'Hi ${widget!.username}Your account has been rejected  because  of an ${_model.reasonsValues?.firstOrNull}',
+                                            );
+
+                                            if ((_model.twilliosms?.succeeded ??
+                                                true)) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Successfully Rejected',
+                                                    style: TextStyle(
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .primaryText,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                  duration: Duration(
+                                                      milliseconds: 4000),
+                                                  backgroundColor:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .error,
+                                                ),
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Failed to send sms',
+                                                    style: TextStyle(
+                                                      color:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .primaryText,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                  duration: Duration(
+                                                      milliseconds: 4000),
+                                                  backgroundColor:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .success,
+                                                ),
+                                              );
+                                            }
+                                          }
+
+                                          Navigator.pop(context);
+
+                                          safeSetState(() {});
                                         },
                                   text: FFLocalizations.of(context).getText(
                                     'azqrz1fm' /* Submit Rejection */,
                                   ),
                                   options: FFButtonOptions(
-                                    height: 40.0,
+                                    height: 60.0,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
                                     iconPadding: EdgeInsetsDirectional.fromSTEB(

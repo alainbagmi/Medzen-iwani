@@ -1,3 +1,4 @@
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_choice_chips.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -16,6 +17,10 @@ import 'package:provider/provider.dart';
 
 class FacilityRejectionDIalogueModel
     extends FlutterFlowModel<FacilityRejectionDIalogueWidget> {
+  ///  Local state fields for this component.
+
+  bool submitrejectionSelected = false;
+
   ///  State fields for stateful widgets in this component.
 
   // State field(s) for Reasons widget.

@@ -30,8 +30,6 @@ class SystemAdminAccountCreationModel
   final formKey1 = GlobalKey<FormState>();
   final formKey2 = GlobalKey<FormState>();
   final formKey3 = GlobalKey<FormState>();
-  // Model for medzen_header_back component.
-  late MedzenHeaderBackModel medzenHeaderBackModel;
   // State field(s) for PageView widget.
   PageController? pageViewController;
 
@@ -141,6 +139,10 @@ class SystemAdminAccountCreationModel
   String? Function(BuildContext, String?)? relationshipTextControllerValidator;
   // Stores action output result for [Backend Call - Query Rows] action in Button widget.
   List<UsersRow>? aUthUser;
+  // Stores action output result for [Backend Call - Query Rows] action in Button widget.
+  List<SystemAdminProfilesRow>? saprofile;
+  // Model for medzen_header_back component.
+  late MedzenHeaderBackModel medzenHeaderBackModel;
 
   @override
   void initState(BuildContext context) {
@@ -149,7 +151,6 @@ class SystemAdminAccountCreationModel
 
   @override
   void dispose() {
-    medzenHeaderBackModel.dispose();
     roleFocusNode?.dispose();
     roleTextController?.dispose();
 
@@ -206,5 +207,7 @@ class SystemAdminAccountCreationModel
 
     relationshipFocusNode?.dispose();
     relationshipTextController?.dispose();
+
+    medzenHeaderBackModel.dispose();
   }
 }

@@ -9,17 +9,25 @@ import 'api_manager.dart';
 
 export 'api_manager.dart' show ApiCallResponse;
 
-const _kPrivateApiFunctionName = 'ffPrivateApiCall';
+const _kPrivateApiFunctionName = 'fapshipayment';
 
 /// Start supagraphql Group Code
 
 class SupagraphqlGroup {
-  static String getBaseUrl() => 'https://noaeltglphdlkbflipit.supabase.co';
+  static String getBaseUrl({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    return '${baseurl}';
+  }
+
   static Map<String, String> headers = {
-    'apikey':
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-    'Authorization':
-        'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+    'apikey': '[apikey]',
+    'Authorization': 'Bearer [Bearer]',
     'Content-Type': 'application/json',
   };
   static UserDetailsCall userDetailsCall = UserDetailsCall();
@@ -34,13 +42,26 @@ class SupagraphqlGroup {
   static ProvidersApprovalCall providersApprovalCall = ProvidersApprovalCall();
   static FacilityTypeCall facilityTypeCall = FacilityTypeCall();
   static SystemAdminCall systemAdminCall = SystemAdminCall();
+  static ProviderAppointmentsCall providerAppointmentsCall =
+      ProviderAppointmentsCall();
+  static ProviderSytemCall providerSytemCall = ProviderSytemCall();
 }
 
 class UserDetailsCall {
   Future<ApiCallResponse> call({
     String? userId = '',
+    String? apikey,
+    String? bearer,
+    String? baseurl,
   }) async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -54,10 +75,8 @@ class UserDetailsCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -109,11 +128,34 @@ class UserDetailsCall {
         response,
         r'''$.data.appointmentsAsPatientCollection.edges[:].node''',
       );
+  dynamic? systAdminProfiles(dynamic response) => getJsonField(
+        response,
+        r'''$.data.system_admin_profilesCollection.edges[:].node''',
+      );
+  dynamic? facilityAdminProfiles(dynamic response) => getJsonField(
+        response,
+        r'''$.data.facility_admin_profilesCollection.edges[:].node''',
+      );
+  dynamic? medicalproviderprofiles(dynamic response) => getJsonField(
+        response,
+        r'''$.data.medical_provider_profilesCollection.edges[:].node''',
+      );
 }
 
 class ProviderTypesCall {
-  Future<ApiCallResponse> call() async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -124,10 +166,8 @@ class ProviderTypesCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -154,8 +194,19 @@ class ProviderTypesCall {
 }
 
 class BloodGroupCall {
-  Future<ApiCallResponse> call() async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -166,10 +217,8 @@ class BloodGroupCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -199,12 +248,24 @@ class FacilitiesCall {
   Future<ApiCallResponse> call({
     String? facilityName = '',
     String? city = '',
+    dynamic? specialtiesJson,
+    String? apikey,
+    String? bearer,
+    String? baseurl,
   }) async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
+    final specialties = _serializeJson(specialtiesJson);
     final ffApiRequestBody = '''
 {
-  "query": "query GetFacilities(\$facilityName: String, \$city: String) { facilitiesCollection(filter: { and: [{ facility_name: { ilike: \$facilityName } }, { city: { ilike: \$city } }] }, orderBy: { facility_code: AscNullsLast }) { edges { node { id facility_code facility_name facility_type address city state country postal_code location phone_number email website operating_hours emergency_services specialties certifications bed_capacity is_active metadata created_at updated_at } } } }",
+  "query": "query GetFacilities(\$facilityName: String, \$city: String) { facilitiesCollection(filter: { and: [{ facility_name: { ilike: \$facilityName } }, { city: { ilike: \$city } }] }, orderBy: { facility_code: AscNullsLast }) { edges { node { id facility_code facility_name facility_type address city state country postal_code location phone_number email website operating_hours emergency_services specialties certifications bed_capacity is_active metadata created_at updated_at image_url } } } }",
   "variables": {
     "facilityName": "${escapeStringForJson(facilityName)}",
     "city": "${escapeStringForJson(city)}"
@@ -215,10 +276,8 @@ class FacilitiesCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -260,22 +319,31 @@ class FacilitiesCall {
 }
 
 class FacilityDetailsCall {
-  Future<ApiCallResponse> call() async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
-  "query": "query GetFacilities { facilitiesCollection(orderBy: { facility_code: AscNullsLast }) { edges { node { id facility_code facility_name facility_type address city state country postal_code location phone_number email website operating_hours emergency_services specialties certifications bed_capacity is_active metadata created_at updated_at } } } }"
+  "query": "query GetFacilities { facilitiesCollection(orderBy: { facility_name: AscNullsLast }) { edges { node { id facility_name address } } } }"
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'FacilityDetails',
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -317,8 +385,19 @@ class FacilityDetailsCall {
 }
 
 class ProviderSpecialtyCall {
-  Future<ApiCallResponse> call() async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -329,10 +408,8 @@ class ProviderSpecialtyCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -404,8 +481,19 @@ class ProviderSpecialtyCall {
 }
 
 class FacilityDeparmentCall {
-  Future<ApiCallResponse> call() async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -416,10 +504,8 @@ class FacilityDeparmentCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -484,8 +570,18 @@ class FacilityDeparmentCall {
 class UseridCall {
   Future<ApiCallResponse> call({
     String? firebaseUID = '',
+    String? apikey,
+    String? bearer,
+    String? baseurl,
   }) async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -499,10 +595,8 @@ class UseridCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -538,8 +632,18 @@ class UseridCall {
 class ProvidersCall {
   Future<ApiCallResponse> call({
     String? userId = '',
+    String? apikey,
+    String? bearer,
+    String? baseurl,
   }) async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -553,10 +657,8 @@ class ProvidersCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -581,15 +683,24 @@ class ProvidersApprovalCall {
   Future<ApiCallResponse> call({
     String? userId = '',
     String? applicationStatus = '',
+    String? apikey,
+    String? bearer,
+    String? baseurl,
   }) async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
-  "query": "query GetMedicalProviderByUserId(\$userId: UUID, \$applicationStatus: String) { medical_provider_profilesCollection(filter: { user_id: {eq: \$userId}, application_status: {eq: \$applicationStatus} }) { edges { node { id user_id provider_number unique_identifier medical_license_number professional_registration_number license_issuing_authority license_expiry_date professional_role primary_specialization secondary_specializations sub_specialties areas_of_expertise is_specialist medical_school graduation_year qualifications years_of_experience practice_type consultation_fee consultation_fee_range consultation_duration_minutes accepts_new_patients accepts_emergency_calls languages_spoken telemedicine_setup_complete video_consultation_enabled audio_consultation_enabled chat_consultation_enabled total_consultations patient_satisfaction_avg response_time_avg_minutes application_status rejection_reason availability_status facility_id approved_at approved_by_id avatar_url created_at updated_at users { id firebase_uid email phone_number first_name last_name middle_name full_name date_of_birth gender profile_picture_url preferred_language country account_status is_active is_verified user_profilesCollection { edges { node { id bio display_name address city state country postal_code emergency_contact_name emergency_contact_phone blood_type allergies chronic_conditions } } } } } } } }",
+  "query": "query GetMedicalProviderByUserId(\$userId: UUID) { medical_provider_profilesCollection(filter: { user_id: {eq: \$userId} }) { edges { node { id user_id provider_number unique_identifier medical_license_number professional_registration_number license_issuing_authority license_expiry_date professional_role primary_specialization secondary_specializations sub_specialties areas_of_expertise is_specialist medical_school graduation_year qualifications years_of_experience practice_type consultation_fee consultation_fee_range consultation_duration_minutes accepts_new_patients accepts_emergency_calls languages_spoken telemedicine_setup_complete video_consultation_enabled audio_consultation_enabled chat_consultation_enabled total_consultations patient_satisfaction_avg response_time_avg_minutes application_status rejection_reason availability_status facility_id approved_at approved_by_id avatar_url created_at updated_at users { id firebase_uid email phone_number first_name last_name middle_name full_name date_of_birth gender profile_picture_url preferred_language country account_status is_active is_verified user_profilesCollection { edges { node { id bio display_name address city state country postal_code emergency_contact_name emergency_contact_phone blood_type allergies chronic_conditions } } } } } } } }",
   "variables": {
-    "userId": "${escapeStringForJson(userId)}",
-    "applicationStatus": "${escapeStringForJson(applicationStatus)}"
+    "userId": "${escapeStringForJson(userId)}"
   }
 }''';
     return ApiManager.instance.makeApiCall(
@@ -597,10 +708,8 @@ class ProvidersApprovalCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -647,8 +756,19 @@ class ProvidersApprovalCall {
 }
 
 class FacilityTypeCall {
-  Future<ApiCallResponse> call() async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -659,10 +779,8 @@ class FacilityTypeCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -691,8 +809,18 @@ class FacilityTypeCall {
 class SystemAdminCall {
   Future<ApiCallResponse> call({
     String? userId = '',
+    String? apikey,
+    String? bearer,
+    String? baseurl,
   }) async {
-    final baseUrl = SupagraphqlGroup.getBaseUrl();
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
 
     final ffApiRequestBody = '''
 {
@@ -706,10 +834,94 @@ class SystemAdminCall {
       apiUrl: '${baseUrl}/graphql/v1',
       callType: ApiCallType.POST,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
+        'Content-Type': 'application/json',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class ProviderAppointmentsCall {
+  Future<ApiCallResponse> call({
+    String? userId = '',
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
+
+    final ffApiRequestBody = '''
+{
+  "query": "query GetUserWithAppointments(\$userId: UUID!) { usersCollection(filter: {id: {eq: \$userId}}) { edges { node { id firebase_uid email phone_number first_name last_name middle_name full_name date_of_birth gender profile_picture_url avatar_url preferred_language timezone country account_status is_active is_verified user_profilesCollection { edges { node { id bio display_name address city state country postal_code blood_type allergies chronic_conditions role } } } } } } appointmentsCollection(filter: {or: [{patient_id: {eq: \$userId}}, {provider_id: {eq: \$userId}}]}) { edges { node { id appointment_number patient_id provider_id facility_id appointment_type specialty status consultation_mode scheduled_start scheduled_end actual_start actual_end start_date start_time chief_complaint notes cancellation_reason cancelled_at reminder_sent video_call_id created_at updated_at } } } }",
+  "variables": {
+    "userId": "${escapeStringForJson(userId)}"
+  }
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'ProviderAppointments',
+      apiUrl: '${baseUrl}/graphql/v1',
+      callType: ApiCallType.POST,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
+        'Content-Type': 'application/json',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class ProviderSytemCall {
+  Future<ApiCallResponse> call({
+    String? apikey,
+    String? bearer,
+    String? baseurl,
+  }) async {
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    bearer ??= FFDevEnvironmentValues().Supabasekey;
+    baseurl ??= FFDevEnvironmentValues().SupaBaseAPIBaseUrl;
+    final baseUrl = SupagraphqlGroup.getBaseUrl(
+      apikey: apikey,
+      bearer: bearer,
+      baseurl: baseurl,
+    );
+
+    final ffApiRequestBody = '''
+{
+  "query": "query GetAllProviders { medical_provider_profilesCollection { edges { node { medical_license_number avatar_url application_status users { full_name phone_number } } } } }"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'ProviderSytem',
+      apiUrl: '${baseUrl}/graphql/v1',
+      callType: ApiCallType.POST,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${bearer}',
         'Content-Type': 'application/json',
       },
       params: {},
@@ -733,7 +945,7 @@ class TwilloGroup {
   static String getBaseUrl() => 'https://verify.twilio.com/v2/Services';
   static Map<String, String> headers = {
     'Authorization':
-        'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmZWZlNzY1NDJhZjhlMDIzMmEwMWJhNzViZTMxYzg2Mw==',
+        'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
     'Content-Type': 'application/x-www-form-urlencoded',
   };
   static SendOtpCall sendOtpCall = SendOtpCall();
@@ -752,7 +964,7 @@ class SendOtpCall {
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
-            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmZWZlNzY1NDJhZjhlMDIzMmEwMWJhNzViZTMxYzg2Mw==',
+            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       params: {
@@ -783,7 +995,7 @@ class VerifyOtpCall {
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
-            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmZWZlNzY1NDJhZjhlMDIzMmEwMWJhNzViZTMxYzg2Mw==',
+            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       params: {
@@ -799,6 +1011,11 @@ class VerifyOtpCall {
       alwaysAllowBody: false,
     );
   }
+
+  String? checkstatus(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.status''',
+      ));
 }
 
 /// End Twillo Group Code
@@ -806,31 +1023,58 @@ class VerifyOtpCall {
 /// Start Payment Group Code
 
 class PaymentGroup {
-  static String getBaseUrl() => 'https://gateway.payunit.net/api/gateway';
+  static String getBaseUrl({
+    String? pUBaseUrl,
+    String? pUMode,
+    String? pUApiKey,
+    String? pUAuth,
+  }) {
+    pUBaseUrl ??= FFDevEnvironmentValues().PUBaseUrl;
+    pUMode ??= FFDevEnvironmentValues().PUMode;
+    pUApiKey ??= FFDevEnvironmentValues().PUApiKey;
+    pUAuth ??= FFDevEnvironmentValues().PUAuth;
+    return '${pUBaseUrl}';
+  }
+
   static Map<String, String> headers = {
     'Content-Type': 'application/Json',
-    'Authorization':
-        'Basic cGF5dW5pdF82TFllaW12NXM6N2U1YzIwN2ItZGI4Yi00NDVhLTgzNmEtMTA5MmE2NWIyOGM2',
-    'mode': 'test',
-    'x-api-key': 'sand_tqZquqDRFKP0Ta2hOQUaRZvwPSLKnt',
+    'Authorization': '[PUAuth]',
+    'mode': '[PUMode]',
+    'x-api-key': '[PUApiKey]',
   };
   static InitializePaymentCall initializePaymentCall = InitializePaymentCall();
   static MobileMoneyCall mobileMoneyCall = MobileMoneyCall();
+  static GetPaymentStatusCall getPaymentStatusCall = GetPaymentStatusCall();
 }
 
 class InitializePaymentCall {
   Future<ApiCallResponse> call({
     String? amount = '',
     String? transactionID = '',
+    String? pUBaseUrl,
+    String? pUMode,
+    String? pUApiKey,
+    String? pUAuth,
   }) async {
-    final baseUrl = PaymentGroup.getBaseUrl();
+    pUBaseUrl ??= FFDevEnvironmentValues().PUBaseUrl;
+    pUMode ??= FFDevEnvironmentValues().PUMode;
+    pUApiKey ??= FFDevEnvironmentValues().PUApiKey;
+    pUAuth ??= FFDevEnvironmentValues().PUAuth;
+    final baseUrl = PaymentGroup.getBaseUrl(
+      pUBaseUrl: pUBaseUrl,
+      pUMode: pUMode,
+      pUApiKey: pUApiKey,
+      pUAuth: pUAuth,
+    );
 
     final ffApiRequestBody = '''
 {
   "total_amount": "${escapeStringForJson(amount)}",
   "currency": "XAF",
   "transaction_id": "${escapeStringForJson(transactionID)}",
-  "return_url": "https://www.mylestechsolutionsllc.com/"
+  "return_url": "https://medzenhealth.app/",
+  "notify_url":"https://noaeltglphdlkbflipit.supabase.co/functions/v1/payunit",
+  "callback_url": "https://noaeltglphdlkbflipit.supabase.co/functions/v1/payunit"
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'Initialize Payment',
@@ -838,10 +1082,9 @@ class InitializePaymentCall {
       callType: ApiCallType.POST,
       headers: {
         'Content-Type': 'application/Json',
-        'Authorization':
-            'Basic cGF5dW5pdF82TFllaW12NXM6N2U1YzIwN2ItZGI4Yi00NDVhLTgzNmEtMTA5MmE2NWIyOGM2',
-        'mode': 'test',
-        'x-api-key': 'sand_tqZquqDRFKP0Ta2hOQUaRZvwPSLKnt',
+        'Authorization': '${pUAuth}',
+        'mode': '${pUMode}',
+        'x-api-key': '${pUApiKey}',
       },
       params: {},
       body: ffApiRequestBody,
@@ -871,19 +1114,31 @@ class MobileMoneyCall {
     String? amount = '',
     String? phone = '',
     String? paymentMethod = '',
+    String? pUBaseUrl,
+    String? pUMode,
+    String? pUApiKey,
+    String? pUAuth,
   }) async {
-    final baseUrl = PaymentGroup.getBaseUrl();
+    pUBaseUrl ??= FFDevEnvironmentValues().PUBaseUrl;
+    pUMode ??= FFDevEnvironmentValues().PUMode;
+    pUApiKey ??= FFDevEnvironmentValues().PUApiKey;
+    pUAuth ??= FFDevEnvironmentValues().PUAuth;
+    final baseUrl = PaymentGroup.getBaseUrl(
+      pUBaseUrl: pUBaseUrl,
+      pUMode: pUMode,
+      pUApiKey: pUApiKey,
+      pUAuth: pUAuth,
+    );
 
     final ffApiRequestBody = '''
 {
   "gateway": "${escapeStringForJson(paymentMethod)}",
   "amount": "${escapeStringForJson(amount)}",
   "transaction_id": "${escapeStringForJson(transactionID)}",
-  "return_url": "https://www.mylestechsolutionsllc.com/",
   "phone_number": "${escapeStringForJson(phone)}",
   "currency": "XAF",
   "paymentType": "button",
-  "notify_url": "https://webhook.site/d457b2f3-dd71-4f04-9af5-e2fcf3be8f34"
+  "return_url": "https://medzenhealth.app/"
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'Mobile Money',
@@ -891,10 +1146,9 @@ class MobileMoneyCall {
       callType: ApiCallType.POST,
       headers: {
         'Content-Type': 'application/Json',
-        'Authorization':
-            'Basic cGF5dW5pdF82TFllaW12NXM6N2U1YzIwN2ItZGI4Yi00NDVhLTgzNmEtMTA5MmE2NWIyOGM2',
-        'mode': 'test',
-        'x-api-key': 'sand_tqZquqDRFKP0Ta2hOQUaRZvwPSLKnt',
+        'Authorization': '${pUAuth}',
+        'mode': '${pUMode}',
+        'x-api-key': '${pUApiKey}',
       },
       params: {},
       body: ffApiRequestBody,
@@ -907,6 +1161,71 @@ class MobileMoneyCall {
       alwaysAllowBody: false,
     );
   }
+
+  String? paymentStatus(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.data.payment_status''',
+      ));
+  String? providerTransactionID(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$.data.transaction_id''',
+      ));
+}
+
+class GetPaymentStatusCall {
+  Future<ApiCallResponse> call({
+    String? transactionID = '',
+    String? pUBaseUrl,
+    String? pUMode,
+    String? pUApiKey,
+    String? pUAuth,
+  }) async {
+    pUBaseUrl ??= FFDevEnvironmentValues().PUBaseUrl;
+    pUMode ??= FFDevEnvironmentValues().PUMode;
+    pUApiKey ??= FFDevEnvironmentValues().PUApiKey;
+    pUAuth ??= FFDevEnvironmentValues().PUAuth;
+    final baseUrl = PaymentGroup.getBaseUrl(
+      pUBaseUrl: pUBaseUrl,
+      pUMode: pUMode,
+      pUApiKey: pUApiKey,
+      pUAuth: pUAuth,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'GetPaymentStatus',
+      apiUrl: '${baseUrl}/paymentstatus/${transactionID}',
+      callType: ApiCallType.GET,
+      headers: {
+        'Content-Type': 'application/Json',
+        'Authorization': '${pUAuth}',
+        'mode': '${pUMode}',
+        'x-api-key': '${pUApiKey}',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  String? transactionStatus(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$.data.transaction_status''',
+      ));
+  String? transactionMessage(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$.data.message''',
+      ));
+  dynamic paymentMethod(dynamic response) => getJsonField(
+        response,
+        r'''$.data.transaction_gateway''',
+      );
 }
 
 /// End Payment Group Code
@@ -914,40 +1233,60 @@ class MobileMoneyCall {
 /// Start SupaBaseRest Group Code
 
 class SupaBaseRestGroup {
-  static String getBaseUrl() =>
-      'https://noaeltglphdlkbflipit.supabase.co/rest/v1/';
+  static String getBaseUrl({
+    String? baseurl,
+    String? apikey,
+    String? token,
+  }) {
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    return '${baseurl}';
+  }
+
   static Map<String, String> headers = {
-    'apikey':
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-    'Authorization':
-        'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+    'apikey': '[apikey]',
+    'Authorization': 'Bearer [token]',
   };
   static MedicalProvidersDetailsCall medicalProvidersDetailsCall =
       MedicalProvidersDetailsCall();
   static FacilityAppointmentsCall facilityAppointmentsCall =
       FacilityAppointmentsCall();
+  static FacilityAdminsCall facilityAdminsCall = FacilityAdminsCall();
+  static GetFacilitiesCall getFacilitiesCall = GetFacilitiesCall();
   static PatientAppointmentsCall patientAppointmentsCall =
       PatientAppointmentsCall();
+  static FacilityStatsCall facilityStatsCall = FacilityStatsCall();
   static MedicalProviderAppointmentsCall medicalProviderAppointmentsCall =
       MedicalProviderAppointmentsCall();
   static PaymentHistoryCall paymentHistoryCall = PaymentHistoryCall();
+  static CheckuserCall checkuserCall = CheckuserCall();
+  static SumWithdrawalsCall sumWithdrawalsCall = SumWithdrawalsCall();
 }
 
 class MedicalProvidersDetailsCall {
   Future<ApiCallResponse> call({
     String? providerid = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
   }) async {
-    final baseUrl = SupaBaseRestGroup.getBaseUrl();
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
 
     return ApiManager.instance.makeApiCall(
       callName: 'MedicalProvidersDetails',
       apiUrl: '${baseUrl}medical_practitioners_details_view',
       callType: ApiCallType.GET,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
       },
       params: {
         'providerid': providerid,
@@ -993,23 +1332,35 @@ class MedicalProvidersDetailsCall {
         response,
         r'''$[:].providerid''',
       ));
+  String? bio(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].bio''',
+      ));
 }
 
 class FacilityAppointmentsCall {
   Future<ApiCallResponse> call({
     String? facilityId = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
   }) async {
-    final baseUrl = SupaBaseRestGroup.getBaseUrl();
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
 
     return ApiManager.instance.makeApiCall(
       callName: 'FacilityAppointments',
       apiUrl: '${baseUrl}appointment_overview',
       callType: ApiCallType.GET,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
       },
       params: {
         'facility_id': facilityId,
@@ -1079,21 +1430,202 @@ class FacilityAppointmentsCall {
       ) as List?;
 }
 
+class FacilityAdminsCall {
+  Future<ApiCallResponse> call({
+    String? baseurl,
+    String? apikey,
+    String? token,
+  }) async {
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'FacilityAdmins',
+      apiUrl:
+          '${baseUrl}facility_admin_profiles?select=id,application_status,users!facility_admin_profiles_user_id_fkey(full_name,phone_number,avatar_url)',
+      callType: ApiCallType.GET,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  String? facilityAdminID(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].id''',
+      ));
+  String? applicationstatus(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$[:].application_status''',
+      ));
+  String? facilityAdminName(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$[:].users.full_name''',
+      ));
+  String? facilityADminImage(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$[:].users.avatar_url''',
+      ));
+  String? facilityAdminNumber(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$[:].users.phone_number''',
+      ));
+}
+
+class GetFacilitiesCall {
+  Future<ApiCallResponse> call({
+    String? facilityId = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
+  }) async {
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'GetFacilities',
+      apiUrl: '${baseUrl}facilities?select=*',
+      callType: ApiCallType.GET,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
+      },
+      params: {
+        'id': facilityId,
+        'application_status': "eq.approved",
+      },
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  String? facilityName(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].facility_name''',
+      ));
+  String? facilityType(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].facility_type''',
+      ));
+  String? facilityCode(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].facility_code''',
+      ));
+  String? facilityCity(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].city''',
+      ));
+  String? facilityCountry(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].country''',
+      ));
+  String? facilityPostCode(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].postal_code''',
+      ));
+  String? facilityEmail(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].email''',
+      ));
+  String? facilitySite(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].website''',
+      ));
+  String? facilityImage(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].image_url''',
+      ));
+  String? facilityPhone(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].phone_number''',
+      ));
+  String? facilityAddress(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].address''',
+      ));
+  String? status(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].application_status''',
+      ));
+  int? fees(dynamic response) => castToType<int>(getJsonField(
+        response,
+        r'''$[:].consultation_fee''',
+      ));
+  String? bio(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].Description''',
+      ));
+  List<String>? specialties(dynamic response) => (getJsonField(
+        response,
+        r'''$[:].specialties[:].specialty_id''',
+        true,
+      ) as List?)
+          ?.withoutNulls
+          .map((x) => castToType<String>(x))
+          .withoutNulls
+          .toList();
+  List<String>? departments(dynamic response) => (getJsonField(
+        response,
+        r'''$[:].Departments''',
+        true,
+      ) as List?)
+          ?.withoutNulls
+          .map((x) => castToType<String>(x))
+          .withoutNulls
+          .toList();
+}
+
 class PatientAppointmentsCall {
   Future<ApiCallResponse> call({
     String? patientId = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
   }) async {
-    final baseUrl = SupaBaseRestGroup.getBaseUrl();
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
 
     return ApiManager.instance.makeApiCall(
       callName: 'PatientAppointments',
       apiUrl: '${baseUrl}appointment_overview',
       callType: ApiCallType.GET,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
       },
       params: {
         'patient_id': patientId,
@@ -1163,21 +1695,66 @@ class PatientAppointmentsCall {
       ) as List?;
 }
 
+class FacilityStatsCall {
+  Future<ApiCallResponse> call({
+    String? facilityId = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
+  }) async {
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'FacilityStats',
+      apiUrl: '${baseUrl}appointments?select=status,id',
+      callType: ApiCallType.GET,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
+      },
+      params: {
+        'facility_id': facilityId,
+      },
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class MedicalProviderAppointmentsCall {
   Future<ApiCallResponse> call({
     String? providerId = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
   }) async {
-    final baseUrl = SupaBaseRestGroup.getBaseUrl();
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
 
     return ApiManager.instance.makeApiCall(
       callName: 'MedicalProviderAppointments',
       apiUrl: '${baseUrl}appointment_overview',
       callType: ApiCallType.GET,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
       },
       params: {
         'provider_id': providerId,
@@ -1250,18 +1827,26 @@ class MedicalProviderAppointmentsCall {
 class PaymentHistoryCall {
   Future<ApiCallResponse> call({
     String? payerId = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
   }) async {
-    final baseUrl = SupaBaseRestGroup.getBaseUrl();
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
 
     return ApiManager.instance.makeApiCall(
       callName: 'PaymentHistory',
       apiUrl: '${baseUrl}payments',
       callType: ApiCallType.GET,
       headers: {
-        'apikey':
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
-        'Authorization':
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk',
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
       },
       params: {
         'payer_id': payerId,
@@ -1276,7 +1861,318 @@ class PaymentHistoryCall {
   }
 }
 
+class CheckuserCall {
+  Future<ApiCallResponse> call({
+    String? useremail = '',
+    String? baseurl,
+    String? apikey,
+    String? token,
+  }) async {
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'checkuser',
+      apiUrl: '${baseUrl}users?select=email',
+      callType: ApiCallType.GET,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
+      },
+      params: {
+        'email': useremail,
+      },
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  String? email(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$[:].email''',
+      ));
+}
+
+class SumWithdrawalsCall {
+  Future<ApiCallResponse> call({
+    String? providerId = 'is.null',
+    String? facilityid = 'is.null',
+    String? baseurl,
+    String? apikey,
+    String? token,
+  }) async {
+    baseurl ??= FFDevEnvironmentValues().SupabaseRestAPIBaseUrl;
+    apikey ??= FFDevEnvironmentValues().Supabasekey;
+    token ??= FFDevEnvironmentValues().Supabasekey;
+    final baseUrl = SupaBaseRestGroup.getBaseUrl(
+      baseurl: baseurl,
+      apikey: apikey,
+      token: token,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'SumWithdrawals',
+      apiUrl: '${baseUrl}/withdrawals?select=total:sum(amount)',
+      callType: ApiCallType.GET,
+      headers: {
+        'apikey': '${apikey}',
+        'Authorization': 'Bearer ${token}',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 /// End SupaBaseRest Group Code
+
+/// Start OpenAI ChatGPT Group Code
+
+class OpenAIChatGPTGroup {
+  static String getBaseUrl() => 'https://api.openai.com/v1';
+  static Map<String, String> headers = {
+    'Content-Type': 'application/json',
+  };
+  static SendFullPromptCall sendFullPromptCall = SendFullPromptCall();
+}
+
+class SendFullPromptCall {
+  Future<ApiCallResponse> call({
+    String? apiKey = '',
+    dynamic? promptJson,
+  }) async {
+    final baseUrl = OpenAIChatGPTGroup.getBaseUrl();
+
+    final prompt = _serializeJson(promptJson);
+    final ffApiRequestBody = '''
+{
+  "model": "gpt-4",
+  "messages": ${prompt}
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'Send Full Prompt',
+      apiUrl: '${baseUrl}/chat/completions',
+      callType: ApiCallType.POST,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${apiKey}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  int? createdTimestamp(dynamic response) => castToType<int>(getJsonField(
+        response,
+        r'''$.created''',
+      ));
+  String? role(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.choices[:].message.role''',
+      ));
+  String? content(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.choices[:].message.content''',
+      ));
+}
+
+/// End OpenAI ChatGPT Group Code
+
+/// Start FapShi Group Code
+
+class FapShiGroup {
+  static String getBaseUrl({
+    String? paymentApi,
+    String? paymentUser,
+    String? paypentAPIKey,
+  }) {
+    paymentApi ??= FFDevEnvironmentValues().PaymentApi;
+    paymentUser ??= FFDevEnvironmentValues().PaymentUser;
+    paypentAPIKey ??= FFDevEnvironmentValues().PaypentAPIKey;
+    return '${paymentApi}';
+  }
+
+  static Map<String, String> headers = {
+    'apiuser': '[PaymentUser]',
+    'apikey': '[PaypentAPIKey]',
+  };
+  static HelpMePaysCall helpMePaysCall = HelpMePaysCall();
+  static CheckPaymentCall checkPaymentCall = CheckPaymentCall();
+  static DirectDebitCall directDebitCall = DirectDebitCall();
+}
+
+class HelpMePaysCall {
+  Future<ApiCallResponse> call({
+    double? amount,
+    String? message = '',
+    String? transactionid = '',
+    String? paymentApi,
+    String? paymentUser,
+    String? paypentAPIKey,
+  }) async {
+    paymentApi ??= FFDevEnvironmentValues().PaymentApi;
+    paymentUser ??= FFDevEnvironmentValues().PaymentUser;
+    paypentAPIKey ??= FFDevEnvironmentValues().PaypentAPIKey;
+    final baseUrl = FapShiGroup.getBaseUrl(
+      paymentApi: paymentApi,
+      paymentUser: paymentUser,
+      paypentAPIKey: paypentAPIKey,
+    );
+
+    final ffApiRequestBody = '''
+{
+  "amount": ${amount},
+  "redirectUrl": "https://medzenhealth.app/",
+  "externalId": "${escapeStringForJson(transactionid)}",
+  "message": "${escapeStringForJson(message)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'Help Me Pays',
+      apiUrl: '${baseUrl}/initiate-pay',
+      callType: ApiCallType.POST,
+      headers: {
+        'apiuser': '${paymentUser}',
+        'apikey': '${paypentAPIKey}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class CheckPaymentCall {
+  Future<ApiCallResponse> call({
+    String? transactionid = '',
+    String? paymentApi,
+    String? paymentUser,
+    String? paypentAPIKey,
+  }) async {
+    paymentApi ??= FFDevEnvironmentValues().PaymentApi;
+    paymentUser ??= FFDevEnvironmentValues().PaymentUser;
+    paypentAPIKey ??= FFDevEnvironmentValues().PaypentAPIKey;
+    final baseUrl = FapShiGroup.getBaseUrl(
+      paymentApi: paymentApi,
+      paymentUser: paymentUser,
+      paypentAPIKey: paypentAPIKey,
+    );
+
+    return ApiManager.instance.makeApiCall(
+      callName: 'Check Payment',
+      apiUrl: '${baseUrl}/payment-status/${transactionid}',
+      callType: ApiCallType.GET,
+      headers: {
+        'apiuser': '${paymentUser}',
+        'apikey': '${paypentAPIKey}',
+      },
+      params: {},
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  String? status(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.status''',
+      ));
+}
+
+class DirectDebitCall {
+  Future<ApiCallResponse> call({
+    double? amount,
+    String? phonenumber = '',
+    String? internalid = '',
+    String? message = '',
+    String? usernumber = '',
+    String? paymentApi,
+    String? paymentUser,
+    String? paypentAPIKey,
+  }) async {
+    paymentApi ??= FFDevEnvironmentValues().PaymentApi;
+    paymentUser ??= FFDevEnvironmentValues().PaymentUser;
+    paypentAPIKey ??= FFDevEnvironmentValues().PaypentAPIKey;
+    final baseUrl = FapShiGroup.getBaseUrl(
+      paymentApi: paymentApi,
+      paymentUser: paymentUser,
+      paypentAPIKey: paypentAPIKey,
+    );
+
+    final ffApiRequestBody = '''
+{
+  "amount": ${amount},
+  "phone": "${escapeStringForJson(phonenumber)}",
+  "medium": "mobile money",
+  "userId": "${escapeStringForJson(usernumber)}",
+  "externalId": "${escapeStringForJson(internalid)}",
+  "message": "MEDZENE-HEALTH Service"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'Direct Debit',
+      apiUrl: '${baseUrl}/direct-pay',
+      callType: ApiCallType.POST,
+      headers: {
+        'apiuser': '${paymentUser}',
+        'apikey': '${paypentAPIKey}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  String? dateInitiated(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.dateInitiated''',
+      ));
+  String? message(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.message''',
+      ));
+  String? transactionID(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.transId''',
+      ));
+}
+
+/// End FapShi Group Code
 
 class HelpMePayCall {
   static Future<ApiCallResponse> call({
@@ -1286,11 +2182,11 @@ class HelpMePayCall {
     return ApiManager.instance.makeApiCall(
       callName: 'Help Me Pay',
       apiUrl:
-          'https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json',
+          'https://api.twilio.com/2010-04-01/Accounts/AC44bb6252a49d2eb034e609f54cbbd4a1/Messages.json',
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
-            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmZWZlNzY1NDJhZjhlMDIzMmEwMWJhNzViZTMxYzg2Mw==',
+            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       params: {
@@ -1308,6 +2204,189 @@ class HelpMePayCall {
       alwaysAllowBody: false,
     );
   }
+}
+
+class AwsSmsCall {
+  static Future<ApiCallResponse> call({
+    String? phonenumber = '',
+    String? message = '',
+    String? api,
+    String? key,
+  }) async {
+    api ??= FFDevEnvironmentValues().AwsSmsApiUrl;
+    key ??= FFDevEnvironmentValues().AwsSmsApiKey;
+
+    final ffApiRequestBody = '''
+{
+  "to": "${escapeStringForJson(phonenumber)}",
+  "message": "${escapeStringForJson(message)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'AWS SMS',
+      apiUrl: '${api}',
+      callType: ApiCallType.POST,
+      headers: {
+        'x-api-key': '${key}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class AWSSendOTPCall {
+  static Future<ApiCallResponse> call({
+    String? phone = '',
+    String? api,
+    String? key,
+  }) async {
+    api ??= FFDevEnvironmentValues().AWSOtpsendurl;
+    key ??= FFDevEnvironmentValues().AWSOtpsendApiKey;
+
+    final ffApiRequestBody = '''
+{
+  "phone": "${escapeStringForJson(phone)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'AWS Send OTP',
+      apiUrl: '${api}',
+      callType: ApiCallType.POST,
+      headers: {
+        'x-api-key': '${key}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  static bool? success(dynamic response) => castToType<bool>(getJsonField(
+        response,
+        r'''$.success''',
+      ));
+}
+
+class AWSVerifyOTPCall {
+  static Future<ApiCallResponse> call({
+    String? phone = '',
+    String? api,
+    String? key,
+    String? otp = '',
+  }) async {
+    api ??= FFDevEnvironmentValues().AWSOtpVerifyurl;
+    key ??= FFDevEnvironmentValues().AWSOtpVerifyApiKey;
+
+    final ffApiRequestBody = '''
+{
+  "phone": "${escapeStringForJson(phone)}",
+  "otp": "${escapeStringForJson(otp)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'AWS Verify OTP ',
+      apiUrl: '${api}',
+      callType: ApiCallType.POST,
+      headers: {
+        'x-api-key': '${key}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class TwillioSendSmsCall {
+  static Future<ApiCallResponse> call({
+    String? phone = '',
+    String? message = '',
+  }) async {
+    return ApiManager.instance.makeApiCall(
+      callName: 'Twillio Send sms',
+      apiUrl:
+          'https://api.twilio.com/2010-04-01/Accounts/AC44bb6252a49d2eb034e609f54cbbd4a1/Messages.json',
+      callType: ApiCallType.POST,
+      headers: {
+        'Authorization':
+            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      params: {
+        'To': phone,
+        'Body': message,
+        'MessagingServiceSid': "MG4e5cf1ea7c715fc843e9a62da3f94ef1",
+      },
+      bodyType: BodyType.X_WWW_FORM_URL_ENCODED,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
+class AWSResetPwdCall {
+  static Future<ApiCallResponse> call({
+    String? phone = '',
+    String? api,
+    String? key,
+    String? email = '',
+  }) async {
+    api ??= FFDevEnvironmentValues().AWSResetPwdurl;
+    key ??= FFDevEnvironmentValues().AWSResetPwdKey;
+
+    final ffApiRequestBody = '''
+{
+  "phone": "${escapeStringForJson(phone)}",
+  "email": "${escapeStringForJson(email)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'AWS Reset Pwd',
+      apiUrl: '${api}',
+      callType: ApiCallType.POST,
+      headers: {
+        'x-api-key': '${key}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  static int? statusCode(dynamic response) => castToType<int>(getJsonField(
+        response,
+        r'''$.statusCode''',
+      ));
+  static String? resetLink(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.ResetLink''',
+      ));
 }
 
 class ApiPagingParams {

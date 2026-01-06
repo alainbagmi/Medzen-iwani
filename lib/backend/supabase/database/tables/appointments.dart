@@ -24,8 +24,8 @@ class AppointmentsRow extends SupabaseDataRow {
   String? get patientId => getField<String>('patient_id');
   set patientId(String? value) => setField<String>('patient_id', value);
 
-  String get providerId => getField<String>('provider_id')!;
-  set providerId(String value) => setField<String>('provider_id', value);
+  String? get providerId => getField<String>('provider_id');
+  set providerId(String? value) => setField<String>('provider_id', value);
 
   String? get facilityId => getField<String>('facility_id');
   set facilityId(String? value) => setField<String>('facility_id', value);
@@ -98,4 +98,30 @@ class AppointmentsRow extends SupabaseDataRow {
   PostgresTime? get startTime => getField<PostgresTime>('start_time');
   set startTime(PostgresTime? value) =>
       setField<PostgresTime>('start_time', value);
+
+  String? get videoCallStatus => getField<String>('video_call_status');
+  set videoCallStatus(String? value) =>
+      setField<String>('video_call_status', value);
+
+  DateTime? get providerJoinedAt => getField<DateTime>('provider_joined_at');
+  set providerJoinedAt(DateTime? value) =>
+      setField<DateTime>('provider_joined_at', value);
+
+  DateTime? get patientJoinedAt => getField<DateTime>('patient_joined_at');
+  set patientJoinedAt(DateTime? value) =>
+      setField<DateTime>('patient_joined_at', value);
+
+  String? get videoCallUrl => getField<String>('video_call_url');
+  set videoCallUrl(String? value) => setField<String>('video_call_url', value);
+
+  DateTime? get sessionCreatedAt => getField<DateTime>('session_created_at');
+  set sessionCreatedAt(DateTime? value) =>
+      setField<DateTime>('session_created_at', value);
+
+  bool? get requiresVideoConsent => getField<bool>('requires_video_consent');
+  set requiresVideoConsent(bool? value) =>
+      setField<bool>('requires_video_consent', value);
+
+  bool? get videoEnabled => getField<bool>('video_enabled');
+  set videoEnabled(bool? value) => setField<bool>('video_enabled', value);
 }

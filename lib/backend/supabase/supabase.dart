@@ -4,9 +4,8 @@ import '/flutter_flow/flutter_flow_util.dart';
 export 'database/database.dart';
 export 'storage/storage.dart';
 
-String _kSupabaseUrl = 'https://noaeltglphdlkbflipit.supabase.co';
-String _kSupabaseAnonKey =
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk';
+String _kSupabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
+String _kSupabaseAnonKey = FFDevEnvironmentValues().Supabasekey;
 
 class SupaFlow {
   SupaFlow._();

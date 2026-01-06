@@ -1,3 +1,4 @@
+import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -16,6 +17,13 @@ class ResetPasswordModel extends FlutterFlowModel<ResetPasswordWidget> {
   ///  Local state fields for this component.
 
   String? resetphone;
+
+  ///  State fields for stateful widgets in this component.
+
+  // Stores action output result for [Backend Call - API (AWS Reset Pwd)] action in Button widget.
+  ApiCallResponse? apiResultiz7;
+  // Stores action output result for [Backend Call - API (Twillio Send sms)] action in Button widget.
+  ApiCallResponse? apiResultl69;
 
   @override
   void initState(BuildContext context) {}

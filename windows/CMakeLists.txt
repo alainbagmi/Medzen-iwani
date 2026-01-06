@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
-project(medzen_iwani LANGUAGES CXX)
+project(medzen LANGUAGES CXX)
 
-set(BINARY_NAME "medzen_iwani")
+set(BINARY_NAME "medzen")
 
 cmake_policy(SET CMP0063 NEW)
 

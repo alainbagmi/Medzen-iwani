@@ -24,8 +24,8 @@ class ReviewsRow extends SupabaseDataRow {
   set reviewedEntityType(String? value) =>
       setField<String>('reviewed_entity_type', value);
 
-  String get reviewedEntityId => getField<String>('reviewed_entity_id')!;
-  set reviewedEntityId(String value) =>
+  String? get reviewedEntityId => getField<String>('reviewed_entity_id');
+  set reviewedEntityId(String? value) =>
       setField<String>('reviewed_entity_id', value);
 
   int? get rating => getField<int>('rating');
@@ -68,4 +68,7 @@ class ReviewsRow extends SupabaseDataRow {
 
   DateTime? get updatedAt => getField<DateTime>('updated_at');
   set updatedAt(DateTime? value) => setField<DateTime>('updated_at', value);
+
+  String? get facilityId => getField<String>('facility_id');
+  set facilityId(String? value) => setField<String>('facility_id', value);
 }

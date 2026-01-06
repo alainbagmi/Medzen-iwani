@@ -44,7 +44,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsetsDirectional.fromSTEB(16.0, 16.0, 16.0, 16.0),
+      padding: EdgeInsetsDirectional.fromSTEB(16.0, 0.0, 16.0, 16.0),
       child: InkWell(
         splashColor: Colors.transparent,
         focusColor: Colors.transparent,
@@ -55,7 +55,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
           await authManager.signOut();
           GoRouter.of(context).clearRedirectLocation();
 
-          context.goNamedAuth(SplashScreenWidget.routeName, context.mounted);
+          context.goNamedAuth(HomePageWidget.routeName, context.mounted);
         },
         child: Material(
           color: Colors.transparent,
@@ -66,7 +66,7 @@ class _LogoutWidgetState extends State<LogoutWidget> {
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: Color(0xFFEE0505),
+              color: Color(0xFFC52B2B),
               boxShadow: [
                 BoxShadow(
                   blurRadius: 4.0,

@@ -1,3 +1,4 @@
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_choice_chips.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
@@ -17,19 +18,10 @@ export 'facility_rejection_d_ialogue_model.dart';
 class FacilityRejectionDIalogueWidget extends StatefulWidget {
   const FacilityRejectionDIalogueWidget({
     super.key,
-    String? name,
-    String? service,
-    String? specialty,
-    double? amount,
-  })  : this.name = name ?? 'Name of doctor or facility',
-        this.service = service ?? 'Services',
-        this.specialty = specialty ?? 'specialty or location',
-        this.amount = amount ?? 3000.0;
+    String? facilityID,
+  }) : this.facilityID = facilityID ?? 'Name of doctor or facility';
 
-  final String name;
-  final String service;
-  final String specialty;
-  final double amount;
+  final String facilityID;
 
   @override
   State<FacilityRejectionDIalogueWidget> createState() =>
@@ -228,9 +220,12 @@ class _FacilityRejectionDIalogueWidgetState
                                                 'uayffepr' /* facility not found */,
                                               ))
                                             ],
-                                            onChanged: (val) => safeSetState(
-                                                () =>
-                                                    _model.reasonsValues = val),
+                                            onChanged: (val) async {
+                                              safeSetState(() =>
+                                                  _model.reasonsValues = val);
+                                              _model.submitrejectionSelected =
+                                                  true;
+                                            },
                                             selectedChipStyle: ChipStyle(
                                               backgroundColor:
                                                   FlutterFlowTheme.of(context)
@@ -376,7 +371,7 @@ class _FacilityRejectionDIalogueWidgetState
                                     'anxbgkw5' /* Cancel */,
                                   ),
                                   options: FFButtonOptions(
-                                    height: 40.0,
+                                    height: 48.38,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
                                     iconPadding: EdgeInsetsDirectional.fromSTEB(
@@ -419,20 +414,48 @@ class _FacilityRejectionDIalogueWidgetState
                               ),
                               Expanded(
                                 child: FFButtonWidget(
-                                  onPressed: (_model
-                                                  .reasonsValues?.firstOrNull ==
-                                              null ||
-                                          _model.reasonsValues?.firstOrNull ==
-                                              '')
+                                  onPressed: (_model.submitrejectionSelected ==
+                                          false)
                                       ? null
-                                      : () {
-                                          print('Button pressed ...');
+                                      : () async {
+                                          await FacilitiesTable().update(
+                                            data: {
+                                              'application_status': 'revoked',
+                                              'rejection_reason': _model
+                                                  .reasonsValues?.firstOrNull,
+                                            },
+                                            matchingRows: (rows) =>
+                                                rows.eqOrNull(
+                                              'id',
+                                              widget!.facilityID,
+                                            ),
+                                          );
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Successfully Rejected',
+                                                style: TextStyle(
+                                                  color: FlutterFlowTheme.of(
+                                                          context)
+                                                      .primaryText,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              duration:
+                                                  Duration(milliseconds: 4000),
+                                              backgroundColor:
+                                                  FlutterFlowTheme.of(context)
+                                                      .error,
+                                            ),
+                                          );
+                                          Navigator.pop(context);
                                         },
                                   text: FFLocalizations.of(context).getText(
                                     'gdqcyqh8' /* Submit Rejection */,
                                   ),
                                   options: FFButtonOptions(
-                                    height: 40.0,
+                                    height: 49.55,
                                     padding: EdgeInsetsDirectional.fromSTEB(
                                         24.0, 0.0, 24.0, 0.0),
                                     iconPadding: EdgeInsetsDirectional.fromSTEB(

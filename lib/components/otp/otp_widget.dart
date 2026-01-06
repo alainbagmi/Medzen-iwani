@@ -2,12 +2,14 @@ import '/auth/firebase_auth/auth_util.dart';
 import '/backend/api_requests/api_calls.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
+import '/flutter_flow/flutter_flow_timer.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
 import 'dart:math';
 import 'dart:ui';
 import '/index.dart';
 import 'package:pin_code_fields/pin_code_fields.dart';
+import 'package:stop_watch_timer/stop_watch_timer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -45,6 +47,11 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _model = createModel(context, () => OtpModel());
+
+    // On component load action.
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
+      _model.timerController.onStartTimer();
+    });
 
     _model.pinCodeFocusNode ??= FocusNode();
 
@@ -92,9 +99,9 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
     return SafeArea(
       child: Container(
         width: MediaQuery.sizeOf(context).width * 1.0,
-        height: MediaQuery.sizeOf(context).height * 0.5,
+        height: MediaQuery.sizeOf(context).height * 1.0,
         decoration: BoxDecoration(
-          color: FlutterFlowTheme.of(context).primaryBackground,
+          color: Color(0x56F6F6F6),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.max,
@@ -129,30 +136,47 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                     children: [
                       Padding(
                         padding: EdgeInsetsDirectional.fromSTEB(
-                            24.0, 16.0, 0.0, 0.0),
-                        child: Text(
-                          FFLocalizations.of(context).getText(
-                            'u90ey69t' /* Enter your PIN below */,
-                          ),
-                          style: FlutterFlowTheme.of(context)
-                              .headlineMedium
-                              .override(
-                                font: GoogleFonts.readexPro(
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .headlineMedium
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .headlineMedium
-                                      .fontStyle,
-                                ),
-                                letterSpacing: 0.0,
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .headlineMedium
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .headlineMedium
-                                    .fontStyle,
+                            10.0, 0.0, 10.0, 10.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.max,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              FFLocalizations.of(context).getText(
+                                'y7ntty50' /* Enter your PIN below */,
                               ),
+                              style: FlutterFlowTheme.of(context)
+                                  .bodyMedium
+                                  .override(
+                                    font: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w800,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .bodyMedium
+                                          .fontStyle,
+                                    ),
+                                    fontSize: 18.0,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FontWeight.w800,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .fontStyle,
+                                  ),
+                            ),
+                            InkWell(
+                              splashColor: Colors.transparent,
+                              focusColor: Colors.transparent,
+                              hoverColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                              onTap: () async {
+                                Navigator.pop(context);
+                              },
+                              child: Icon(
+                                Icons.cancel_outlined,
+                                color: FlutterFlowTheme.of(context).primaryText,
+                                size: 24.0,
+                              ),
+                            ),
+                          ].divide(SizedBox(width: 5.0)),
                         ),
                       ),
                       Padding(
@@ -226,6 +250,7 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                                     FlutterFlowTheme.of(context).primary,
                                 obscureText: false,
                                 hintCharacter: '-',
+                                keyboardType: TextInputType.number,
                                 pinTheme: PinTheme(
                                   fieldHeight: 50.0,
                                   fieldWidth: 44.0,
@@ -254,6 +279,86 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                             ),
                             Padding(
                               padding: EdgeInsetsDirectional.fromSTEB(
+                                  10.0, 0.0, 10.0, 10.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.max,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    FFLocalizations.of(context).getText(
+                                      'nilo3c4h' /* No code yet ? You can resend i... */,
+                                    ),
+                                    style: FlutterFlowTheme.of(context)
+                                        .bodyMedium
+                                        .override(
+                                          font: GoogleFonts.inter(
+                                            fontWeight:
+                                                FlutterFlowTheme.of(context)
+                                                    .bodyMedium
+                                                    .fontWeight,
+                                            fontStyle:
+                                                FlutterFlowTheme.of(context)
+                                                    .bodyMedium
+                                                    .fontStyle,
+                                          ),
+                                          letterSpacing: 0.0,
+                                          fontWeight:
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMedium
+                                                  .fontWeight,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .bodyMedium
+                                                  .fontStyle,
+                                        ),
+                                  ),
+                                  FlutterFlowTimer(
+                                    initialTime: _model.timerInitialTimeMs,
+                                    getDisplayTime: (value) =>
+                                        StopWatchTimer.getDisplayTime(
+                                      value,
+                                      hours: false,
+                                      milliSecond: false,
+                                    ),
+                                    controller: _model.timerController,
+                                    updateStateInterval:
+                                        Duration(milliseconds: 1000),
+                                    onChanged:
+                                        (value, displayTime, shouldUpdate) {
+                                      _model.timerMilliseconds = value;
+                                      _model.timerValue = displayTime;
+                                      if (shouldUpdate) safeSetState(() {});
+                                    },
+                                    textAlign: TextAlign.start,
+                                    style: FlutterFlowTheme.of(context)
+                                        .headlineSmall
+                                        .override(
+                                          font: GoogleFonts.readexPro(
+                                            fontWeight:
+                                                FlutterFlowTheme.of(context)
+                                                    .headlineSmall
+                                                    .fontWeight,
+                                            fontStyle:
+                                                FlutterFlowTheme.of(context)
+                                                    .headlineSmall
+                                                    .fontStyle,
+                                          ),
+                                          letterSpacing: 0.0,
+                                          fontWeight:
+                                              FlutterFlowTheme.of(context)
+                                                  .headlineSmall
+                                                  .fontWeight,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .headlineSmall
+                                                  .fontStyle,
+                                        ),
+                                  ),
+                                ].divide(SizedBox(width: 5.0)),
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsetsDirectional.fromSTEB(
                                   10.0, 0.0, 10.0, 0.0),
                               child: Row(
                                 mainAxisSize: MainAxisSize.max,
@@ -263,11 +368,32 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                                   Align(
                                     alignment: AlignmentDirectional(0.0, 0.05),
                                     child: FFButtonWidget(
-                                      onPressed: () async {
-                                        Navigator.pop(context);
-                                      },
+                                      onPressed: (_model.timerValue != '00:00')
+                                          ? null
+                                          : () async {
+                                              if ((String var1) {
+                                                return var1.startsWith('+237');
+                                              }(widget!.phone!)) {
+                                                _model.apisendotp =
+                                                    await AWSSendOTPCall.call(
+                                                  phone: widget!.phone,
+                                                );
+                                              } else {
+                                                _model.apiResultefj =
+                                                    await TwilloGroup
+                                                        .sendOtpCall
+                                                        .call(
+                                                  phone: widget!.phone,
+                                                );
+                                              }
+
+                                              _model.timerController
+                                                  .onResetTimer();
+
+                                              safeSetState(() {});
+                                            },
                                       text: FFLocalizations.of(context).getText(
-                                        '1hzczhk7' /* Did not receive code  */,
+                                        '1hzczhk7' /* Resend code */,
                                       ),
                                       options: FFButtonOptions(
                                         height: 44.0,
@@ -304,10 +430,15 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                                                       .fontStyle,
                                             ),
                                         elevation: 40.0,
+                                        borderSide: BorderSide(
+                                          color: FlutterFlowTheme.of(context)
+                                              .warning,
+                                        ),
                                         borderRadius:
-                                            BorderRadius.circular(20.0),
+                                            BorderRadius.circular(8.0),
+                                        disabledColor: Color(0xFFBEC6D3),
                                         hoverColor: FlutterFlowTheme.of(context)
-                                            .primary,
+                                            .secondary,
                                         hoverBorderSide: BorderSide(
                                           color: FlutterFlowTheme.of(context)
                                               .alternate,
@@ -317,14 +448,38 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                                   ),
                                   FFButtonWidget(
                                     onPressed: () async {
-                                      _model.apiResultsy0 =
-                                          await TwilloGroup.verifyOtpCall.call(
-                                        phone: widget!.phone,
-                                        code: _model.pinCodeController!.text,
-                                      );
+                                      if ((String var1) {
+                                        return var1.startsWith('+237');
+                                      }(widget!.phone!)) {
+                                        _model.awsverify =
+                                            await AWSVerifyOTPCall.call(
+                                          phone: widget!.phone,
+                                          otp: _model.pinCodeController!.text,
+                                        );
 
-                                      if ((_model.apiResultsy0?.succeeded ??
-                                          true)) {
+                                        _model.checkcode =
+                                            (_model.awsverify?.succeeded ??
+                                                true);
+                                        safeSetState(() {});
+                                      } else {
+                                        _model.twillioverify = await TwilloGroup
+                                            .verifyOtpCall
+                                            .call(
+                                          phone: widget!.phone,
+                                          code: _model.pinCodeController!.text,
+                                        );
+
+                                        _model.checkcode = TwilloGroup
+                                                .verifyOtpCall
+                                                .checkstatus(
+                                              (_model.twillioverify?.jsonBody ??
+                                                  ''),
+                                            ) ==
+                                            'approved';
+                                        safeSetState(() {});
+                                      }
+
+                                      if (_model.checkcode) {
                                         GoRouter.of(context).prepareAuthEvent();
                                         if (widget!.pwd! != widget!.pwd!) {
                                           ScaffoldMessenger.of(context)
@@ -354,36 +509,25 @@ class _OtpWidgetState extends State<OtpWidget> with TickerProviderStateMixin {
                                             RolePageWidget.routeName,
                                             context.mounted);
                                       } else {
-                                        var confirmDialogResponse =
-                                            await showDialog<bool>(
-                                                  context: context,
-                                                  builder:
-                                                      (alertDialogContext) {
-                                                    return AlertDialog(
-                                                      title: Text('WRONG CODE'),
-                                                      content: Text(
-                                                          'The code inserted is wrong please try again or request a new one'),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  alertDialogContext,
-                                                                  false),
-                                                          child: Text('Cancel'),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                  alertDialogContext,
-                                                                  true),
-                                                          child:
-                                                              Text('Confirm'),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
-                                                ) ??
-                                                false;
+                                        await showDialog(
+                                          context: context,
+                                          builder: (alertDialogContext) {
+                                            return AlertDialog(
+                                              title:
+                                                  Text('Wrong or Expired Code'),
+                                              content: Text(
+                                                  'Your code is wrong or expired'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                          alertDialogContext),
+                                                  child: Text('Ok'),
+                                                ),
+                                              ],
+                                            );
+                                          },
+                                        );
                                       }
 
                                       safeSetState(() {});

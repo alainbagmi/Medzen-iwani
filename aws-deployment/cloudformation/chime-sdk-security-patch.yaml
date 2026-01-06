@@ -1,0 +1,370 @@
+# ============================================
+# MedZen Chime SDK - Phase 1 Security Enhancements
+# ============================================
+# This patch adds critical security features to the existing
+# chime-sdk-multi-region.yaml CloudFormation template
+#
+# ADD THESE RESOURCES TO THE EXISTING TEMPLATE
+
+# ============================================
+# 1. AWS WAF - DDoS & Geographic Protection
+# ============================================
+Resources:
+  ChimeWAF:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub '${ProjectName}-chime-waf-${AWS::Region}'
+      Scope: REGIONAL
+      Description: WAF for Chime SDK API Gateway - DDoS protection and EU geographic restriction
+      DefaultAction:
+        Allow: {}
+      Rules:
+        # Rule 1: Rate limiting (100 requests per 5 minutes per IP)
+        - Name: RateLimitPerIP
+          Priority: 1
+          Statement:
+            RateBasedStatement:
+              Limit: 100
+              AggregateKeyType: IP
+          Action:
+            Block:
+              CustomResponse:
+                ResponseCode: 429
+                CustomResponseBodyKey: RateLimitExceeded
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: ChimeRateLimit
+
+        # Rule 2: Geographic restriction - DISABLED (Global Access Enabled)
+        # NOTE: Geographic restriction has been disabled to allow global access
+        # All geographic regions can now access the API
+        # WAF still provides protection via rate limiting and managed rulesets
+        # To re-enable geographic restriction, uncomment the rule below
+        #
+        # - Name: GeoRestrictionEUOnly
+        #   Priority: 2
+        #   Statement:
+        #     NotStatement:
+        #       Statement:
+        #         GeoMatchStatement:
+        #           CountryCodes:
+        #             - AT  # Austria
+        #             # ... (add allowed countries here)
+        #   Action:
+        #     Block:
+        #       CustomResponse:
+        #         ResponseCode: 403
+        #         CustomResponseBodyKey: GeoBlocked
+        #   VisibilityConfig:
+        #     SampledRequestsEnabled: true
+        #     CloudWatchMetricsEnabled: true
+        #     MetricName: ChimeGeoBlock
+
+        # Rule 3: AWS Managed Rule - Core Rule Set (OWASP Top 10)
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 3
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+              ExcludedRules: []
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: AWSManagedRulesCommonRuleSetMetric
+
+        # Rule 4: SQL Injection Protection
+        - Name: SQLInjectionProtection
+          Priority: 4
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SQLiRuleSetMetric
+
+        # Rule 5: Known Bad Inputs Protection
+        - Name: KnownBadInputsProtection
+          Priority: 5
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: KnownBadInputsMetric
+
+      CustomResponseBodies:
+        RateLimitExceeded:
+          ContentType: APPLICATION_JSON
+          Content: '{"error": "Rate limit exceeded. Please try again in a few minutes.", "code": "RATE_LIMIT_EXCEEDED"}'
+        # GeoBlocked response body (not used with global access)
+        # GeoBlocked:
+        #   ContentType: APPLICATION_JSON
+        #   Content: '{"error": "Service not available in your region.", "code": "GEO_BLOCKED"}'
+
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub '${ProjectName}ChimeWAF'
+
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Component
+          Value: Security
+        - Key: HIPAA
+          Value: 'true'
+        - Key: CostCenter
+          Value: Engineering
+
+  # Associate WAF with API Gateway
+  ChimeWAFAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    DependsOn:
+      - ChimeWAF
+      - ChimeApiStage
+    Properties:
+      ResourceArn: !Sub 'arn:aws:apigateway:${AWS::Region}::/apis/${ChimeApiGateway}/stages/$default'
+      WebACLArn: !GetAtt ChimeWAF.Arn
+
+  # CloudWatch Alarm for WAF blocks
+  WAFBlockedRequestsAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-waf-blocked-requests-${AWS::Region}'
+      AlarmDescription: Alert when WAF blocks more than 10 requests in 5 minutes
+      MetricName: BlockedRequests
+      Namespace: AWS/WAFV2
+      Statistic: Sum
+      Period: 300  # 5 minutes
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: WebACL
+          Value: !GetAtt ChimeWAF.Name
+        - Name: Region
+          Value: !Ref AWS::Region
+        - Name: Rule
+          Value: ALL
+      TreatMissingData: notBreaching
+
+  # ============================================
+  # 2. API Gateway Throttling (Per-User Rate Limiting)
+  # ============================================
+
+  # Usage Plan with aggressive throttling
+  ChimeApiUsagePlan:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    DependsOn: ChimeApiStage
+    Properties:
+      ApiId: !Ref ChimeApiGateway
+      DomainName: !Ref CustomDomainName
+      Stage: !Ref ChimeApiStage
+      ApiMappingKey: chime
+
+  # Note: API Gateway V2 (HTTP API) doesn't support Usage Plans natively
+  # Instead, we'll add throttling at the stage level
+  # To use Usage Plans, would need to migrate to REST API (v1)
+  # For now, WAF rate limiting provides IP-based protection
+
+  # ============================================
+  # 3. Lambda Improvements (Timeouts + DLQ)
+  # ============================================
+
+  # Dead Letter Queue for failed Lambda invocations
+  FailedMeetingsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-failed-meetings-${AWS::Region}'
+      MessageRetentionPeriod: 1209600  # 14 days
+      KmsMasterKeyId: alias/aws/sqs
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: HIPAA
+          Value: 'true'
+
+  # Update MeetingManagerFunction to add:
+  # 1. Explicit timeout (15s)
+  # 2. Dead letter queue
+  # 3. Reserved concurrency limit
+  # 4. X-Ray tracing
+  #
+  # ADD THESE PROPERTIES TO EXISTING MeetingManagerFunction:
+  #   Timeout: 15  # Increased from 30s to 15s (Chime API is fast)
+  #   ReservedConcurrentExecutions: 50  # Prevent runaway costs
+  #   DeadLetterConfig:
+  #     TargetArn: !GetAtt FailedMeetingsQueue.Arn
+  #   TracingConfig:
+  #     Mode: Active  # Enable X-Ray tracing
+  #   Environment:
+  #     Variables:
+  #       NODE_OPTIONS: '--enable-source-maps'
+  #       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+
+  # CloudWatch Alarm for Lambda errors
+  LambdaErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-lambda-errors-${AWS::Region}'
+      AlarmDescription: Alert when Lambda errors exceed threshold
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 5  # 5+ errors in 1 minute
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref MeetingManagerFunction
+      TreatMissingData: notBreaching
+
+  # CloudWatch Alarm for DLQ messages
+  DLQMessagesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-dlq-messages-${AWS::Region}'
+      AlarmDescription: Alert when messages arrive in DLQ
+      MetricName: NumberOfMessagesSent
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 1  # Alert on any DLQ message
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt FailedMeetingsQueue.QueueName
+      TreatMissingData: notBreaching
+
+  # ============================================
+  # 4. CORS Configuration (Tightened)
+  # ============================================
+  #
+  # UPDATE ChimeApiGateway CorsConfiguration:
+  #   FROM:
+  #     AllowOrigins:
+  #       - '*'
+  #   TO:
+  #     AllowOrigins:
+  #       - 'https://medzenhealth.app'
+  #       - 'https://*.medzenhealth.app'
+  #       - 'https://noaeltglphdlkbflipit.supabase.co'  # Supabase Edge Functions
+  #     AllowCredentials: true
+  #     MaxAge: 3600  # Cache preflight for 1 hour
+
+  # ============================================
+  # 5. Monitoring Dashboard
+  # ============================================
+  ChimeSecurityDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub '${ProjectName}-chime-security-${AWS::Region}'
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/WAFV2", "BlockedRequests", {"stat": "Sum", "label": "WAF Blocked"}],
+                  [".", "AllowedRequests", {"stat": "Sum", "label": "WAF Allowed"}],
+                  ["AWS/Lambda", "Invocations", {"stat": "Sum", "label": "Lambda Invocations", "dimensions": {"FunctionName": "${MeetingManagerFunction}"}}, ],
+                  [".", "Errors", {"stat": "Sum", "label": "Lambda Errors"}],
+                  [".", "Throttles", {"stat": "Sum", "label": "Lambda Throttles"}]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Security & Performance Metrics",
+                "yAxis": {"left": {"min": 0}}
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/ApiGateway", "Count", {"stat": "Sum"}],
+                  [".", "4XXError", {"stat": "Sum"}],
+                  [".", "5XXError", {"stat": "Sum"}],
+                  [".", "Latency", {"stat": "Average"}]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "API Gateway Metrics"
+              }
+            },
+            {
+              "type": "log",
+              "properties": {
+                "query": "SOURCE '/aws/lambda/${MeetingManagerFunction}' | fields @timestamp, @message | filter @message like /ERROR|UNAUTHORIZED|FORBIDDEN/ | sort @timestamp desc | limit 50",
+                "region": "${AWS::Region}",
+                "title": "Recent Security Events"
+              }
+            }
+          ]
+        }
+
+# ============================================
+# Outputs
+# ============================================
+Outputs:
+  WAFWebACLArn:
+    Description: WAF Web ACL ARN
+    Value: !GetAtt ChimeWAF.Arn
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-WAFArn'
+
+  DLQUrl:
+    Description: Dead Letter Queue URL
+    Value: !Ref FailedMeetingsQueue
+    Export:
+      Name: !Sub '${ProjectName}-${AWS::Region}-DLQUrl'
+
+  SecurityDashboardUrl:
+    Description: CloudWatch Security Dashboard URL
+    Value: !Sub 'https://console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${ProjectName}-chime-security-${AWS::Region}'
+
+# ============================================
+# DEPLOYMENT INSTRUCTIONS
+# ============================================
+#
+# 1. Merge this file with chime-sdk-multi-region.yaml
+# 2. Update MeetingManagerFunction properties (see comments above)
+# 3. Update ChimeApiGateway CORS configuration (see comments above)
+# 4. Deploy to eu-central-1:
+#
+#    cd aws-deployment
+#    aws cloudformation update-stack \
+#      --stack-name medzen-chime-sdk-eu-central-1 \
+#      --template-file cloudformation/chime-sdk-multi-region.yaml \
+#      --capabilities CAPABILITY_IAM \
+#      --region eu-central-1
+#
+# 5. Monitor deployment:
+#    aws cloudformation describe-stack-events \
+#      --stack-name medzen-chime-sdk-eu-central-1 \
+#      --region eu-central-1 | head -50
+#
+# 6. Verify WAF is active:
+#    aws wafv2 list-web-acls --scope REGIONAL --region eu-central-1
+#
+# 7. Test rate limiting:
+#    for i in {1..101}; do curl -X POST $API_ENDPOINT; done
+#    # Should get 429 after 100 requests
+#
+# Cost: +$5-10/month for WAF, +$0.50/month for SQS DLQ

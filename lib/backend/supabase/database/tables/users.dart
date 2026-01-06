@@ -120,4 +120,18 @@ class UsersRow extends SupabaseDataRow {
 
   String? get fullName => getField<String>('full_name');
   set fullName(String? value) => setField<String>('full_name', value);
+
+  String? get deviceType => getField<String>('device_type');
+  set deviceType(String? value) => setField<String>('device_type', value);
+
+  String? get activeDeviceId => getField<String>('active_device_id');
+  set activeDeviceId(String? value) =>
+      setField<String>('active_device_id', value);
+
+  String? get activeSessionToken => getField<String>('active_session_token');
+  set activeSessionToken(String? value) =>
+      setField<String>('active_session_token', value);
+
+  String? get ehrId => getField<String>('ehr_id');
+  set ehrId(String? value) => setField<String>('ehr_id', value);
 }

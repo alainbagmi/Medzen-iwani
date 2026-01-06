@@ -123,3 +123,37 @@ temp/
 ~/MCP_DETAILS/**/*.env
 openehr-mcp-server/.env
 powersync-mcp-server/.env
+
+# ============================================
+# CDN-Loaded Libraries (Don't Commit Local Copies)
+# ============================================
+# Chime SDK (loaded from CloudFront CDN)
+amazon-chime-sdk*.js
+amazon-chime-sdk*.js.map
+chime-sdk*.js
+chime-singlejs-build/
+assets/html/amazon-chime-sdk*.js
+
+# Keep only web build output
+!web/assets/amazon-chime-sdk-medzen.min.js
+
+# Environment configuration (contains API keys)
+assets/environment_values/environment.json
+
+# Test scripts (may contain credentials)
+*.sh
+
+# Test JS files with credentials
+test_*.js
+create_*.js
+delete_*.js
+
+# AWS deployment scripts (contain credentials)
+aws-deployment/*.sh
+aws-deployment/scripts/*.sh
+aws-deployment/.passwords
+
+# Build artifacts
+*.apk
+*.ipa
+*.zip
