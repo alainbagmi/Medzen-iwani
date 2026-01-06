@@ -52,6 +52,9 @@ class ChimeMeetingEnhanced extends StatefulWidget {
     this.isProvider = false,
     this.initialMicEnabled = true,
     this.initialCameraEnabled = true,
+    this.providerId,
+    this.patientId,
+    this.patientName,
   });
 
   final double? width;
@@ -73,6 +76,9 @@ class ChimeMeetingEnhanced extends StatefulWidget {
   final bool initialMicEnabled; // Initial mic state from pre-joining dialog
   final bool
       initialCameraEnabled; // Initial camera state from pre-joining dialog
+  final String? providerId; // Provider ID for post-call clinical notes
+  final String? patientId; // Patient ID for post-call clinical notes
+  final String? patientName; // Patient name for post-call clinical notes
 
   @override
   _ChimeMeetingEnhancedState createState() => _ChimeMeetingEnhancedState();
@@ -133,19 +139,36 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   }
 
   /// Check camera/microphone permissions before initializing WebView
+  /// On mobile (Android/iOS): Request native permissions via permission_handler
+  /// On web: Permissions are handled by the browser via JavaScript getUserMedia
   Future<void> _checkPermissionsAndInitialize() async {
-    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-      debugPrint('📹 Checking camera/microphone permissions...');
+    bool cameraGranted = false;
+    bool micGranted = false;
+
+    if (kIsWeb) {
+      // On web platform, permissions are handled directly in JavaScript
+      // The browser will prompt for camera/mic when getUserMedia is called
+      debugPrint('🌐 Web platform detected - permissions handled via browser');
+      debugPrint('   Camera/mic permissions will be requested by JavaScript getUserMedia');
+      // On web, we assume permissions will be handled - proceed with WebView
+      cameraGranted = true;
+      micGranted = true;
+    } else if (Platform.isAndroid || Platform.isIOS) {
+      debugPrint('📱 Mobile platform detected - requesting native permissions');
+      debugPrint('   Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
 
       // Check current permission status
-      final cameraStatus = await Permission.camera.status;
-      final micStatus = await Permission.microphone.status;
+      var cameraStatus = await Permission.camera.status;
+      var micStatus = await Permission.microphone.status;
 
-      debugPrint('📹 Camera permission: $cameraStatus');
-      debugPrint('🎤 Microphone permission: $micStatus');
+      debugPrint('📹 Camera permission (initial): $cameraStatus');
+      debugPrint('🎤 Microphone permission (initial): $micStatus');
 
       // Request permissions if not granted
       if (!cameraStatus.isGranted || !micStatus.isGranted) {
+        debugPrint('📹 Requesting permissions...');
+
+        // Request both permissions together
         final results = await [
           Permission.camera,
           Permission.microphone,
@@ -156,6 +179,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
         debugPrint('📹 Camera request result: $cameraResult');
         debugPrint('🎤 Microphone request result: $micResult');
+
+        cameraGranted = cameraResult?.isGranted == true;
+        micGranted = micResult?.isGranted == true;
 
         // Show warning if permissions denied
         if (cameraResult?.isDenied == true || micResult?.isDenied == true) {
@@ -170,6 +196,36 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             micResult?.isPermanentlyDenied == true) {
           _showOpenSettingsDialog();
         }
+
+        // CRITICAL: Wait for Android to propagate permission changes
+        // Android requires time to register permission grants with the system
+        if (Platform.isAndroid && (cameraGranted || micGranted)) {
+          debugPrint('📹 Waiting for Android permission propagation (500ms)...');
+          await Future.delayed(const Duration(milliseconds: 500));
+
+          // Verify permissions are actually granted now
+          cameraStatus = await Permission.camera.status;
+          micStatus = await Permission.microphone.status;
+          debugPrint('📹 Camera permission (verified): $cameraStatus');
+          debugPrint('🎤 Microphone permission (verified): $micStatus');
+
+          cameraGranted = cameraStatus.isGranted;
+          micGranted = micStatus.isGranted;
+        }
+      } else {
+        debugPrint('✅ Permissions already granted');
+        cameraGranted = cameraStatus.isGranted;
+        micGranted = micStatus.isGranted;
+      }
+
+      // Log final permission state
+      debugPrint('📹 Final permission state - Camera: $cameraGranted, Mic: $micGranted');
+
+      // On Android, even if permissions are granted, we need to verify
+      // the hardware is accessible (emulator may not have camera configured)
+      if (Platform.isAndroid) {
+        debugPrint('📹 Android: Permissions granted, hardware access will be checked in WebView');
+        debugPrint('   Note: On emulator, camera may need AVD configuration (Webcam0)');
       }
     }
 
@@ -451,6 +507,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   /// Get InAppWebView settings with full WebRTC support for video calls
   InAppWebViewSettings _getWebViewSettings() {
+    // Determine platform-specific settings
+    final bool isAndroid = !kIsWeb && Platform.isAndroid;
+    final bool isIOS = !kIsWeb && Platform.isIOS;
+
     return InAppWebViewSettings(
       // Core JavaScript settings
       javaScriptEnabled: true,
@@ -460,16 +520,28 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       mediaPlaybackRequiresUserGesture: false,
       allowsInlineMediaPlayback: true,
 
-      // Android-specific settings
-      useHybridComposition: true, // Better WebRTC support on Android
+      // Android-specific settings - ESSENTIAL for camera/microphone access
+      // Use hybrid composition for better WebRTC support, but allow fallback
+      useHybridComposition: isAndroid, // Only on Android for WebRTC
       useShouldOverrideUrlLoading: true,
       allowFileAccess: true,
       allowContentAccess: true,
       geolocationEnabled: true,
+      domStorageEnabled: true, // Required for WebRTC
+      databaseEnabled: true, // For persistent storage
+      cacheEnabled: true,
+
+      // Hardware acceleration for better video performance
+      hardwareAcceleration: true,
+
+      // CRITICAL: These enable WebRTC media access in Android WebView
+      allowFileAccessFromFileURLs: true, // Required for media access
+      allowUniversalAccessFromFileURLs: true, // Required for cross-origin media
 
       // iOS-specific settings
       allowsAirPlayForMediaPlayback: true,
       allowsPictureInPictureMediaPlayback: true,
+      allowsBackForwardNavigationGestures: false,
 
       // General settings
       transparentBackground: false,
@@ -478,11 +550,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       horizontalScrollBarEnabled: false,
       disableContextMenu: false,
 
-      // Security settings
+      // Security settings - Allow mixed content for WebRTC
       mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
 
       // Enable debugging on Android
       isInspectable: true, // Allows debugging in Chrome DevTools
+
+      // DO NOT override user agent - let WebView use default
+      // Custom user agent can interfere with camera/mic permission handling
+      // The WebView's default user agent is better for WebRTC compatibility
     );
   }
 
@@ -514,12 +590,89 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   }
 
   /// Handle permission requests from WebView (camera, microphone)
+  /// This is called when JavaScript requests getUserMedia permissions
   Future<PermissionResponse> _onPermissionRequest(
     InAppWebViewController controller,
     PermissionRequest permissionRequest,
   ) async {
-    debugPrint('📹 Permission request: ${permissionRequest.resources}');
-    // Grant all media permissions - we've already checked device permissions
+    debugPrint('📹 WebView permission request received');
+    debugPrint('   Resources: ${permissionRequest.resources}');
+    debugPrint('   Origin: ${permissionRequest.origin}');
+
+    // Check each resource type requested
+    final resources = permissionRequest.resources;
+    final List<PermissionResourceType> grantedResources = [];
+
+    for (final resource in resources) {
+      debugPrint('   Checking resource: $resource');
+
+      if (resource == PermissionResourceType.CAMERA) {
+        final status = await Permission.camera.status;
+        debugPrint('   Camera permission status: $status');
+        if (status.isGranted) {
+          grantedResources.add(resource);
+          debugPrint('   ✅ Camera granted');
+        } else {
+          // Try to request permission again
+          final result = await Permission.camera.request();
+          debugPrint('   Camera request result: $result');
+          if (result.isGranted) {
+            grantedResources.add(resource);
+            debugPrint('   ✅ Camera granted after request');
+          } else {
+            debugPrint('   ❌ Camera denied');
+          }
+        }
+      } else if (resource == PermissionResourceType.MICROPHONE) {
+        final status = await Permission.microphone.status;
+        debugPrint('   Microphone permission status: $status');
+        if (status.isGranted) {
+          grantedResources.add(resource);
+          debugPrint('   ✅ Microphone granted');
+        } else {
+          // Try to request permission again
+          final result = await Permission.microphone.request();
+          debugPrint('   Microphone request result: $result');
+          if (result.isGranted) {
+            grantedResources.add(resource);
+            debugPrint('   ✅ Microphone granted after request');
+          } else {
+            debugPrint('   ❌ Microphone denied');
+          }
+        }
+      } else if (resource == PermissionResourceType.CAMERA_AND_MICROPHONE) {
+        // Handle combined permission request
+        final cameraStatus = await Permission.camera.status;
+        final micStatus = await Permission.microphone.status;
+        debugPrint('   Camera status: $cameraStatus, Mic status: $micStatus');
+
+        bool cameraGranted = cameraStatus.isGranted;
+        bool micGranted = micStatus.isGranted;
+
+        if (!cameraGranted) {
+          final result = await Permission.camera.request();
+          cameraGranted = result.isGranted;
+        }
+        if (!micGranted) {
+          final result = await Permission.microphone.request();
+          micGranted = result.isGranted;
+        }
+
+        if (cameraGranted || micGranted) {
+          grantedResources.add(resource);
+          debugPrint('   ✅ Camera+Mic granted (camera: $cameraGranted, mic: $micGranted)');
+        }
+      } else {
+        // Grant other permissions by default
+        grantedResources.add(resource);
+        debugPrint('   ✅ Other resource granted: $resource');
+      }
+    }
+
+    // Grant all requested resources (the permission check is done above)
+    // Even if some permissions are denied, grant the WebView permission
+    // to allow the app to proceed (it will show appropriate warnings)
+    debugPrint('📹 Granting WebView permissions for all resources');
     return PermissionResponse(
       resources: permissionRequest.resources,
       action: PermissionResponseAction.GRANT,
@@ -759,6 +912,53 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       case 'PROMISE_REJECTION':
         _handlePromiseRejection(data);
         break;
+      case 'LIVE_CAPTION':
+        _handleLiveCaption(data);
+        break;
+    }
+  }
+
+  /// Handle live caption from AWS Transcribe Medical
+  void _handleLiveCaption(Map<String, dynamic> data) async {
+    final resultId = data['resultId'] as String? ?? '';
+    final speakerLabel = data['speakerLabel'] as String? ?? 'Unknown';
+    final speakerName = data['speakerName'] as String? ?? speakerLabel;
+    final transcriptText = data['transcriptText'] as String? ?? '';
+    final isPartial = data['isPartial'] as bool? ?? false;
+    final timestamp = data['timestamp'] as String? ?? DateTime.now().toIso8601String();
+
+    if (transcriptText.isEmpty) return;
+
+    debugPrint('📝 Live Caption: [$speakerName] $transcriptText (partial: $isPartial)');
+
+    // Update current caption for overlay display
+    setState(() {
+      _currentCaption = '[$speakerName] $transcriptText';
+    });
+
+    // Reset fade timer
+    _captionFadeTimer?.cancel();
+    _captionFadeTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        setState(() {
+          _currentCaption = null;
+        });
+      }
+    });
+
+    // Only store non-partial (final) transcripts to database
+    if (!isPartial && _sessionId != null) {
+      try {
+        await SupaFlow.client.from('live_caption_segments').insert({
+          'session_id': _sessionId,
+          'speaker_name': speakerName,
+          'transcript_text': transcriptText,
+          'is_partial': isPartial,
+        });
+        debugPrint('✅ Caption stored to database');
+      } catch (e) {
+        debugPrint('❌ Failed to store caption: $e');
+      }
     }
   }
 
@@ -773,7 +973,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     debugPrint('🚨 [JS_ERROR] [$errorType] $message');
     debugPrint('   Location: line $line, column $column');
     if (stack.isNotEmpty) {
-      debugPrint('   Stack: ${stack.toString().split('\n').take(3).join(' | ')}');
+      debugPrint(
+          '   Stack: ${stack.toString().split('\n').take(3).join(' | ')}');
     }
 
     // For TypeErrors, log additional diagnostic info
@@ -793,7 +994,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     debugPrint('🚨 [PROMISE_REJECTION] [$errorType] $message');
     if (stack.isNotEmpty) {
-      debugPrint('   Stack: ${stack.toString().split('\n').take(3).join(' | ')}');
+      debugPrint(
+          '   Stack: ${stack.toString().split('\n').take(3).join(' | ')}');
     }
 
     // For TypeErrors in async code, log additional diagnostic info
@@ -1770,6 +1972,11 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       final isProvider = widget.isProvider ? 'true' : 'false';
       final meetingIdForApi = jsonEncode(meetingMap['MeetingId'] ?? '');
 
+      // Provider/Patient info for correct name/role display on video tiles
+      final providerNameJson = jsonEncode(widget.providerName ?? '');
+      final providerRoleJson = jsonEncode(widget.providerRole ?? '');
+      final patientNameJson = jsonEncode(widget.patientName ?? '');
+
       // Build consultation title with date and provider role
       // Format: "Consultation MM/YYYY Doctor [Name]"
       String titleText;
@@ -1817,6 +2024,11 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         callTitle = $callTitleJson;
         isProviderUser = $isProvider;
         currentMeetingId = $meetingIdForApi;
+
+        // Provider/Patient info for displaying correct names on remote video tiles
+        providerName = $providerNameJson;
+        providerRole = $providerRoleJson;
+        patientName = $patientNameJson;
 
         // Store initial device state from pre-joining dialog
         const shouldStartMuted = $initialMicOff;
@@ -1919,39 +2131,70 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         })();
 
         // ============================================
-        // DEVICE ENUMERATION CACHE PATCH
+        // DEVICE ENUMERATION CACHE PATCH (v2 - Permission-Aware)
         // Prevents repeated permission check loops on Android WebView
         // The Chromium "CheckMediaAccessPermission: Not supported" error
         // is caused by repeated calls to enumerateDevices()
+        //
+        // FIX: Only cache results AFTER permissions are granted (devices have labels)
+        // Pre-permission enumeration returns devices without labels - don't cache those
         // ============================================
         (function() {
             let cachedDevices = null;
             let cacheTime = 0;
             const CACHE_DURATION = 30000; // Cache for 30 seconds
+            let permissionsGranted = false; // Track if we've seen labeled devices
 
             const originalEnumerateDevices = navigator.mediaDevices?.enumerateDevices?.bind(navigator.mediaDevices);
 
             if (originalEnumerateDevices) {
                 navigator.mediaDevices.enumerateDevices = async function() {
                     const now = Date.now();
-                    // Return cached result if fresh
-                    if (cachedDevices && (now - cacheTime) < CACHE_DURATION) {
-                        console.log('📹 Using cached device list');
+
+                    // Only use cache if permissions were already granted
+                    // (i.e., we previously saw devices with labels)
+                    if (cachedDevices && permissionsGranted && (now - cacheTime) < CACHE_DURATION) {
+                        console.log('📹 Using cached device list (' + cachedDevices.length + ' devices)');
                         return cachedDevices;
                     }
-                    // Call original and cache result
+
+                    // Call original to get fresh device list
                     try {
-                        cachedDevices = await originalEnumerateDevices();
-                        cacheTime = now;
-                        console.log('📹 Device list refreshed and cached');
-                        return cachedDevices;
+                        const devices = await originalEnumerateDevices();
+
+                        // Check if any devices have labels (indicates permissions granted)
+                        const hasLabeledDevices = devices.some(d =>
+                            (d.kind === 'videoinput' || d.kind === 'audioinput') && d.label && d.label.length > 0
+                        );
+
+                        if (hasLabeledDevices) {
+                            // Permissions are granted - safe to cache
+                            cachedDevices = devices;
+                            cacheTime = now;
+                            permissionsGranted = true;
+                            console.log('📹 Device list cached with permissions (' + devices.length + ' devices with labels)');
+                        } else {
+                            // Pre-permission state - don't cache empty/labelless results
+                            console.log('📹 Device list fetched (pre-permission, not cached, ' + devices.length + ' devices)');
+                        }
+
+                        return devices;
                     } catch (e) {
                         console.error('📹 Device enumeration error:', e.name);
-                        // Return empty array on error to prevent loops
+                        // Return cached if available, otherwise empty array
                         return cachedDevices || [];
                     }
                 };
-                console.log('✅ Device enumeration cache patch applied');
+
+                // Expose function to invalidate cache (useful after getUserMedia)
+                window.invalidateDeviceCache = function() {
+                    cachedDevices = null;
+                    cacheTime = 0;
+                    permissionsGranted = false;
+                    console.log('📹 Device cache invalidated');
+                };
+
+                console.log('✅ Device enumeration cache patch v2 (permission-aware) applied');
             }
         })();
 
@@ -2070,9 +2313,25 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             overflow: hidden;
         }
 
+        /* ========================================================================
+         * CUSTOM VIDEO LAYOUT - DO NOT MODIFY WITHOUT APPROVAL
+         * ========================================================================
+         * Modified: 2026-01-05
+         * Purpose: Zoom-like horizontal side-by-side layout for 2 participants
+         *
+         * Desktop: Side-by-side (horizontal) - better for wide screens
+         * Mobile (<768px): Stacked (vertical) - better for narrow screens
+         *
+         * See also: Mobile override in @media (max-width: 768px) section below
+         * ======================================================================== */
+
         /* Responsive grid based on participant count */
+        /* Zoom-like layout: horizontal side-by-side for 2 participants */
         #video-grid.count-1 { grid-template-columns: 1fr; }
-        #video-grid.count-2 { grid-template-columns: repeat(2, 1fr); }
+        #video-grid.count-2 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: 1fr;
+        }
         #video-grid.count-3,
         #video-grid.count-4 { grid-template-columns: repeat(2, 1fr); }
         #video-grid.count-5,
@@ -2337,8 +2596,25 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             to { transform: rotate(360deg); }
         }
 
+        /* ========================================================================
+         * MOBILE LAYOUT OVERRIDE - DO NOT MODIFY WITHOUT APPROVAL
+         * ========================================================================
+         * Modified: 2026-01-05
+         * Purpose: Override horizontal layout to vertical on mobile devices
+         *
+         * On narrow screens (<768px), 2 participants stack vertically
+         * for better visibility on portrait-oriented devices.
+         *
+         * Related to: Desktop layout in #video-grid.count-2 section above
+         * ======================================================================== */
+
         /* Responsive */
         @media (max-width: 768px) {
+            /* CUSTOM: Stack 2 participants vertically on mobile for better visibility */
+            #video-grid.count-2 {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(2, 1fr);
+            }
             #video-grid.count-3,
             #video-grid.count-4,
             #video-grid.count-5,
@@ -2602,6 +2878,149 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             transform: scale(1.02);
         }
 
+        /* Fullscreen Image Viewer Overlay */
+        .fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .fullscreen-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .fullscreen-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            z-index: 10001;
+        }
+
+        .fullscreen-title {
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .fullscreen-close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .fullscreen-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .fullscreen-close-btn::before {
+            content: '✕';
+            color: white;
+            font-size: 20px;
+        }
+
+        .fullscreen-image-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            overflow: hidden;
+            touch-action: pinch-zoom pan-x pan-y;
+        }
+
+        .fullscreen-image {
+            max-width: 95%;
+            max-height: 85vh;
+            object-fit: contain;
+            transition: transform 0.2s ease;
+            cursor: zoom-in;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .fullscreen-image.zoomed {
+            cursor: zoom-out;
+            max-width: none;
+            max-height: none;
+        }
+
+        .fullscreen-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            padding: 16px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+        }
+
+        .fullscreen-action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.2s ease;
+        }
+
+        .fullscreen-action-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .fullscreen-zoom-indicator {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .fullscreen-zoom-indicator.visible {
+            opacity: 1;
+        }
+
         .message-file-name {
             font-size: 11px;
             color: #666;
@@ -2863,6 +3282,26 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         </div>
     </div>
 
+    <!-- Fullscreen Image Viewer Modal -->
+    <div id="fullscreen-overlay" class="fullscreen-overlay">
+        <div class="fullscreen-header">
+            <span id="fullscreen-title" class="fullscreen-title"></span>
+            <button id="fullscreen-close" class="fullscreen-close-btn" aria-label="Close"></button>
+        </div>
+        <div class="fullscreen-image-container" id="fullscreen-container">
+            <img id="fullscreen-image" class="fullscreen-image" src="" alt="Full size image">
+        </div>
+        <div id="fullscreen-zoom-indicator" class="fullscreen-zoom-indicator">100%</div>
+        <div class="fullscreen-footer">
+            <button id="fullscreen-download" class="fullscreen-action-btn">
+                📥 Download
+            </button>
+            <button id="fullscreen-zoom-toggle" class="fullscreen-action-btn">
+                🔍 Zoom
+            </button>
+        </div>
+    </div>
+
     <script>
         // Enhanced error logging for TypeErrors and debugging
         (function() {
@@ -2960,6 +3399,247 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             };
         })();
 
+        // ===============================================
+        // FULLSCREEN IMAGE VIEWER FUNCTIONS
+        // ===============================================
+        (function() {
+            let currentImageUrl = '';
+            let currentImageName = '';
+            let isZoomed = false;
+            let zoomLevel = 1;
+            let panX = 0, panY = 0;
+            let startX = 0, startY = 0;
+            let isDragging = false;
+
+            // Open fullscreen image viewer
+            window.openFullscreenImage = function(imageUrl, imageName) {
+                currentImageUrl = imageUrl;
+                currentImageName = imageName || 'Image';
+                isZoomed = false;
+                zoomLevel = 1;
+                panX = 0;
+                panY = 0;
+
+                const overlay = document.getElementById('fullscreen-overlay');
+                const image = document.getElementById('fullscreen-image');
+                const title = document.getElementById('fullscreen-title');
+
+                if (overlay && image && title) {
+                    image.src = imageUrl;
+                    image.style.transform = 'scale(1) translate(0px, 0px)';
+                    image.classList.remove('zoomed');
+                    title.textContent = imageName;
+                    overlay.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                    updateZoomIndicator();
+                    console.log('📸 Opened fullscreen image:', imageName);
+                }
+            };
+
+            // Close fullscreen viewer
+            window.closeFullscreenImage = function() {
+                const overlay = document.getElementById('fullscreen-overlay');
+                if (overlay) {
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                    console.log('📸 Closed fullscreen image');
+                }
+            };
+
+            // Toggle zoom
+            window.toggleImageZoom = function() {
+                const image = document.getElementById('fullscreen-image');
+                if (!image) return;
+
+                if (isZoomed) {
+                    // Reset to fit
+                    zoomLevel = 1;
+                    panX = 0;
+                    panY = 0;
+                    image.style.transform = 'scale(1) translate(0px, 0px)';
+                    image.classList.remove('zoomed');
+                    isZoomed = false;
+                } else {
+                    // Zoom to 2x
+                    zoomLevel = 2;
+                    image.style.transform = 'scale(2) translate(0px, 0px)';
+                    image.classList.add('zoomed');
+                    isZoomed = true;
+                }
+                updateZoomIndicator();
+            };
+
+            // Download image
+            window.downloadFullscreenImage = function() {
+                if (!currentImageUrl) return;
+
+                const link = document.createElement('a');
+                link.href = currentImageUrl;
+                link.download = currentImageName || 'image.jpg';
+
+                // For data URLs, trigger directly
+                if (currentImageUrl.startsWith('data:')) {
+                    link.click();
+                } else {
+                    // For regular URLs, try to fetch and download
+                    fetch(currentImageUrl)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const blobUrl = URL.createObjectURL(blob);
+                            link.href = blobUrl;
+                            link.click();
+                            URL.revokeObjectURL(blobUrl);
+                        })
+                        .catch(() => {
+                            // Fallback: open in new tab
+                            window.open(currentImageUrl, '_blank');
+                        });
+                }
+                console.log('📥 Downloading image:', currentImageName);
+            };
+
+            function updateZoomIndicator() {
+                const indicator = document.getElementById('fullscreen-zoom-indicator');
+                if (indicator) {
+                    indicator.textContent = Math.round(zoomLevel * 100) + '%';
+                    indicator.classList.add('visible');
+                    setTimeout(() => indicator.classList.remove('visible'), 1500);
+                }
+            }
+
+            // Initialize event listeners when DOM is ready
+            document.addEventListener('DOMContentLoaded', function() {
+                const overlay = document.getElementById('fullscreen-overlay');
+                const closeBtn = document.getElementById('fullscreen-close');
+                const downloadBtn = document.getElementById('fullscreen-download');
+                const zoomBtn = document.getElementById('fullscreen-zoom-toggle');
+                const image = document.getElementById('fullscreen-image');
+                const container = document.getElementById('fullscreen-container');
+
+                // Close button
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', window.closeFullscreenImage);
+                }
+
+                // Download button
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', window.downloadFullscreenImage);
+                }
+
+                // Zoom toggle button
+                if (zoomBtn) {
+                    zoomBtn.addEventListener('click', window.toggleImageZoom);
+                }
+
+                // Click outside image to close
+                if (overlay) {
+                    overlay.addEventListener('click', function(e) {
+                        if (e.target === overlay || e.target === container) {
+                            window.closeFullscreenImage();
+                        }
+                    });
+                }
+
+                // ESC key to close
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        window.closeFullscreenImage();
+                    }
+                });
+
+                // Double tap/click to zoom
+                if (image) {
+                    image.addEventListener('dblclick', window.toggleImageZoom);
+
+                    // Touch pinch-to-zoom support
+                    let initialDistance = 0;
+                    let initialZoom = 1;
+
+                    image.addEventListener('touchstart', function(e) {
+                        if (e.touches.length === 2) {
+                            initialDistance = Math.hypot(
+                                e.touches[0].clientX - e.touches[1].clientX,
+                                e.touches[0].clientY - e.touches[1].clientY
+                            );
+                            initialZoom = zoomLevel;
+                        } else if (e.touches.length === 1 && isZoomed) {
+                            isDragging = true;
+                            startX = e.touches[0].clientX - panX;
+                            startY = e.touches[0].clientY - panY;
+                        }
+                    });
+
+                    image.addEventListener('touchmove', function(e) {
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            const currentDistance = Math.hypot(
+                                e.touches[0].clientX - e.touches[1].clientX,
+                                e.touches[0].clientY - e.touches[1].clientY
+                            );
+                            const scale = currentDistance / initialDistance;
+                            zoomLevel = Math.min(4, Math.max(1, initialZoom * scale));
+                            image.style.transform = 'scale(' + zoomLevel + ') translate(' + panX + 'px, ' + panY + 'px)';
+                            isZoomed = zoomLevel > 1;
+                            image.classList.toggle('zoomed', isZoomed);
+                            updateZoomIndicator();
+                        } else if (e.touches.length === 1 && isDragging && isZoomed) {
+                            e.preventDefault();
+                            panX = e.touches[0].clientX - startX;
+                            panY = e.touches[0].clientY - startY;
+                            image.style.transform = 'scale(' + zoomLevel + ') translate(' + (panX/zoomLevel) + 'px, ' + (panY/zoomLevel) + 'px)';
+                        }
+                    });
+
+                    image.addEventListener('touchend', function() {
+                        isDragging = false;
+                        if (zoomLevel <= 1) {
+                            zoomLevel = 1;
+                            panX = 0;
+                            panY = 0;
+                            image.style.transform = 'scale(1) translate(0px, 0px)';
+                            isZoomed = false;
+                            image.classList.remove('zoomed');
+                        }
+                    });
+
+                    // Mouse drag for panning when zoomed
+                    image.addEventListener('mousedown', function(e) {
+                        if (isZoomed) {
+                            isDragging = true;
+                            startX = e.clientX - panX;
+                            startY = e.clientY - panY;
+                            e.preventDefault();
+                        }
+                    });
+
+                    document.addEventListener('mousemove', function(e) {
+                        if (isDragging && isZoomed) {
+                            panX = e.clientX - startX;
+                            panY = e.clientY - startY;
+                            image.style.transform = 'scale(' + zoomLevel + ') translate(' + (panX/zoomLevel) + 'px, ' + (panY/zoomLevel) + 'px)';
+                        }
+                    });
+
+                    document.addEventListener('mouseup', function() {
+                        isDragging = false;
+                    });
+
+                    // Mouse wheel zoom
+                    container.addEventListener('wheel', function(e) {
+                        e.preventDefault();
+                        const delta = e.deltaY > 0 ? -0.2 : 0.2;
+                        zoomLevel = Math.min(4, Math.max(1, zoomLevel + delta));
+                        isZoomed = zoomLevel > 1;
+                        image.classList.toggle('zoomed', isZoomed);
+                        image.style.transform = 'scale(' + zoomLevel + ') translate(' + (panX/zoomLevel) + 'px, ' + (panY/zoomLevel) + 'px)';
+                        updateZoomIndicator();
+                    });
+                }
+
+                console.log('📸 Fullscreen image viewer initialized');
+            });
+        })();
+
         // Immediate test - this should appear in Flutter logs
         console.log('🚀 Video call HTML loaded - JS is running (enhanced error logging enabled)');
 
@@ -2972,6 +3652,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         let callTitle = 'Video Call';
         let isProviderUser = false; // Provider can end call, patient can only leave
         let currentMeetingId = null; // For API calls to end meeting
+        let providerName = ''; // Provider's display name for remote tile
+        let providerRole = ''; // Provider's role (e.g., "Dr." prefix or specialty)
+        let patientName = ''; // Patient's display name for remote tile
         let attendees = new Map();
         let videoTiles = new Map();
         let isMuted = false;
@@ -3140,10 +3823,22 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             }
         }
 
-        // Pre-request media permissions using navigator.mediaDevices.getUserMedia
-        // This triggers the browser/WebView permission prompt before Chime SDK tries to access devices
-        // Uses caching to prevent repeated permission checks which cause the
-        // "CheckMediaAccessPermission: Not supported" loop on Android WebView
+        // Detect platform for platform-specific handling
+        const isAndroidWebView = /Android/.test(navigator.userAgent) && /wv/.test(navigator.userAgent);
+        const isIOSWebView = /(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/.test(navigator.userAgent);
+        const isWebView = isAndroidWebView || isIOSWebView;
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isDesktopWeb = !isWebView && !isMobile;
+
+        console.log('🔍 Platform detection:');
+        console.log('   Android WebView:', isAndroidWebView);
+        console.log('   iOS WebView:', isIOSWebView);
+        console.log('   Is WebView:', isWebView);
+        console.log('   Is Mobile:', isMobile);
+        console.log('   Is Desktop Web:', isDesktopWeb);
+
+        // Pre-request media permissions with platform-specific handling and retry logic
+        // Supports: Android WebView, iOS WebView, Web browsers (Chrome, Firefox, Safari, Edge)
         async function requestMediaPermissions() {
             // Skip if permissions already granted (prevents looping)
             if (permissionsGranted) {
@@ -3154,141 +3849,362 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             // Prevent concurrent permission checks
             if (permissionCheckInProgress) {
                 console.log('📹 Permission check already in progress, waiting...');
-                // Wait for existing check to complete
-                while (permissionCheckInProgress) {
+                // Wait for existing check to complete (max 10 seconds)
+                let waitTime = 0;
+                while (permissionCheckInProgress && waitTime < 10000) {
                     await new Promise(resolve => setTimeout(resolve, 100));
+                    waitTime += 100;
                 }
                 return permissionsGranted;
             }
 
             permissionCheckInProgress = true;
             console.log('📹 Pre-requesting camera and microphone permissions...');
+            console.log('📹 Platform: ' + (isAndroidWebView ? 'Android WebView' : isIOSWebView ? 'iOS WebView' : isDesktopWeb ? 'Desktop Web' : 'Mobile Web'));
+
+            // Helper function to request with retry and progressive constraint relaxation
+            async function tryGetUserMedia(constraints, retryCount = 3, delay = 500) {
+                let lastError = null;
+                const isEmulator = /sdk_gphone|emulator|generic|goldfish|ranchu/i.test(navigator.userAgent);
+
+                for (let attempt = 1; attempt <= retryCount; attempt++) {
+                    try {
+                        // On later attempts for Android, try progressively simpler constraints
+                        let attemptConstraints = { ...constraints };
+                        if (isAndroidWebView && attempt > 1 && constraints.video) {
+                            if (attempt === 2) {
+                                // Second attempt: use simplest video constraint
+                                attemptConstraints.video = true;
+                                console.log('📹 Android: Using simplified video constraint (video: true)');
+                            } else if (attempt >= 3) {
+                                // Third+ attempt: try with different facingMode
+                                attemptConstraints.video = { facingMode: { ideal: 'environment' } };
+                                console.log('📹 Android: Trying rear camera (facingMode: environment)');
+                            }
+                        }
+
+                        console.log('📹 getUserMedia attempt ' + attempt + '/' + retryCount + ' with constraints:', JSON.stringify(attemptConstraints));
+                        const stream = await navigator.mediaDevices.getUserMedia(attemptConstraints);
+                        return stream;
+                    } catch (error) {
+                        console.warn('⚠️ Attempt ' + attempt + ' failed:', error.name, error.message);
+                        lastError = error;
+
+                        // Distinguish between actual permission denial and hardware unavailability
+                        // On Android WebView and emulators, NotAllowedError can occur due to:
+                        // - Hardware not ready yet (camera still releasing from previous session)
+                        // - Emulator camera not configured properly
+                        // - System-level policy blocks (not user-initiated denial)
+                        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                            // Check error message for hardware-related hints
+                            const errorMsg = (error.message || '').toLowerCase();
+                            const isLikelyHardwareIssue =
+                                errorMsg.includes('hardware') ||
+                                errorMsg.includes('device') ||
+                                errorMsg.includes('busy') ||
+                                errorMsg.includes('in use') ||
+                                errorMsg.includes('could not start') ||
+                                errorMsg.includes('failed to allocate') ||
+                                errorMsg.includes('source') ||
+                                (isAndroidWebView && isEmulator);
+
+                            // On first attempt, if it looks like a hardware issue, retry
+                            if (isLikelyHardwareIssue && attempt < retryCount) {
+                                console.log('📹 NotAllowedError may be hardware-related, will retry...');
+                                console.log('   Error message hints: ' + errorMsg);
+                                // Wait longer for hardware to release
+                                const hardwareWaitTime = isEmulator ? delay * 4 : delay * 2;
+                                console.log('📹 Waiting ' + hardwareWaitTime + 'ms for hardware release...');
+                                await new Promise(resolve => setTimeout(resolve, hardwareWaitTime));
+                                continue;
+                            }
+
+                            // On Android emulator, try one more time with basic constraints before giving up
+                            if (isAndroidWebView && isEmulator && attempt === retryCount && constraints.video) {
+                                console.log('📹 Emulator: Final attempt with audio-only to distinguish permission vs hardware');
+                                try {
+                                    const audioTest = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                                    audioTest.getTracks().forEach(t => t.stop());
+                                    // If audio works, it's likely a camera hardware issue, not permission denial
+                                    console.log('📹 Audio works but video fails - camera hardware issue, not permission denial');
+                                    lastError = new DOMException('Camera hardware unavailable on emulator', 'NotFoundError');
+                                    throw lastError;
+                                } catch (audioErr) {
+                                    if (audioErr.name === 'NotFoundError') {
+                                        throw audioErr; // Rethrow our custom error
+                                    }
+                                    // Both audio and video denied - this is actual permission denial
+                                    console.log('📹 Both audio and video denied - actual permission denial');
+                                    throw error;
+                                }
+                            }
+
+                            // True permission denial - don't retry
+                            throw error;
+                        }
+
+                        // On WebView, wait longer between retries for device release
+                        if (attempt < retryCount) {
+                            // On Android emulator, wait even longer
+                            const waitTime = isAndroidWebView ? (isEmulator ? delay * 3 : delay * 2) : delay;
+                            console.log('📹 Waiting ' + waitTime + 'ms before retry...');
+                            await new Promise(resolve => setTimeout(resolve, waitTime));
+                        }
+                    }
+                }
+                // All retries exhausted
+                throw lastError || new Error('getUserMedia failed after ' + retryCount + ' attempts');
+            }
+
+            // Define constraints based on platform
+            let videoConstraints = { facingMode: 'user' };
+            let audioConstraints = true;
+
+            // Platform-specific optimizations
+            if (isAndroidWebView) {
+                // Android WebView: Use specific constraints for better compatibility
+                videoConstraints = {
+                    facingMode: 'user',
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                };
+                audioConstraints = {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                };
+            } else if (isIOSWebView) {
+                // iOS WebView: Simpler constraints work better
+                videoConstraints = { facingMode: 'user' };
+                audioConstraints = true;
+            } else if (isDesktopWeb) {
+                // Desktop browsers: Can use higher quality
+                videoConstraints = {
+                    facingMode: 'user',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                };
+                audioConstraints = {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                };
+            }
 
             try {
-                // Request both audio and video permissions in a single call
-                // to minimize permission check events
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    audio: true,
-                    video: { facingMode: 'user' } // Request front camera by default
-                });
+                // First, enumerate devices to see what's available
+                // NOTE: On Android WebView, enumerateDevices() may return empty results
+                // until getUserMedia() is called first. So we don't bail out early.
+                let devices = [];
+                let initialVideoCount = 0;
+                let initialAudioCount = 0;
+                try {
+                    devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                    const audioDevices = devices.filter(d => d.kind === 'audioinput');
+                    initialVideoCount = videoDevices.length;
+                    initialAudioCount = audioDevices.length;
+                    console.log('📹 Available devices: ' + videoDevices.length + ' cameras, ' + audioDevices.length + ' microphones');
+
+                    // On Android WebView, don't trust empty device enumeration
+                    // The camera may only appear after getUserMedia() is called
+                    if (videoDevices.length === 0 && isAndroidWebView) {
+                        console.log('📹 Android WebView: No cameras enumerated, but will try getUserMedia anyway');
+                        console.log('   (Camera enumeration often fails on Android until permissions are exercised)');
+                    } else if (videoDevices.length === 0 && !isAndroidWebView) {
+                        // On non-Android platforms, no cameras likely means no cameras
+                        console.log('📹 No cameras found on non-Android platform, will try getUserMedia anyway');
+                    }
+                } catch (enumError) {
+                    console.warn('⚠️ Device enumeration failed (normal before permission grant):', enumError.name);
+                    // Continue anyway - getUserMedia might still work
+                }
+
+                // Request both audio and video permissions
+                // On Android, try with video even if enumeration returned 0 cameras
+                const stream = await tryGetUserMedia({
+                    audio: audioConstraints,
+                    video: videoConstraints
+                }, isAndroidWebView ? 5 : 3, isAndroidWebView ? 1000 : 500);
 
                 console.log('✅ Media permissions granted');
                 console.log('   Audio tracks:', stream.getAudioTracks().length);
                 console.log('   Video tracks:', stream.getVideoTracks().length);
 
+                // Invalidate all device caches after permissions granted
+                // This ensures next enumerateDevices() returns fresh results with labels
+                if (typeof window.invalidateDeviceCache === 'function') {
+                    window.invalidateDeviceCache();
+                }
+                // Also clear Chime SDK level device caches
+                cachedVideoDevices = null;
+                cachedAudioDevices = null;
+                console.log('📹 All device caches invalidated after permission grant');
+
                 // Log available cameras for debugging
                 stream.getVideoTracks().forEach((track, i) => {
-                    console.log('   Camera ' + i + ':', track.label);
+                    console.log('   Camera ' + i + ':', track.label, track.getSettings());
+                });
+                stream.getAudioTracks().forEach((track, i) => {
+                    console.log('   Microphone ' + i + ':', track.label);
                 });
 
-                // IMPORTANT: On real Android devices, we MUST release the stream immediately
-                // and wait for hardware to fully release before Chime SDK tries to acquire
-                // Keeping the stream causes "device in use" errors on real hardware
-                console.log('📹 Releasing stream immediately to free device for Chime SDK');
+                // Release stream - timing depends on platform
+                console.log('📹 Releasing stream to free device for Chime SDK');
                 stream.getTracks().forEach(track => {
                     console.log('   Stopping track:', track.kind, track.label);
                     track.stop();
                 });
 
-                // Real Android hardware needs significant time to release device locks
-                // Emulators work with 100ms, but real devices need 2000ms+
-                console.log('📹 Waiting 2000ms for hardware to release device locks...');
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Wait for hardware to release - platform specific
+                // Android emulators need much longer delays due to virtualized audio hardware
+                const isEmulator = /sdk_gphone|emulator|generic|goldfish|ranchu/i.test(navigator.userAgent);
+                const releaseDelay = isAndroidWebView ? (isEmulator ? 4000 : 2500) : isIOSWebView ? 1500 : 500;
+                console.log('📹 Waiting ' + releaseDelay + 'ms for hardware to release device locks...');
+                console.log('   (Emulator detected: ' + isEmulator + ')');
+                await new Promise(resolve => setTimeout(resolve, releaseDelay));
                 console.log('📹 Device locks should be released, ready for Chime SDK');
 
-                // Cache permission state to prevent future checks
+                // Cache permission state
                 permissionsGranted = true;
                 permissionCheckInProgress = false;
                 return true;
+
             } catch (error) {
                 console.error('❌ Media permission request failed:', error.name, error.message);
-                permissionCheckInProgress = false;
 
-                // Enhanced TypeError detection with diagnostic info
-                if (error instanceof TypeError || error.name === 'TypeError') {
-                    console.error('🚨 [TypeError] in media permission request');
+                // Handle specific error types
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    console.error('⚠️ User denied camera/microphone permission');
+
+                    // On WebView, try audio-only as fallback
+                    if (isWebView) {
+                        console.log('📹 Trying audio-only fallback for WebView...');
+                        try {
+                            const audioStream = await tryGetUserMedia({ audio: true, video: false }, 2, 300);
+                            console.log('✅ Audio-only permissions granted');
+                            audioStream.getTracks().forEach(track => track.stop());
+                            await new Promise(resolve => setTimeout(resolve, isAndroidWebView ? 2000 : 1000));
+                            permissionsGranted = true;
+                            noCameraMode = true;
+                            window.FlutterChannel?.postMessage(JSON.stringify({
+                                type: 'DEVICE_WARNING',
+                                message: 'Camera permission denied. Audio-only mode enabled.',
+                                audioEnabled: true,
+                                videoEnabled: false
+                            }));
+                            permissionCheckInProgress = false;
+                            return true;
+                        } catch (audioError) {
+                            console.error('❌ Audio-only also denied:', audioError.name);
+                        }
+                    }
+
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'DEVICE_ERROR',
+                        message: 'Camera and microphone permission denied. Please allow access in your device settings.'
+                    }));
+
+                } else if (error.name === 'NotFoundError') {
+                    const isEmulator = /sdk_gphone|emulator|generic|goldfish|ranchu/i.test(navigator.userAgent);
+                    console.error('⚠️ No camera or microphone found');
+                    if (isAndroidWebView && isEmulator) {
+                        console.error('   📱 Android Emulator detected: Camera may not be configured');
+                        console.error('   💡 To fix: AVD Manager → Edit → Camera → Set to "Webcam0" (not "Emulated")');
+                    }
+                    noCameraMode = true;
+
+                    // Try audio-only as fallback
+                    try {
+                        const audioOnlyStream = await tryGetUserMedia({ audio: true, video: false }, 2, 300);
+                        console.log('✅ Audio-only permissions granted');
+                        audioOnlyStream.getTracks().forEach(track => track.stop());
+                        const audioDelay = isAndroidWebView ? 2000 : isIOSWebView ? 1500 : 500;
+                        await new Promise(resolve => setTimeout(resolve, audioDelay));
+                        permissionsGranted = true;
+
+                        // Create helpful message based on platform
+                        let warningMessage = 'Camera not found. Audio-only mode enabled.';
+                        if (isAndroidWebView && isEmulator) {
+                            warningMessage = 'Camera not found on emulator. To enable video, configure AVD camera to use "Webcam0" instead of "Emulated".';
+                        }
+
+                        window.FlutterChannel?.postMessage(JSON.stringify({
+                            type: 'DEVICE_WARNING',
+                            message: warningMessage,
+                            audioEnabled: true,
+                            videoEnabled: false,
+                            isEmulator: isEmulator
+                        }));
+                        permissionCheckInProgress = false;
+                        return true;
+                    } catch (audioError) {
+                        console.error('❌ Audio-only also failed:', audioError.name);
+
+                        let errorMessage = 'No camera or microphone found on this device.';
+                        if (isAndroidWebView && isEmulator) {
+                            errorMessage = 'No camera found on emulator. Configure AVD settings to use host webcam.';
+                        }
+
+                        window.FlutterChannel?.postMessage(JSON.stringify({
+                            type: 'DEVICE_ERROR',
+                            message: errorMessage,
+                            isEmulator: isEmulator
+                        }));
+                    }
+
+                } else if (error.name === 'NotReadableError' || error.name === 'AbortError') {
+                    console.error('⚠️ Camera/microphone is in use by another app or hardware error');
+
+                    // Retry with longer delays
+                    try {
+                        console.log('📹 Retrying after 3 second delay (device may be releasing)...');
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        const retryStream = await tryGetUserMedia({ audio: true, video: videoConstraints }, 2, 1000);
+                        console.log('✅ Retry successful!');
+                        retryStream.getTracks().forEach(track => track.stop());
+                        await new Promise(resolve => setTimeout(resolve, isAndroidWebView ? 2500 : 1000));
+                        permissionsGranted = true;
+                        permissionCheckInProgress = false;
+                        return true;
+                    } catch (retryError) {
+                        console.error('❌ Retry also failed:', retryError.name);
+                        window.FlutterChannel?.postMessage(JSON.stringify({
+                            type: 'DEVICE_ERROR',
+                            message: 'Camera or microphone is being used by another app. Please close other apps and try again.'
+                        }));
+                    }
+
+                } else if (error.name === 'OverconstrainedError') {
+                    console.warn('⚠️ Camera constraints not satisfiable, trying without constraints');
+                    try {
+                        const fallbackStream = await tryGetUserMedia({ audio: true, video: true }, 2, 300);
+                        console.log('✅ Fallback media permissions granted');
+                        fallbackStream.getTracks().forEach(track => track.stop());
+                        await new Promise(resolve => setTimeout(resolve, isAndroidWebView ? 2000 : 500));
+                        permissionsGranted = true;
+                        permissionCheckInProgress = false;
+                        return true;
+                    } catch (fallbackError) {
+                        console.error('❌ Fallback also failed:', fallbackError.name);
+                    }
+
+                } else if (error instanceof TypeError || error.name === 'TypeError') {
+                    console.error('🚨 [TypeError] - navigator.mediaDevices may not be available');
                     console.error('   Message:', error.message);
-                    console.error('   This may indicate: navigator.mediaDevices API not available or undefined');
-                    console.error('   Stack:', error.stack ? error.stack.split('\\n').slice(0, 3).join(' | ') : 'No stack');
+                    console.error('   navigator.mediaDevices exists:', !!navigator.mediaDevices);
+                    console.error('   getUserMedia exists:', !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+
                     window.FlutterChannel?.postMessage(JSON.stringify({
                         type: 'JS_ERROR',
                         errorType: 'TypeError',
                         message: 'Camera API error: ' + error.message,
                         context: 'requestMediaPermissions',
-                        stack: error.stack || ''
+                        mediaDevicesAvailable: !!navigator.mediaDevices,
+                        getUserMediaAvailable: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
                     }));
                 }
 
-                // Provide helpful error messages
-                if (error.name === 'NotAllowedError') {
-                    console.error('⚠️ User denied camera/microphone permission');
-                    window.FlutterChannel?.postMessage(JSON.stringify({
-                        type: 'DEVICE_ERROR',
-                        message: 'Camera and microphone permission denied. Please allow access in your device settings.'
-                    }));
-                } else if (error.name === 'NotFoundError') {
-                    console.error('⚠️ No camera or microphone found');
-                    // Set no camera mode to prevent repeated permission checks
-                    noCameraMode = true;
-                    console.log('📹 No camera mode enabled from permission check');
-
-                    // Try audio-only as fallback
-                    try {
-                        const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                        console.log('✅ Audio-only permissions granted');
-                        // Release immediately to free device for Chime SDK
-                        audioOnlyStream.getTracks().forEach(track => {
-                            console.log('   Stopping audio track:', track.label);
-                            track.stop();
-                        });
-                        console.log('📹 Waiting 2000ms for audio device to release...');
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        console.log('📹 Audio device should be released');
-                        permissionsGranted = true; // Audio works at least
-                        window.FlutterChannel?.postMessage(JSON.stringify({
-                            type: 'DEVICE_WARNING',
-                            message: 'Camera not found. Audio-only mode enabled.',
-                            audioEnabled: true,
-                            videoEnabled: false
-                        }));
-                        return true;
-                    } catch (audioError) {
-                        console.error('❌ Audio-only also failed:', audioError.name);
-                        window.FlutterChannel?.postMessage(JSON.stringify({
-                            type: 'DEVICE_ERROR',
-                            message: 'No camera or microphone found on this device.'
-                        }));
-                    }
-                } else if (error.name === 'NotReadableError') {
-                    console.error('⚠️ Camera/microphone is in use by another app');
-                    window.FlutterChannel?.postMessage(JSON.stringify({
-                        type: 'DEVICE_ERROR',
-                        message: 'Camera or microphone is being used by another app. Please close other apps and try again.'
-                    }));
-                } else if (error.name === 'OverconstrainedError') {
-                    console.warn('⚠️ Camera constraints not satisfiable, trying without constraints');
-                    // Try again without video constraints
-                    try {
-                        const fallbackStream = await navigator.mediaDevices.getUserMedia({
-                            audio: true,
-                            video: true
-                        });
-                        console.log('✅ Fallback media permissions granted');
-                        // Release immediately to free device for Chime SDK
-                        fallbackStream.getTracks().forEach(track => {
-                            console.log('   Stopping fallback track:', track.label);
-                            track.stop();
-                        });
-                        console.log('📹 Waiting 2000ms for device to release...');
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        console.log('📹 Fallback device released');
-                        permissionsGranted = true;
-                        return true;
-                    } catch (fallbackError) {
-                        console.error('❌ Fallback also failed:', fallbackError.name);
-                    }
-                }
-
+                permissionCheckInProgress = false;
                 // Continue anyway - Chime SDK will handle missing devices
                 return false;
             }
@@ -3306,6 +4222,116 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             // Chime SDK tries to acquire them
             console.log('📹 Starting Chime SDK device setup (devices should be free)');
 
+            // Android WebView specific: Try to release any existing audio lock first
+            if (isAndroidWebView) {
+                const isEmulator = /sdk_gphone|emulator|generic|goldfish|ranchu/i.test(navigator.userAgent);
+                console.log('🤖 Android WebView detected (emulator: ' + isEmulator + ')');
+
+                try {
+                    console.log('🤖 Android: Attempting to release any existing audio locks...');
+                    await audioVideo.stopAudioInput();
+                    const releaseWait = isEmulator ? 2000 : 500;
+                    await new Promise(resolve => setTimeout(resolve, releaseWait));
+                    console.log('🤖 Android: Audio input stopped/released');
+                } catch (releaseErr) {
+                    // Ignore - may not have been started
+                    console.log('🤖 Android: No existing audio to release (normal)');
+                }
+
+                // Additional warmup: Create an audio context to initialize the audio subsystem
+                try {
+                    console.log('🤖 Android: Pre-warming audio subsystem...');
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        const warmupCtx = new AudioContext();
+                        await warmupCtx.resume();
+                        // Create a brief oscillator to fully initialize audio pipeline
+                        const osc = warmupCtx.createOscillator();
+                        const gain = warmupCtx.createGain();
+                        gain.gain.value = 0; // Silent
+                        osc.connect(gain);
+                        gain.connect(warmupCtx.destination);
+                        osc.start();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        osc.stop();
+                        await warmupCtx.close();
+                        await new Promise(resolve => setTimeout(resolve, isEmulator ? 1000 : 300));
+                        console.log('🤖 Android: Audio subsystem warmed up');
+                    }
+                } catch (warmupErr) {
+                    console.log('🤖 Android: Audio warmup optional step skipped:', warmupErr.name);
+                }
+            }
+
+            // Helper function to try starting audio with retries (for NotReadableError on Android)
+            // Increased retries and delays for Android emulators which have slower virtualized audio
+            async function tryStartAudioWithRetry(deviceId, deviceLabel, maxRetries = 5) {
+                const isEmulator = /sdk_gphone|emulator|generic|goldfish|ranchu/i.test(navigator.userAgent);
+                const baseDelay = isEmulator ? 2000 : 1000; // Longer delays for emulator
+
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        // On Android, try to warm up the audio system first
+                        if (isAndroidWebView && attempt === 1) {
+                            console.log('🔊 Android: Warming up audio system...');
+                            try {
+                                // Create a silent audio context to initialize the audio system
+                                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                                if (AudioContext) {
+                                    const audioCtx = new AudioContext();
+                                    await audioCtx.resume();
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                    await audioCtx.close();
+                                    console.log('🔊 Android: Audio system warmed up');
+                                }
+                            } catch (warmupErr) {
+                                console.log('🔊 Android: Audio warmup skipped:', warmupErr.name);
+                            }
+                        }
+
+                        await audioVideo.startAudioInput(deviceId);
+                        console.log('✅ Audio device selected:', deviceLabel, attempt > 1 ? '(attempt ' + attempt + ')' : '');
+                        return true;
+                    } catch (err) {
+                        console.warn('⚠️ Audio attempt ' + attempt + '/' + maxRetries + ' failed:', err.name);
+
+                        // NotReadableError = device busy, retry with increasing delays on Android
+                        if ((err.name === 'NotReadableError' || err.name === 'AbortError') && isAndroidWebView && attempt < maxRetries) {
+                            const retryDelay = baseDelay * attempt; // 2s, 4s, 6s, 8s for emulator
+                            console.log('🔄 Android: Retrying audio in ' + retryDelay + 'ms (hardware may still be releasing)...');
+                            await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+                            // Try to force release again before retry
+                            try {
+                                await audioVideo.stopAudioInput();
+                                console.log('🔄 Android: Stopped previous audio input');
+                            } catch (e) { /* ignore */ }
+
+                            // Extra delay for emulator
+                            await new Promise(resolve => setTimeout(resolve, isEmulator ? 1000 : 300));
+
+                            // On later attempts, try fresh getUserMedia to reset audio
+                            if (attempt >= 3) {
+                                try {
+                                    console.log('🔄 Android: Attempt ' + attempt + ' - Resetting audio with fresh getUserMedia...');
+                                    const resetStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                                    resetStream.getTracks().forEach(t => t.stop());
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                    console.log('🔄 Android: Audio reset complete');
+                                } catch (resetErr) {
+                                    console.log('🔄 Android: Audio reset failed, continuing...');
+                                }
+                            }
+                        } else if (attempt === maxRetries) {
+                            throw err; // Re-throw on final attempt
+                        } else if (err.name !== 'NotReadableError' && err.name !== 'AbortError') {
+                            throw err; // Non-retryable error
+                        }
+                    }
+                }
+                return false;
+            }
+
             // Try to setup audio first (use cached devices if available)
             try {
                 const audioInputDevices = cachedAudioDevices || await audioVideo.listAudioInputDevices();
@@ -3316,10 +4342,19 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     // Try each audio device until one works
                     for (let i = 0; i < audioInputDevices.length; i++) {
                         try {
-                            await audioVideo.startAudioInput(audioInputDevices[i].deviceId);
-                            console.log('✅ Audio device selected:', audioInputDevices[i].label);
-                            audioSuccess = true;
-                            break;
+                            // Use retry helper on Android, direct call on other platforms
+                            if (isAndroidWebView) {
+                                audioSuccess = await tryStartAudioWithRetry(
+                                    audioInputDevices[i].deviceId,
+                                    audioInputDevices[i].label,
+                                    3
+                                );
+                            } else {
+                                await audioVideo.startAudioInput(audioInputDevices[i].deviceId);
+                                console.log('✅ Audio device selected:', audioInputDevices[i].label);
+                                audioSuccess = true;
+                            }
+                            if (audioSuccess) break;
                         } catch (audioErr) {
                             console.warn('⚠️ Audio device ' + i + ' failed:', audioErr.name);
                             // Enhanced TypeError detection for audio device selection
@@ -3341,6 +4376,78 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                             }
                             if (i === audioInputDevices.length - 1) {
                                 console.error('❌ All audio devices failed');
+                                // Final fallback: Try default device with fresh getUserMedia on Android
+                                if (isAndroidWebView) {
+                                    const isEmulator = /sdk_gphone|emulator|generic|goldfish|ranchu/i.test(navigator.userAgent);
+                                    console.log('🔄 Android: Final fallback - trying fresh getUserMedia for audio (emulator: ' + isEmulator + ')...');
+
+                                    // Wait longer for emulator to release audio hardware
+                                    const waitTime = isEmulator ? 5000 : 2000;
+                                    console.log('🔄 Android: Waiting ' + waitTime + 'ms before final audio attempt...');
+                                    await new Promise(resolve => setTimeout(resolve, waitTime));
+
+                                    // Try multiple times with increasing delays
+                                    for (let fallbackAttempt = 1; fallbackAttempt <= 3; fallbackAttempt++) {
+                                        try {
+                                            console.log('🔄 Android: Final fallback attempt ' + fallbackAttempt + '/3...');
+
+                                            // Use simpler constraints for emulator
+                                            const audioConstraints = isEmulator
+                                                ? { audio: true, video: false }
+                                                : { audio: { echoCancellation: true, noiseSuppression: true }, video: false };
+
+                                            const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                                            const audioTrack = stream.getAudioTracks()[0];
+                                            if (audioTrack) {
+                                                // Keep the track and don't stop it - pass directly to Chime
+                                                const settings = audioTrack.getSettings();
+                                                console.log('🔊 Got audio track:', audioTrack.label, settings);
+
+                                                // Try to bind the stream directly instead of stopping
+                                                try {
+                                                    // First try with the device ID
+                                                    if (settings.deviceId) {
+                                                        stream.getTracks().forEach(t => t.stop());
+                                                        await new Promise(resolve => setTimeout(resolve, isEmulator ? 2000 : 500));
+                                                        await audioVideo.startAudioInput(settings.deviceId);
+                                                        console.log('✅ Audio fallback succeeded with device:', settings.deviceId);
+                                                        audioSuccess = true;
+                                                        break;
+                                                    }
+                                                } catch (bindErr) {
+                                                    console.warn('⚠️ Direct bind failed, trying default...', bindErr.name);
+                                                    stream.getTracks().forEach(t => t.stop());
+                                                    await new Promise(resolve => setTimeout(resolve, isEmulator ? 2000 : 500));
+                                                    // Try with 'default' device ID
+                                                    try {
+                                                        await audioVideo.startAudioInput('default');
+                                                        console.log('✅ Audio fallback succeeded with default device');
+                                                        audioSuccess = true;
+                                                        break;
+                                                    } catch (defaultErr) {
+                                                        console.warn('⚠️ Default device also failed:', defaultErr.name);
+                                                    }
+                                                }
+                                            }
+                                            stream.getTracks().forEach(t => t.stop());
+                                        } catch (fallbackErr) {
+                                            console.error('❌ Audio fallback attempt ' + fallbackAttempt + ' failed:', fallbackErr.name);
+                                            if (fallbackAttempt < 3) {
+                                                await new Promise(resolve => setTimeout(resolve, isEmulator ? 3000 : 1000));
+                                            }
+                                        }
+                                    }
+
+                                    if (!audioSuccess) {
+                                        console.error('❌ All audio fallback attempts failed - proceeding without microphone');
+                                        window.FlutterChannel?.postMessage(JSON.stringify({
+                                            type: 'DEVICE_WARNING',
+                                            message: 'Microphone unavailable on this device. Others cannot hear you.',
+                                            audioEnabled: false,
+                                            videoEnabled: !noCameraMode
+                                        }));
+                                    }
+                                }
                             }
                         }
                     }
@@ -3707,6 +4814,58 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 }
                 updateTileMuteStatus(attendeeId, muted);
             });
+
+            // === TRANSCRIPTION CONTROLLER SUBSCRIPTION ===
+            // Subscribe to live transcription events from AWS Transcribe Medical
+            if (meetingSession.audioVideo.transcriptionController) {
+                console.log('🎙️ Setting up transcription controller subscription...');
+
+                meetingSession.audioVideo.transcriptionController.subscribeToTranscriptEvent((transcriptEvent) => {
+                    if (!transcriptEvent || !transcriptEvent.transcriptAlternative) {
+                        return;
+                    }
+
+                    // Process transcript items
+                    transcriptEvent.transcriptAlternative.forEach((alternative) => {
+                        if (!alternative.items) return;
+
+                        // Build the transcript text from items
+                        const transcriptText = alternative.items
+                            .map(item => item.content)
+                            .filter(content => content && content.trim())
+                            .join(' ');
+
+                        if (!transcriptText || !transcriptText.trim()) return;
+
+                        // Determine speaker
+                        const speakerLabel = alternative.items[0]?.speakerLabel || 'Unknown';
+                        const isPartial = transcriptEvent.isPartial || false;
+                        const resultId = transcriptEvent.resultId || Date.now().toString();
+
+                        console.log('📝 Transcription:', {
+                            speaker: speakerLabel,
+                            partial: isPartial,
+                            text: transcriptText.substring(0, 50) + '...'
+                        });
+
+                        // Send to Flutter for storage
+                        window.FlutterChannel?.postMessage(JSON.stringify({
+                            type: 'LIVE_CAPTION',
+                            resultId: resultId,
+                            speakerLabel: speakerLabel,
+                            speakerName: speakerLabel === 'ch_0' ? 'Provider' :
+                                         speakerLabel === 'ch_1' ? 'Patient' : speakerLabel,
+                            transcriptText: transcriptText,
+                            isPartial: isPartial,
+                            timestamp: new Date().toISOString()
+                        }));
+                    });
+                });
+
+                console.log('✅ Transcription controller subscription active');
+            } else {
+                console.log('⚠️ Transcription controller not available (transcription may not be started)');
+            }
         }
 
         // Create video tile element
@@ -3718,20 +4877,24 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
             // Determine display name and profile image
             // For local tile: use current user's info
-            // For remote tile: use call title info or "Other Participant"
+            // For remote tile: show provider or patient info based on who is viewing
             const isLocal = tileState.localTile;
-            let displayName = isLocal ? 'You' : 'Other Participant';
+            let displayName = 'You';
             let profileImageUrl = isLocal ? currentUserProfileImage : null;
             let roleText = '';
 
-            // For remote tiles, try to get provider info if patient is viewing
-            if (!isLocal) {
-                // If this is the patient viewing the provider
-                if (callTitle && callTitle.includes('Doctor')) {
-                    // Remove "Consultation " prefix and any date patterns
-                    displayName = callTitle.replace('Consultation ', '').replace(/\d{2}\/\d{4}\s*/g, '').trim();
-                } else if (callTitle && callTitle.includes('with ')) {
-                    displayName = callTitle.split('with ')[1] || 'Provider';
+            if (isLocal) {
+                // Local user always shows "You"
+                displayName = 'You';
+            } else {
+                // Remote tile: show the OTHER person's info
+                if (isProviderUser) {
+                    // Provider is viewing patient - show patient name
+                    displayName = patientName && patientName.trim() ? patientName : 'Patient';
+                } else {
+                    // Patient is viewing provider - show provider name and role
+                    displayName = providerName && providerName.trim() ? providerName : 'Provider';
+                    roleText = providerRole && providerRole.trim() ? providerRole : '';
                 }
             }
 
@@ -3759,15 +4922,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             name.className = 'attendee-name';
             name.textContent = displayName;
 
-            // Add role for remote participant if provider info is available
-            if (!isLocal && currentUserRole && currentUserRole.trim()) {
+            // Add role for remote participant (only shows provider role when patient is viewing)
+            info.appendChild(name);
+            if (!isLocal && roleText && roleText.trim()) {
                 const role = document.createElement('div');
                 role.className = 'attendee-role';
-                role.textContent = currentUserRole;
-                info.appendChild(name);
+                role.textContent = roleText;
                 info.appendChild(role);
-            } else {
-                info.appendChild(name);
             }
 
             const status = document.createElement('div');
@@ -4220,15 +5381,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 img.className = 'message-image';
                 img.alt = msg.fileName || 'Image';
                 img.onclick = () => {
-                    // Open in new window or download
-                    if (msg.fileUrl.startsWith('data:')) {
-                        const link = document.createElement('a');
-                        link.href = msg.fileUrl;
-                        link.download = msg.fileName || 'image.jpg';
-                        link.click();
-                    } else {
-                        window.open(msg.fileUrl, '_blank');
-                    }
+                    // Open fullscreen image viewer with pinch-to-zoom
+                    window.openFullscreenImage(msg.fileUrl, msg.fileName || 'Image');
                 };
                 img.onerror = () => {
                     imgContainer.innerHTML = '🖼️ ' + (msg.fileName || 'Image failed to load');
@@ -4554,6 +5708,71 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   @override
   Widget build(BuildContext context) {
+    // Web platform: Show not supported message (InAppWebView doesn't work on web)
+    // Users should use the mobile app for video calls
+    if (kIsWeb) {
+      return Container(
+        width: widget.width,
+        height: widget.height,
+        color: const Color(0xFFFFFFFF),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.videocam_off,
+                  size: 80,
+                  color: Color(0xFF25D366),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Video Calls Not Available on Web',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'For the best video call experience, please use the MedZen mobile app on your Android or iOS device.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (widget.onCallEnded != null) {
+                      widget.onCallEnded!();
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Go Back'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: widget.width,
       height: widget.height,
