@@ -47,7 +47,7 @@ async function makeApiRequest({
         isStreamingApi: isStreamingApi,
       };
     })
-    .catch(function (error) {
+    .catch((error) => {
       return {
         statusCode: error.response.status,
         headers: error.response.headers,
@@ -82,7 +82,7 @@ function escapeStringForJson(val) {
   }
   return val
     .replace(/[\\]/g, "\\\\")
-    .replace(/["]/g, '\\"')
+    .replace(/["]/g, "\\\"")
     .replace(/[\n]/g, "\\n")
     .replace(/[\t]/g, "\\t");
 }

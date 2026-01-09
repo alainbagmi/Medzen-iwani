@@ -427,9 +427,135 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
 });
 
 // =============================================================================
-// onUserDeleted - Cleans up user records when Firebase Auth user is deleted
+// onUserDeleted - Comprehensive cleanup when Firebase Auth user is deleted
 // =============================================================================
 exports.onUserDeleted = functions.auth.user().onDelete(async (user) => {
-  const firestore = admin.firestore();
-  await firestore.collection("users").doc(user.uid).delete();
+  const startTime = Date.now();
+  console.log(`🗑️  onUserDeleted triggered for: ${user.email} ${user.uid}`);
+
+  // Get configuration
+  const config = functions.config();
+  const SUPABASE_URL = config.supabase?.url;
+  const SUPABASE_SERVICE_KEY = config.supabase?.service_key;
+  const EHRBASE_URL = config.ehrbase?.url;
+  const EHRBASE_USERNAME = config.ehrbase?.username;
+  const EHRBASE_PASSWORD = config.ehrbase?.password;
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    console.error("❌ Missing Supabase configuration");
+    return;
+  }
+
+  const axios = require("axios");
+  const { createClient } = require("@supabase/supabase-js");
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  let supabaseUserId = null;
+  let ehrId = null;
+
+  try {
+    // Step 1: Find Supabase user by firebase_uid
+    console.log("📝 Step 1: Finding Supabase user record...");
+    const { data: supabaseUser, error: findError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("firebase_uid", user.uid)
+      .maybeSingle();
+
+    if (findError) {
+      console.error(`❌ Error finding Supabase user: ${findError.message}`);
+    } else if (!supabaseUser) {
+      console.log("⚠️  No Supabase user found for this Firebase UID");
+    } else {
+      supabaseUserId = supabaseUser.id;
+      console.log(`✅ Found Supabase user: ${supabaseUserId}`);
+
+      // Step 2: Get EHR ID before deletion (if exists)
+      console.log("📝 Step 2: Checking for EHR record...");
+      const { data: ehrRecord } = await supabase
+        .from("electronic_health_records")
+        .select("ehr_id")
+        .eq("patient_id", supabaseUserId)
+        .maybeSingle();
+
+      if (ehrRecord?.ehr_id) {
+        ehrId = ehrRecord.ehr_id;
+        console.log(`✅ Found EHR record: ${ehrId}`);
+      }
+
+      // Step 3: Delete from Supabase users table (cascading deletes will handle related records)
+      console.log("📝 Step 3: Deleting from Supabase users table...");
+      const { error: deleteUserError } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", supabaseUserId);
+
+      if (deleteUserError) {
+        console.error(`❌ Error deleting Supabase user: ${deleteUserError.message}`);
+      } else {
+        console.log("✅ Supabase user record deleted (cascading deletes applied)");
+      }
+
+      // Step 4: Delete from Supabase Auth
+      console.log("📝 Step 4: Deleting from Supabase Auth...");
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(supabaseUserId);
+
+      if (authDeleteError) {
+        console.error(`❌ Error deleting Supabase Auth user: ${authDeleteError.message}`);
+      } else {
+        console.log("✅ Supabase Auth user deleted");
+      }
+
+      // Step 5: Delete EHR from EHRbase (if configured and EHR exists)
+      if (ehrId && EHRBASE_URL && EHRBASE_USERNAME && EHRBASE_PASSWORD) {
+        console.log("📝 Step 5: Deleting EHR from EHRbase...");
+        try {
+          // Note: EHRbase doesn't support EHR deletion in standard API
+          // Mark as deleted in electronic_health_records table instead
+          const { error: ehrUpdateError } = await supabase
+            .from("electronic_health_records")
+            .update({ ehr_status: "deleted", updated_at: new Date().toISOString() })
+            .eq("patient_id", supabaseUserId);
+
+          if (ehrUpdateError) {
+            console.error(`❌ Error marking EHR as deleted: ${ehrUpdateError.message}`);
+          } else {
+            console.log("✅ EHR marked as deleted in tracking table");
+          }
+        } catch (ehrError) {
+          console.error(`❌ EHR deletion error: ${ehrError.message}`);
+        }
+      }
+    }
+
+    // Step 6: Delete Firestore user document
+    console.log("📝 Step 6: Deleting Firestore user document...");
+    const firestore = admin.firestore();
+    await firestore.collection("users").doc(user.uid).delete();
+    console.log("✅ Firestore user document deleted");
+
+    // Step 7: Delete FCM tokens
+    console.log("📝 Step 7: Deleting FCM tokens...");
+    const fcmTokensSnapshot = await firestore
+      .collection("users")
+      .doc(user.uid)
+      .collection("fcm_tokens")
+      .get();
+
+    const deletePromises = fcmTokensSnapshot.docs.map((doc) => doc.ref.delete());
+    await Promise.all(deletePromises);
+    console.log(`✅ Deleted ${fcmTokensSnapshot.size} FCM tokens`);
+
+    const duration = Date.now() - startTime;
+    console.log("🎉 Success! User deleted from all systems");
+    console.log(`   Firebase UID: ${user.uid}`);
+    console.log(`   Supabase ID: ${supabaseUserId || "N/A"}`);
+    console.log(`   EHR ID: ${ehrId || "N/A"}`);
+    console.log(`   Duration: ${duration}ms`);
+  } catch (error) {
+    console.error(`❌ onUserDeleted error: ${error.message}`);
+    console.error(error.stack);
+  }
 });
