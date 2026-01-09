@@ -240,7 +240,15 @@ function getCharForIndex(charIdx) {
   }
 }
 // =============================================================================
+// ⚠️  CRITICAL PRODUCTION FUNCTION - DO NOT DELETE OR MODIFY ⚠️
 // onUserCreated - Creates user records in Supabase and EHRbase when Firebase Auth user is created
+//
+// This function is PROTECTED by git hooks and validation scripts.
+// Any attempt to delete or modify this function will be BLOCKED by pre-commit hook.
+// Required dependency: @supabase/supabase-js@^2.39.0
+//
+// See: TEST_USER_CREATION.md for testing
+// See: validate-critical-functions.sh for validation
 // =============================================================================
 exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
   const startTime = Date.now();
@@ -427,7 +435,16 @@ exports.onUserCreated = functions.auth.user().onCreate(async (user) => {
 });
 
 // =============================================================================
+// ⚠️  CRITICAL PRODUCTION FUNCTION - DO NOT DELETE OR MODIFY ⚠️
 // onUserDeleted - Comprehensive cleanup when Firebase Auth user is deleted
+//
+// This function is PROTECTED by git hooks and validation scripts.
+// Any attempt to delete or modify this function will be BLOCKED by pre-commit hook.
+// Required dependency: @supabase/supabase-js@^2.39.0
+//
+// GDPR/CCPA Compliance: This function ensures complete data deletion across all systems
+// See: TEST_USER_DELETION.md for testing
+// See: validate-critical-functions.sh for validation
 // =============================================================================
 exports.onUserDeleted = functions.auth.user().onDelete(async (user) => {
   const startTime = Date.now();
