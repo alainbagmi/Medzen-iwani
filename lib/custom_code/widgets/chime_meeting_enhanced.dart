@@ -21,12 +21,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// Web-specific imports (conditional)
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' if (dart.library.io) 'chime_meeting_enhanced_stub.dart' as html;
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:ui_web' if (dart.library.io) 'chime_meeting_enhanced_stub.dart' as ui_web;
-
 /// ✨ ENHANCED CHIME VIDEO CALL WIDGET - AWS Demo Features + Web Support
 ///
 /// Features matching AWS Chime SDK official demo: - ✅ Multi-participant video
@@ -97,19 +91,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   bool _sdkReady = false;
   Timer? _sdkLoadTimeout;
 
-  // Web-specific state
-  String? _webViewId;
-  bool _webViewRegistered = false;
-  Function? _webMessageHandler;
-  html.IFrameElement? _webIframe; // Store iframe reference for postMessage
-
   // Enhanced state management (matching AWS demo)
   final Map<String, Map<String, dynamic>> _attendees = {};
   final Map<int, String> _videoTiles = {};
   String? _activeSpeakerId;
   bool _isMuted = false;
   bool _isVideoOff = false;
-  bool _showRoster = false;
+  final bool _showRoster = false;
   bool _showChat = false;
   int _participantCount = 0;
   String? _meetingId;
@@ -147,88 +135,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         '📹 Initial camera enabled: ${widget.initialCameraEnabled} (video off: $_isVideoOff)');
 
     _extractMeetingId();
-
-    // Initialize web view for web platform
-    if (kIsWeb) {
-      _initializeWebView();
-    } else {
-      _checkPermissionsAndInitialize();
-    }
-  }
-
-  /// Initialize web video call using iframe and HtmlElementView
-  void _initializeWebView() {
-    debugPrint('🌐 Initializing web video call...');
-
-    // Generate unique view ID
-    _webViewId = 'chime-video-${DateTime.now().millisecondsSinceEpoch}';
-
-    // Register the view factory for web
-    if (!_webViewRegistered) {
-      // ignore: undefined_prefixed_name
-      ui_web.platformViewRegistry.registerViewFactory(
-        _webViewId!,
-        (int viewId) {
-          final iframe = html.IFrameElement()
-            ..id = _webViewId!
-            ..style.border = 'none'
-            ..style.width = '100%'
-            ..style.height = '100%'
-            // Critical: Allow camera, microphone, and display-capture for video calls
-            ..allow = 'camera; microphone; display-capture; autoplay; fullscreen; encrypted-media'
-            ..setAttribute('allowfullscreen', 'true');
-
-          // Set the HTML content via srcdoc
-          final htmlContent = _getEnhancedChimeHTML();
-          iframe.setAttribute('srcdoc', htmlContent);
-
-          // Store iframe reference for later postMessage communication
-          _webIframe = iframe;
-
-          return iframe;
-        },
-      );
-      _webViewRegistered = true;
-      debugPrint('✅ Web view factory registered: $_webViewId');
-    }
-
-    // Set up message listener for communication from iframe
-    _setupWebMessageListener();
-
-    // Start SDK load timeout
-    _startSdkLoadTimeout();
-
-    // Initialize message subscription for realtime chat
-    if (widget.appointmentId != null) {
-      _subscribeToMessages();
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  /// Set up message listener to receive messages from the iframe
-  void _setupWebMessageListener() {
-    if (!kIsWeb) return;
-
-    _webMessageHandler = (dynamic event) {
-      try {
-        // Check if message is from our iframe
-        final data = event.data;
-        if (data is String) {
-          _handleMessageFromWebView(data);
-        } else if (data is Map) {
-          _handleMessageFromWebView(jsonEncode(data));
-        }
-      } catch (e) {
-        debugPrint('⚠️ Error handling web message: $e');
-      }
-    };
-
-    // ignore: undefined_prefixed_name
-    html.window.addEventListener('message', _webMessageHandler as html.EventListener);
-    debugPrint('✅ Web message listener set up');
+    _checkPermissionsAndInitialize();
   }
 
   /// Check camera/microphone permissions before initializing WebView
@@ -322,8 +229,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
     }
 
-    // Continue with initialization (mobile uses InAppWebView)
-    _initializeMobileWebView();
+    // Continue with initialization
+    _initializeWebView();
     _startSdkLoadTimeout();
 
     // Initialize message subscription for realtime chat
@@ -442,13 +349,6 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     // Unsubscribe from message channel
     if (_messageChannel != null) {
       SupaFlow.client.removeChannel(_messageChannel!);
-    }
-
-    // Cleanup web message listener
-    if (kIsWeb && _webMessageHandler != null) {
-      // ignore: undefined_prefixed_name
-      html.window.removeEventListener('message', _webMessageHandler as html.EventListener);
-      debugPrint('✅ Web message listener removed');
     }
 
     // Clear processed message IDs to free memory
@@ -595,7 +495,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     }
   }
 
-  void _initializeMobileWebView() {
+  void _initializeWebView() {
     // With flutter_inappwebview, the WebView is initialized in the build method
     // The controller is obtained via onWebViewCreated callback
     debugPrint('🔧 InAppWebView initialization will occur in build method');
@@ -911,16 +811,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     _joinMeeting();
   }
 
-  Future<void> _handleMeetingEnd(String message) async {
+  void _handleMeetingEnd(String message) {
     debugPrint('📞 Meeting ended: $message');
-
-    // Stop transcription first (for providers) - this aggregates the transcript
-    if (_isTranscriptionEnabled && widget.isProvider == true) {
-      debugPrint('🛑 Stopping transcription before ending call...');
-      await _stopTranscription();
-      debugPrint('✅ Transcription stopped and transcript aggregated');
-    }
-
     if (widget.onCallEnded != null) {
       widget.onCallEnded!();
     }
@@ -948,10 +840,21 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     // to ensure the meeting is fully established
     if (widget.isProvider) {
       debugPrint('🎙️ Provider joined - preparing transcription auto-start...');
+      debugPrint('   ⏱️  Will auto-start transcription in 2 seconds');
+      debugPrint('   📊 Current state: _isTranscriptionEnabled=$_isTranscriptionEnabled, _isTranscriptionStarting=$_isTranscriptionStarting');
+
       Future.delayed(const Duration(seconds: 2), () {
+        debugPrint('⏰ 2-second auto-start delay completed');
+        debugPrint('   📊 Mounted=$mounted, _isTranscriptionEnabled=$_isTranscriptionEnabled, _isTranscriptionStarting=$_isTranscriptionStarting');
+
         if (mounted && !_isTranscriptionEnabled && !_isTranscriptionStarting) {
-          debugPrint('🎙️ Auto-starting transcription for provider...');
+          debugPrint('✅ All conditions met - Auto-starting transcription for provider...');
           _startTranscription();
+        } else {
+          debugPrint('⚠️  Transcription auto-start skipped:');
+          if (!mounted) debugPrint('   - Widget not mounted');
+          if (_isTranscriptionEnabled) debugPrint('   - Transcription already enabled');
+          if (_isTranscriptionStarting) debugPrint('   - Transcription already starting');
         }
       });
     } else {
@@ -1728,51 +1631,62 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     try {
       // Debug: Log current state
-      debugPrint('🔍 Transcription pre-check:');
+      debugPrint('🔍 [TRANSCRIPTION-START] PRE-CHECK:');
       debugPrint('   appointmentId: ${widget.appointmentId}');
       debugPrint('   _meetingId: $_meetingId');
       debugPrint('   _sessionId: $_sessionId');
+      debugPrint('   widget.userName: ${widget.userName}');
 
       // Re-extract meeting ID if null (in case JSON parsing failed earlier)
       if (_meetingId == null) {
-        debugPrint('🔄 Re-extracting meeting ID...');
+        debugPrint('🔄 [TRANSCRIPTION-START] Re-extracting meeting ID...');
         _extractMeetingId();
-        debugPrint('   _meetingId after re-extract: $_meetingId');
+        debugPrint('   ✓ _meetingId after re-extract: $_meetingId');
       }
 
       // Fetch session ID with retry (database might not be ready immediately)
       if (_sessionId == null) {
-        debugPrint('🔄 Fetching session ID...');
+        debugPrint('🔄 [TRANSCRIPTION-START] Fetching session ID (up to 3 attempts)...');
         for (int attempt = 1; attempt <= 3; attempt++) {
+          debugPrint('   ⏳ Attempt $attempt/3: Querying video_call_sessions table...');
           await _fetchSessionId();
           if (_sessionId != null) {
-            debugPrint('   ✓ Session ID found on attempt $attempt');
+            debugPrint('   ✅ Session ID found on attempt $attempt: $_sessionId');
             break;
           }
           if (attempt < 3) {
-            debugPrint(
-                '   ⏳ Session not found, retrying in 1 second (attempt $attempt/3)...');
+            debugPrint('   ⏳ Session not found, waiting 1 second before retry...');
             await Future.delayed(const Duration(seconds: 1));
+          } else {
+            debugPrint('   ❌ Session ID not found after 3 attempts');
           }
         }
       }
 
       // Debug: Log final state
-      debugPrint('🔍 Transcription final check:');
+      debugPrint('🔍 [TRANSCRIPTION-START] FINAL CHECK:');
       debugPrint('   _meetingId: $_meetingId');
       debugPrint('   _sessionId: $_sessionId');
+      debugPrint('   _transcriptionLanguage: $_transcriptionLanguage');
 
       if (_sessionId == null || _meetingId == null) {
         debugPrint(
-            '❌ Missing session ID ($_sessionId) or meeting ID ($_meetingId) for transcription');
+            '❌ [TRANSCRIPTION-START] FAILED: Missing session ID or meeting ID');
+        debugPrint('   Session ID: $_sessionId');
+        debugPrint('   Meeting ID: $_meetingId');
         setState(() => _isTranscriptionStarting = false);
         return;
       }
 
-      debugPrint('🎙️ Starting medical transcription...');
-      debugPrint('   Meeting ID: $_meetingId');
-      debugPrint('   Session ID: $_sessionId');
-      debugPrint('   Language: $_transcriptionLanguage');
+      debugPrint('🎙️ [TRANSCRIPTION-START] CALLING EDGE FUNCTION:');
+      debugPrint('   controlMedicalTranscription(');
+      debugPrint('      meetingId: $_meetingId,');
+      debugPrint('      sessionId: $_sessionId,');
+      debugPrint('      action: "start",');
+      debugPrint('      language: $_transcriptionLanguage,');
+      debugPrint('      specialty: "PRIMARYCARE",');
+      debugPrint('      autoStart: true');
+      debugPrint('   )');
 
       // Call the controlMedicalTranscription action
       final result = await controlMedicalTranscription(
@@ -1784,13 +1698,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         true,
       );
 
+      debugPrint('🔄 [TRANSCRIPTION-START] Edge function returned: $result');
+
       if (result['success'] == true) {
+        debugPrint('✅ [TRANSCRIPTION-START] SUCCESS - Transcription enabled');
         setState(() {
           _isTranscriptionEnabled = true;
           _isTranscriptionStarting = false;
         });
 
         // Subscribe to live captions
+        debugPrint('👂 [TRANSCRIPTION-START] Subscribing to live captions...');
         _subscribeToCaptions();
 
         // Show success notification
@@ -1859,8 +1777,18 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           );
         }
       }
-    } catch (e) {
-      debugPrint('❌ Transcription start error: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [TRANSCRIPTION-START] EXCEPTION CAUGHT:');
+      debugPrint('   Error type: ${e.runtimeType}');
+      debugPrint('   Error message: $e');
+      debugPrint('   Stack trace: $stackTrace');
+      debugPrint('   Current state:');
+      debugPrint('      _meetingId: $_meetingId');
+      debugPrint('      _sessionId: $_sessionId');
+      debugPrint('      _isTranscriptionEnabled: $_isTranscriptionEnabled');
+      debugPrint('      _isTranscriptionStarting: $_isTranscriptionStarting');
+      debugPrint('      mounted: $mounted');
+
       setState(() => _isTranscriptionStarting = false);
 
       if (mounted) {
@@ -2194,51 +2122,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           });
       ''';
 
-      // Web platform: Use postMessage to communicate with iframe
-      // Mobile platform: Use InAppWebView's evaluateJavascript
-      if (kIsWeb) {
-        debugPrint('🌐 Web platform: Sending join meeting data via postMessage');
-
-        // Create the join meeting data as JSON
-        final joinData = {
-          'type': 'JOIN_MEETING',
-          'meeting': wrappedMeeting,
-          'attendee': wrappedAttendee,
-          'userName': widget.userName,
-          'userRole': widget.userRole ?? '',
-          'userProfileImage': widget.userProfileImage ?? '',
-          'isProvider': widget.isProvider,
-          'meetingId': meetingMap['MeetingId'] ?? '',
-          'providerName': widget.providerName ?? '',
-          'providerRole': widget.providerRole ?? '',
-          'patientName': widget.patientName ?? '',
-          'callTitle': titleText,
-          'initialMicOff': initialMicOff,
-          'initialVideoOff': initialVideoOff,
-        };
-
-        // Post message to iframe's contentWindow (NOT the main window!)
-        final jsonData = jsonEncode(joinData);
-        if (_webIframe?.contentWindow != null) {
-          // ignore: undefined_prefixed_name
-          _webIframe!.contentWindow!.postMessage(jsonData, '*');
-          debugPrint('✅ Join meeting data posted to iframe contentWindow');
-        } else {
-          // Fallback: try to find iframe by ID if reference not available
-          // ignore: undefined_prefixed_name
-          final iframe = html.document.getElementById(_webViewId ?? '') as html.IFrameElement?;
-          if (iframe?.contentWindow != null) {
-            iframe!.contentWindow!.postMessage(jsonData, '*');
-            debugPrint('✅ Join meeting data posted via getElementById fallback');
-          } else {
-            debugPrint('❌ Cannot find iframe contentWindow to post message');
-          }
-        }
-      } else {
-        // Mobile: use InAppWebView's evaluateJavascript
-        await _webViewController?.evaluateJavascript(source: script);
-        debugPrint('✅ Join meeting script executed');
-      }
+      await _webViewController?.evaluateJavascript(source: script);
+      debugPrint('✅ Join meeting script executed');
     } catch (e) {
       debugPrint('❌ Error joining meeting: $e');
       _showErrorSnackBar('Failed to join meeting: $e');
@@ -2256,30 +2141,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     <script>
         // ============================================
-        // FLUTTER COMMUNICATION SHIM (Web + Mobile)
-        // Creates FlutterChannel object that works with:
-        // - flutter_inappwebview (Android/iOS mobile)
-        // - parent.postMessage (Web iframe)
+        // FLUTTER_INAPPWEBVIEW COMPATIBILITY SHIM
+        // Creates FlutterChannel object that maps to flutter_inappwebview.callHandler
+        // This allows existing FlutterChannel.postMessage() calls to work
         // ============================================
         (function() {
-            // Detect if running in an iframe (web) or native webview (mobile)
-            const isInIframe = window !== window.parent;
-            const isMobileWebView = !!(window.flutter_inappwebview);
-
-            // Create FlutterChannel shim
+            // Create FlutterChannel shim for flutter_inappwebview
             window.FlutterChannel = {
                 postMessage: function(msg) {
-                    // Web platform: Use parent.postMessage for iframe communication
-                    if (isInIframe) {
-                        try {
-                            window.parent.postMessage(msg, '*');
-                        } catch (e) {
-                            console.warn('⚠️ Failed to post message to parent:', e);
-                        }
-                        return;
-                    }
-
-                    // Mobile platform: Use flutter_inappwebview's callHandler
+                    // Use flutter_inappwebview's callHandler
                     if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
                         window.flutter_inappwebview.callHandler('FlutterChannel', msg);
                     } else {
@@ -2288,99 +2158,12 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                         setTimeout(() => {
                             if (window.flutter_inappwebview && window.flutter_inappwebview.callHandler) {
                                 window.flutter_inappwebview.callHandler('FlutterChannel', msg);
-                            } else if (isInIframe) {
-                                // Retry as iframe message
-                                window.parent.postMessage(msg, '*');
                             }
                         }, 100);
                     }
                 }
             };
-
-            const platform = isInIframe ? 'Web (iframe)' : (isMobileWebView ? 'Mobile (InAppWebView)' : 'Unknown');
-            console.log('✅ FlutterChannel shim installed for ' + platform);
-
-            // ============================================
-            // WEB PLATFORM: Listen for messages from parent Flutter app
-            // This handles JOIN_MEETING and other commands from Flutter
-            // ============================================
-            if (isInIframe) {
-                window.addEventListener('message', async function(event) {
-                    try {
-                        // Try to parse as JSON
-                        let data = event.data;
-                        if (typeof data === 'string') {
-                            try {
-                                data = JSON.parse(data);
-                            } catch (e) {
-                                // Not JSON, ignore
-                                return;
-                            }
-                        }
-
-                        // Handle JOIN_MEETING command from Flutter
-                        if (data && data.type === 'JOIN_MEETING') {
-                            console.log('📨 Received JOIN_MEETING from Flutter');
-                            console.log('   Meeting:', JSON.stringify(data.meeting).substring(0, 100) + '...');
-                            console.log('   Attendee:', JSON.stringify(data.attendee).substring(0, 100) + '...');
-                            console.log('   User:', data.userName, 'Role:', data.userRole);
-                            console.log('   Is Provider:', data.isProvider);
-
-                            // Set global variables
-                            window.currentAttendeeName = data.userName;
-                            window.currentUserRole = data.userRole;
-                            window.currentUserProfileImage = data.userProfileImage;
-                            window.callTitle = data.callTitle;
-                            window.isProviderUser = data.isProvider;
-                            window.currentMeetingId = data.meetingId;
-                            window.providerName = data.providerName;
-                            window.providerRole = data.providerRole;
-                            window.patientName = data.patientName;
-
-                            // Update leave button title based on user role
-                            const leaveBtn = document.getElementById('leave-btn');
-                            if (leaveBtn) {
-                                leaveBtn.title = data.isProvider ? 'End Call for Everyone' : 'Leave Call';
-                            }
-
-                            // Call joinMeeting with the provided data
-                            try {
-                                await joinMeeting(data.meeting, data.attendee);
-                                console.log('✅ Meeting joined successfully via postMessage');
-
-                                // Apply initial mic/camera state
-                                if (data.initialMicOff && window.audioVideo) {
-                                    console.log('🔇 Applying initial mute state');
-                                    window.audioVideo.realtimeMuteLocalAudio();
-                                    window.isMuted = true;
-                                    const muteBtn = document.getElementById('mute-btn');
-                                    if (muteBtn) {
-                                        muteBtn.classList.add('active');
-                                    }
-                                }
-
-                                if (data.initialVideoOff && window.audioVideo) {
-                                    console.log('📹 Applying initial video off state');
-                                    window.audioVideo.stopLocalVideoTile();
-                                    window.isVideoOff = true;
-                                    const videoBtn = document.getElementById('video-btn');
-                                    if (videoBtn) {
-                                        videoBtn.classList.add('active');
-                                    }
-                                }
-
-                                window.FlutterChannel?.postMessage('MEETING_JOINED');
-                            } catch (err) {
-                                console.error('❌ Failed to join meeting via postMessage:', err);
-                                window.FlutterChannel?.postMessage('MEETING_ERROR:' + err.message);
-                            }
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Error processing parent message:', e);
-                    }
-                });
-                console.log('✅ Parent message listener registered for JOIN_MEETING');
-            }
+            console.log('✅ FlutterChannel shim installed for flutter_inappwebview');
         })();
 
         // ============================================
@@ -3474,7 +3257,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     <div id="container" style="display: none;">
         <!-- Hidden audio sink for Chime WebRTC (required for remote audio playback) -->
-        <audio id="meeting-audio" autoplay playsinline style="display:none"></audio>
+        <!-- DO NOT use display:none - mobile browsers may mute/disable audio elements that are hidden -->
+        <!-- Use visibility:hidden instead to keep layout intact but allow audio to play -->
+        <audio id="meeting-audio" autoplay playsinline muted="false" style="visibility: hidden; position: absolute; width: 0; height: 0; pointer-events: none;"></audio>
         <div id="video-grid" class="count-1"></div>
         <div id="controls">
             <button id="mute-btn" class="control-btn" title="Mute/Unmute">
@@ -3976,6 +3761,92 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             }
         });
 
+        // ============================================
+        // AUDIO DIAGNOSTICS HELPER
+        // Logs comprehensive audio state for debugging
+        // ============================================
+        async function logAudioDiagnostics(context = 'manual') {
+            try {
+                console.log('═══════════════════════════════════════════════════');
+                console.log('🔊 AUDIO DIAGNOSTICS [' + context + '] - ' + new Date().toLocaleTimeString());
+                console.log('═══════════════════════════════════════════════════');
+
+                // Platform info
+                console.log('📱 Platform:');
+                console.log('   Android WebView:', isAndroidWebView);
+                console.log('   iOS WebView:', isIOSWebView);
+                console.log('   Desktop:', isDesktopWeb);
+
+                // Chime SDK state
+                console.log('🎤 Chime SDK State:');
+                if (audioVideo) {
+                    console.log('   audioVideo instance: ✅ Available');
+                    console.log('   isMuted:', isMuted);
+
+                    // Check audio input device
+                    try {
+                        const audioInputs = await audioVideo.listAudioInputDevices();
+                        console.log('   Audio inputs:', audioInputs.length);
+                        audioInputs.forEach((device, i) => {
+                            console.log('      [' + i + '] ' + device.label + ' (ID: ' + device.deviceId + ')');
+                        });
+                    } catch (e) {
+                        console.warn('   ⚠️ Could not list audio inputs:', e.message);
+                    }
+
+                    // Check audio output devices
+                    try {
+                        const audioOutputs = await audioVideo.listAudioOutputDevices();
+                        console.log('   Audio outputs (speakers):', audioOutputs.length);
+                        audioOutputs.forEach((device, i) => {
+                            console.log('      [' + i + '] ' + device.label + ' (ID: ' + device.deviceId + ')');
+                        });
+                    } catch (e) {
+                        console.warn('   ⚠️ Could not list audio outputs:', e.message);
+                    }
+                } else {
+                    console.log('   audioVideo instance: ❌ Not initialized');
+                }
+
+                // Audio element state
+                console.log('🔊 Audio Element:');
+                const audioElement = document.getElementById('meeting-audio');
+                if (audioElement) {
+                    console.log('   Element found: ✅');
+                    console.log('   muted:', audioElement.muted);
+                    console.log('   volume:', audioElement.volume);
+                    console.log('   autoplay:', audioElement.autoplay);
+                    console.log('   paused:', audioElement.paused);
+                    console.log('   readyState:', audioElement.readyState);
+                    console.log('   networkState:', audioElement.networkState);
+                } else {
+                    console.error('   Element found: ❌ CRITICAL - audio element missing!');
+                }
+
+                // Browser audio context
+                console.log('🎵 Browser AudioContext:');
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    try {
+                        // Note: We don't actually create an instance, just check availability
+                        console.log('   Available: ✅');
+                        console.log('   Type: ' + AudioContext.name);
+                    } catch (e) {
+                        console.log('   Available: ❌', e.message);
+                    }
+                } else {
+                    console.log('   Available: ❌');
+                }
+
+                console.log('═══════════════════════════════════════════════════');
+            } catch (error) {
+                console.error('❌ Error in audio diagnostics:', error.message);
+            }
+        }
+
+        // Make diagnostics function globally accessible for testing
+        window.logAudioDiagnostics = logAudioDiagnostics;
+
         // Join meeting function
         async function joinMeeting(meetingData, attendeeData) {
             try {
@@ -3985,7 +3856,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 // This ensures the device is fully released before Chime SDK tries to access it
                 // Fixes "microphone is used by another application" error on Android
                 console.log('📹 Step 1: Pre-requesting media permissions before SDK initialization...');
-                await requestMediaPermissions();
+                await permissionWarmup();
 
                 // Now create SDK objects after permissions are granted and streams released
                 console.log('📦 Step 2: Creating Chime SDK objects...');
@@ -4005,35 +3876,63 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 audioVideo = meetingSession.audioVideo;
 
                 // Bind remote audio to a hidden sink so speakers work on WebView/mobile
+                // CRITICAL: Audio element configuration for mobile speaker output
                 const audioElement = document.getElementById('meeting-audio');
                 if (audioElement) {
+                  // IMPORTANT: Ensure audio is NOT muted before binding
                   audioElement.muted = false;
                   audioElement.autoplay = true;
                   audioElement.playsInline = true;
                   audioElement.volume = 1.0; // Ensure full volume
+
+                  // Bind to Chime SDK for remote audio playback
                   audioVideo.bindAudioElement(audioElement);
-                  console.log('🔊 Audio element bound for speaker output (volume: 1.0)');
-                  // Music profile reduces aggressive noise suppression that can mute speech on mobile
+                  console.log('🔊 Audio element bound for speaker output');
+                  console.log('🔊 Audio config - muted:', audioElement.muted, 'volume:', audioElement.volume, 'autoplay:', audioElement.autoplay);
+
+                  // Resume audio context on first interaction (required for mobile)
+                  // This is handled in the click handler, but we may need it here too
+                  const resumeAudioContext = async () => {
+                    try {
+                      const AudioContext = window.AudioContext || window.webkitAudioContext;
+                      if (AudioContext && AudioContext.state) {
+                        if (AudioContext.state === 'suspended') {
+                          console.log('🔊 Resuming AudioContext (was suspended)...');
+                          await AudioContext.resume();
+                          console.log('🔊 AudioContext resumed');
+                        }
+                      }
+                    } catch (e) {
+                      console.log('🔊 AudioContext resume optional:', e.message);
+                    }
+                  };
+                  resumeAudioContext();
+
+                  // Set audio profile to reduce noise suppression that can mute speech
                   // Note: AudioProfile API varies by SDK version - make it optional
                   try {
                     if (ChimeSDK.AudioProfile) {
                       if (typeof ChimeSDK.AudioProfile.fullbandMusicStereo === 'function') {
                         // SDK 3.x API
                         audioVideo.setAudioProfile(ChimeSDK.AudioProfile.fullbandMusicStereo());
-                        console.log('🎵 Audio profile set: fullbandMusicStereo');
+                        console.log('🎵 Audio profile set: fullbandMusicStereo (reduces aggressive noise suppression)');
                       } else if (typeof ChimeSDK.AudioProfile.music === 'function') {
                         // Older SDK API
                         audioVideo.setAudioProfile(ChimeSDK.AudioProfile.music());
                         console.log('🎵 Audio profile set: music');
                       } else {
-                        console.log('🎵 Using default audio profile (no music profile available)');
+                        console.log('🎵 Using default audio profile');
                       }
                     }
                   } catch (profileError) {
                     console.warn('⚠️ Could not set audio profile:', profileError.message);
                   }
                 } else {
-                  console.warn('⚠️ meeting-audio element not found; remote audio may stay muted');
+                  console.error('❌ CRITICAL: meeting-audio element not found - remote audio will NOT work!');
+                  window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'DEVICE_ERROR',
+                    message: 'Audio element missing - speaker output may not work'
+                  }));
                 }
 
                 // Set up observers
@@ -4090,18 +3989,20 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         console.log('   Is Mobile:', isMobile);
         console.log('   Is Desktop Web:', isDesktopWeb);
 
-        // Pre-request media permissions with platform-specific handling and retry logic
+        // PHASE 1: Permission Warmup - Simple permission exercise without device enumeration
+        // This ONLY calls getUserMedia to exercise permissions and prime the device list
+        // Device enumeration will happen AFTER this completes in Phase 2
         // Supports: Android WebView, iOS WebView, Web browsers (Chrome, Firefox, Safari, Edge)
-        async function requestMediaPermissions() {
+        async function permissionWarmup() {
             // Skip if permissions already granted (prevents looping)
             if (permissionsGranted) {
-                console.log('📹 Permissions already granted (cached), skipping request');
+                console.log('🔥 PHASE 1: Permissions already granted (cached), skipping warmup');
                 return true;
             }
 
             // Prevent concurrent permission checks
             if (permissionCheckInProgress) {
-                console.log('📹 Permission check already in progress, waiting...');
+                console.log('🔥 PHASE 1: Permission warmup already in progress, waiting...');
                 // Wait for existing check to complete (max 10 seconds)
                 let waitTime = 0;
                 while (permissionCheckInProgress && waitTime < 10000) {
@@ -4112,8 +4013,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             }
 
             permissionCheckInProgress = true;
-            console.log('📹 Pre-requesting camera and microphone permissions...');
-            console.log('📹 Platform: ' + (isAndroidWebView ? 'Android WebView' : isIOSWebView ? 'iOS WebView' : isDesktopWeb ? 'Desktop Web' : 'Mobile Web'));
+            console.log('🔥 PHASE 1: Permission warmup starting (acquire media + exercise permission path)');
+            console.log('🔥 PHASE 1: Platform: ' + (isAndroidWebView ? 'Android WebView' : isIOSWebView ? 'iOS WebView' : isDesktopWeb ? 'Desktop Web' : 'Mobile Web'));
 
             // Helper function to request with retry and progressive constraint relaxation
             async function tryGetUserMedia(constraints, retryCount = 3, delay = 500) {
@@ -4329,9 +4230,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
                     console.error('⚠️ User denied camera/microphone permission');
 
-                    // On WebView or Desktop Web, try audio-only as fallback
-                    if (isWebView || isDesktopWeb) {
-                        console.log('📹 Trying audio-only fallback...');
+                    // On WebView, try audio-only as fallback
+                    if (isWebView) {
+                        console.log('📹 Trying audio-only fallback for WebView...');
                         try {
                             const audioStream = await tryGetUserMedia({ audio: true, video: false }, 2, 300);
                             console.log('✅ Audio-only permissions granted');
@@ -4870,9 +4771,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 noCameraMode = true;
             }
 
-            // Report status to Flutter
+            // Report comprehensive status to Flutter including speaker status
+            console.log('📊 Device Setup Summary:');
+            console.log('   Audio Input:', audioSuccess ? '✅' : '❌');
+            console.log('   Speaker Output:', speakerSuccess ? '✅' : '❌');
+            console.log('   Video:', videoSuccess ? '✅' : '❌');
+
             if (!audioSuccess && !videoSuccess) {
-                console.warn('⚠️ Joining call with no media devices - audio/video unavailable');
+                console.error('❌ CRITICAL: No media devices available - cannot continue call');
                 window.FlutterChannel?.postMessage(JSON.stringify({
                     type: 'DEVICE_ERROR',
                     message: 'Camera and microphone unavailable. Please close other apps using the camera and try again.',
@@ -4880,20 +4786,27 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     videoEnabled: false
                 }));
             } else if (!audioSuccess) {
-                console.warn('⚠️ Audio device unavailable - video only mode');
+                console.warn('⚠️ Audio input unavailable - video only mode');
                 window.FlutterChannel?.postMessage(JSON.stringify({
                     type: 'DEVICE_WARNING',
-                    message: 'Microphone unavailable. You can see video but cannot speak.',
+                    message: 'Microphone unavailable. You can see and hear the provider but cannot speak. Check if another app is using your microphone.',
                     audioEnabled: false,
                     videoEnabled: true
                 }));
+                // Disable mute button if no audio input
+                const muteBtn = document.getElementById('mute-btn');
+                if (muteBtn) {
+                    muteBtn.disabled = true;
+                    muteBtn.style.opacity = '0.5';
+                    muteBtn.style.cursor = 'not-allowed';
+                }
             } else if (!videoSuccess) {
                 console.warn('⚠️ Video device unavailable - audio only mode');
                 // Set noCameraMode to prevent any further video device polling
                 noCameraMode = true;
                 window.FlutterChannel?.postMessage(JSON.stringify({
                     type: 'DEVICE_WARNING',
-                    message: 'Camera unavailable. You can speak but others cannot see you.',
+                    message: 'Camera unavailable. You can speak and hear but others cannot see you.',
                     audioEnabled: true,
                     videoEnabled: false
                 }));
@@ -4917,7 +4830,18 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 console.log('📹 No camera mode enabled - video controls disabled');
             } else {
                 console.log('✅ All devices configured successfully');
+                // Send success message with full device status
+                window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'DEVICE_SUCCESS',
+                    message: 'All devices ready',
+                    audioEnabled: audioSuccess,
+                    speakerEnabled: speakerSuccess,
+                    videoEnabled: videoSuccess
+                }));
             }
+
+            // Log comprehensive audio diagnostics after setup
+            await logAudioDiagnostics('after setupDevices');
 
         }
 
@@ -5235,21 +5159,52 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             }
         }
 
-        // Control button handlers
-        document.getElementById('mute-btn').addEventListener('click', () => {
-            if (!audioVideo) return;
+        // Control button handlers - MUTE/UNMUTE with proper state management
+        let muteButtonEnabled = true; // Prevent rapid clicks
+        document.getElementById('mute-btn').addEventListener('click', async () => {
+            if (!audioVideo || !muteButtonEnabled) return;
 
-            isMuted = !isMuted;
-            const btn = document.getElementById('mute-btn');
+            try {
+                muteButtonEnabled = false; // Debounce rapid clicks
+                const btn = document.getElementById('mute-btn');
 
-            if (isMuted) {
-                audioVideo.realtimeMuteLocalAudio();
-                btn.classList.add('active');
-                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
-            } else {
-                audioVideo.realtimeUnmuteLocalAudio();
-                btn.classList.remove('active');
-                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+                if (isMuted) {
+                    // Currently muted - UNMUTE
+                    console.log('🔊 Unmuting microphone...');
+                    audioVideo.realtimeUnmuteLocalAudio();
+                    isMuted = false;
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+                    btn.title = 'Mute (currently unmuted)';
+                    console.log('✅ Microphone unmuted');
+                } else {
+                    // Currently unmuted - MUTE
+                    console.log('🔇 Muting microphone...');
+                    audioVideo.realtimeMuteLocalAudio();
+                    isMuted = true;
+                    btn.classList.add('active');
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>';
+                    btn.title = 'Unmute (currently muted)';
+                    console.log('✅ Microphone muted');
+                }
+
+                // Notify Flutter of mute state change
+                window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'MUTE_STATE_CHANGED',
+                    isMuted: isMuted
+                }));
+
+                // Re-enable button after 300ms
+                setTimeout(() => {
+                    muteButtonEnabled = true;
+                }, 300);
+            } catch (error) {
+                console.error('❌ Error toggling mute:', error.message);
+                muteButtonEnabled = true;
+                window.FlutterChannel?.postMessage(JSON.stringify({
+                    type: 'DEVICE_ERROR',
+                    message: 'Failed to toggle microphone: ' + error.message
+                }));
             }
         });
 
@@ -5961,85 +5916,67 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   @override
   Widget build(BuildContext context) {
-    // Web platform: Use HtmlElementView with iframe for video calls
+    // Web platform: Show not supported message (InAppWebView doesn't work on web)
+    // Users should use the mobile app for video calls
     if (kIsWeb) {
-      if (_webViewId == null || !_webViewRegistered) {
-        // Still initializing
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          color: const Color(0xFFFFFFFF),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: Color(0xFF25D366)),
-                SizedBox(height: 16),
-                Text(
-                  'Initializing video call...',
-                  style: TextStyle(color: Colors.black),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      // Web video call using HtmlElementView
       return Container(
         width: widget.width,
         height: widget.height,
         color: const Color(0xFFFFFFFF),
-        child: Stack(
-          children: [
-            // Iframe containing the video call
-            HtmlElementView(viewType: _webViewId!),
-
-            // Loading indicator while SDK initializes
-            if (_isLoading || !_sdkReady)
-              Container(
-                color: Colors.white.withValues(alpha: 0.9),
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: Color(0xFF25D366)),
-                      SizedBox(height: 16),
-                      Text(
-                        'Connecting to meeting...',
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    ],
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.videocam_off,
+                  size: 80,
+                  color: Color(0xFF25D366),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Video Calls Not Available on Web',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'For the best video call experience, please use the MedZen mobile app on your Android or iOS device.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    if (widget.onCallEnded != null) {
+                      widget.onCallEnded!();
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Go Back'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF25D366),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-
-            // Meeting header overlay (only show when chat is NOT visible)
-            if (_sdkReady && _meetingId != null && !_showChat)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: _buildMeetingHeader(),
-              ),
-
-            // Live caption overlay at the bottom
-            if (_showCaptionOverlay && _currentCaption != null && !_showChat)
-              Positioned(
-                bottom: 100, // Above the control bar
-                left: 16,
-                right: 16,
-                child: _buildCaptionOverlay(),
-              ),
-
-            // Transcription indicator (top-right corner)
-            if (_sdkReady && !_showChat)
-              Positioned(
-                top: 50,
-                right: 16,
-                child: _buildTranscriptionIndicator(),
-              ),
-          ],
+              ],
+            ),
+          ),
         ),
       );
     }
