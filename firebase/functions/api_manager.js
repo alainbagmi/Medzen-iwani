@@ -21,6 +21,7 @@ async function makeApiCall(context, data) {
   return response;
 }
 
+// eslint-disable-next-line no-unused-vars
 async function makeApiRequest({
   method,
   url,
@@ -57,12 +58,14 @@ async function makeApiRequest({
     });
 }
 
+// eslint-disable-next-line no-unused-vars
 const _unauthenticatedResponse = {
   statusCode: 401,
   headers: {},
   error: "API call requires authentication",
 };
 
+// eslint-disable-next-line no-unused-vars
 function createBody({ headers, params, body, bodyType }) {
   switch (bodyType) {
     case "JSON":
@@ -76,6 +79,7 @@ function createBody({ headers, params, body, bodyType }) {
       return qs.stringify(params);
   }
 }
+// eslint-disable-next-line no-unused-vars
 function escapeStringForJson(val) {
   if (typeof val !== "string") {
     return val;
