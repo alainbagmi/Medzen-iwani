@@ -1,0 +1,25 @@
+{
+  "name": "chime-recording-processor",
+  "version": "1.0.0",
+  "description": "Process Chime meeting recordings from S3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "chime",
+    "recording",
+    "s3"
+  ],
+  "author": "MedZen",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/client-lambda": "^3.600.0",
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "@supabase/supabase-js": "^2.39.3"
+  }
+}

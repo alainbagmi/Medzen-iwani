@@ -39,10 +39,6 @@ class ProviderSettingsPageModel
   FocusNode? licenseNumberFocusNode;
   TextEditingController? licenseNumberTextController;
   String? Function(BuildContext, String?)? licenseNumberTextControllerValidator;
-  // State field(s) for phoneNumber widget.
-  FocusNode? phoneNumberFocusNode;
-  TextEditingController? phoneNumberTextController;
-  String? Function(BuildContext, String?)? phoneNumberTextControllerValidator;
   // State field(s) for consultationFee widget.
   FocusNode? consultationFeeFocusNode;
   TextEditingController? consultationFeeTextController;
@@ -167,9 +163,6 @@ class ProviderSettingsPageModel
     sideNavModel.dispose();
     licenseNumberFocusNode?.dispose();
     licenseNumberTextController?.dispose();
-
-    phoneNumberFocusNode?.dispose();
-    phoneNumberTextController?.dispose();
 
     consultationFeeFocusNode?.dispose();
     consultationFeeTextController?.dispose();

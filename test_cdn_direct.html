@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CDN Direct Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #28a745; color: white; }
+        .error { background: #dc3545; color: white; }
+        .info { background: #17a2b8; color: white; }
+        .warning { background: #ffc107; color: black; }
+        pre {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌐 CDN Direct Load Test</h1>
+    <p>Testing Chime SDK from CloudFront CDN...</p>
+    <div id="status"></div>
+    <div id="details"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const detailsDiv = document.getElementById('details');
+
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            statusDiv.appendChild(div);
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function addDetail(title, content) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${title}</h3><pre>${content}</pre>`;
+            detailsDiv.appendChild(div);
+        }
+
+        addStatus('Loading SDK from CDN...', 'info');
+
+        // Create script element
+        const script = document.createElement('script');
+        script.src = 'https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-3.19.0.min.js';
+        script.crossOrigin = 'anonymous';
+
+        script.onload = function() {
+            addStatus('✅ Script tag onload event fired', 'success');
+
+            // Check immediately
+            console.log('=== IMMEDIATE CHECK ===');
+            console.log('window.ChimeSDK:', window.ChimeSDK);
+            console.log('typeof window.ChimeSDK:', typeof window.ChimeSDK);
+
+            // Check all possible exports
+            console.log('window.ChimeSDK:', window.ChimeSDK);
+            console.log('window.ChimeSDKExport:', window.ChimeSDKExport);
+            console.log('this.ChimeSDK:', this.ChimeSDK);
+            console.log('self.ChimeSDK:', self.ChimeSDK);
+
+            // List all window properties containing 'chime' (case-insensitive)
+            const chimeProps = Object.keys(window).filter(key =>
+                key.toLowerCase().includes('chime')
+            );
+            console.log('Window properties with "chime":', chimeProps);
+            addDetail('Window properties containing "chime"',
+                     chimeProps.length > 0 ? chimeProps.join('\n') : 'None found');
+
+            setTimeout(() => {
+                if (typeof window.ChimeSDK !== 'undefined') {
+                    addStatus('✅ SUCCESS: window.ChimeSDK found!', 'success');
+
+                    const classes = Object.keys(window.ChimeSDK);
+                    addDetail(`Available Classes (${classes.length})`,
+                             classes.sort().slice(0, 30).join('\n') + '\n...');
+
+                    // Test instantiation
+                    try {
+                        const logger = new window.ChimeSDK.ConsoleLogger('Test');
+                        addStatus('✅ ConsoleLogger instantiated successfully', 'success');
+                    } catch (err) {
+                        addStatus('❌ Error instantiating: ' + err.message, 'error');
+                    }
+                } else {
+                    addStatus('❌ window.ChimeSDK is STILL undefined', 'error');
+
+                    // Debug: show what IS on window
+                    const allProps = Object.keys(window);
+                    addDetail('Total window properties', allProps.length.toString());
+
+                    // Check for any SDK-related properties
+                    const sdkProps = allProps.filter(p =>
+                        p.includes('SDK') || p.includes('Chime') || p.includes('chime')
+                    );
+                    addDetail('SDK-related properties',
+                             sdkProps.length > 0 ? sdkProps.join('\n') : 'None found');
+                }
+            }, 100);
+        };
+
+        script.onerror = function(err) {
+            addStatus('❌ Script failed to load (network error)', 'error');
+            console.error('Script error:', err);
+            addDetail('Error', 'Check network tab in DevTools for details');
+        };
+
+        document.head.appendChild(script);
+        addStatus('Script tag added to page', 'info');
+    </script>
+</body>
+</html>

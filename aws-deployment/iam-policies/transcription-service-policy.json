@@ -1,0 +1,76 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ChimeTranscriptionPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "chime:StartMeetingTranscription",
+        "chime:StopMeetingTranscription",
+        "chime:GetMeeting",
+        "chime:GetAttendee"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-central-1"
+        }
+      }
+    },
+    {
+      "Sid": "TranscribeMedicalPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "transcribe:StartMedicalTranscriptionJob",
+        "transcribe:GetMedicalTranscriptionJob",
+        "transcribe:ListMedicalTranscriptionJobs",
+        "transcribe:StartStreamTranscription",
+        "transcribe:StartMedicalStreamTranscription"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-central-1"
+        }
+      }
+    },
+    {
+      "Sid": "TranscribeStandardPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "transcribe:StartTranscriptionJob",
+        "transcribe:GetTranscriptionJob",
+        "transcribe:ListTranscriptionJobs"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "eu-central-1"
+        }
+      }
+    },
+    {
+      "Sid": "S3TranscriptStoragePermissions",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::medzen-transcriptions/*",
+        "arn:aws:s3:::medzen-transcriptions"
+      ]
+    },
+    {
+      "Sid": "CloudWatchLogsPermissions",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:eu-central-1:*:log-group:/aws/transcribe/*"
+    }
+  ]
+}

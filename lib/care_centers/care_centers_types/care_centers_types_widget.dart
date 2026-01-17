@@ -209,22 +209,14 @@ class _CareCentersTypesWidgetState extends State<CareCentersTypesWidget> {
                                     ),
                                     showLoadingIndicator: true,
                                     onPressed: () async {
-                                      await showDialog(
-                                        context: context,
-                                        builder: (alertDialogContext) {
-                                          return AlertDialog(
-                                            title: Text('Upcoming'),
-                                            content: Text(
-                                                'This feature is tailored to specific requirements and will be activated once Medzen finalizes contractual agreements with the concerned parties. We appreciate your patience and understanding as we work to make it available.'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    alertDialogContext),
-                                                child: Text('Ok'),
-                                              ),
-                                            ],
-                                          );
-                                        },
+                                      context.pushNamed(
+                                        CareCentersWidget.routeName,
+                                        queryParameters: {
+                                          'facilitytype': serializeParam(
+                                            'Pharmacy',
+                                            ParamType.String,
+                                          ),
+                                        }.withoutNulls,
                                       );
                                     },
                                   ),
@@ -331,22 +323,14 @@ class _CareCentersTypesWidgetState extends State<CareCentersTypesWidget> {
                                       size: 40.0,
                                     ),
                                     onPressed: () async {
-                                      await showDialog(
-                                        context: context,
-                                        builder: (alertDialogContext) {
-                                          return AlertDialog(
-                                            title: Text('Upcoming'),
-                                            content: Text(
-                                                'This feature is tailored to specific requirements and will be activated once Medzen finalizes contractual agreements with the concerned parties. We appreciate your patience and understanding as we work to make it available.'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    alertDialogContext),
-                                                child: Text('Ok'),
-                                              ),
-                                            ],
-                                          );
-                                        },
+                                      context.pushNamed(
+                                        CareCentersWidget.routeName,
+                                        queryParameters: {
+                                          'facilitytype': serializeParam(
+                                            '',
+                                            ParamType.String,
+                                          ),
+                                        }.withoutNulls,
                                       );
                                     },
                                   ),
@@ -451,22 +435,14 @@ class _CareCentersTypesWidgetState extends State<CareCentersTypesWidget> {
                                       size: 40.0,
                                     ),
                                     onPressed: () async {
-                                      await showDialog(
-                                        context: context,
-                                        builder: (alertDialogContext) {
-                                          return AlertDialog(
-                                            title: Text('Upcoming'),
-                                            content: Text(
-                                                'This feature is tailored to specific requirements and will be activated once Medzen finalizes contractual agreements with the concerned parties. We appreciate your patience and understanding as we work to make it available.'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(
-                                                    alertDialogContext),
-                                                child: Text('Ok'),
-                                              ),
-                                            ],
-                                          );
-                                        },
+                                      context.pushNamed(
+                                        CareCentersWidget.routeName,
+                                        queryParameters: {
+                                          'facilitytype': serializeParam(
+                                            'Blood Bank',
+                                            ParamType.String,
+                                          ),
+                                        }.withoutNulls,
                                       );
                                     },
                                   ),

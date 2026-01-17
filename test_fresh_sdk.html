@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fresh Chime SDK Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background: #28a745; color: white; }
+        .error { background: #dc3545; color: white; }
+        .info { background: #17a2b8; color: white; }
+        pre {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Fresh Chime SDK Load Test</h1>
+    <div id="status"></div>
+    <div id="details"></div>
+
+    <!-- Load the FRESH local copy -->
+    <script src="./amazon-chime-sdk-fresh.min.js"></script>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const detailsDiv = document.getElementById('details');
+
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = message;
+            statusDiv.appendChild(div);
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        function addDetail(title, content) {
+            const div = document.createElement('div');
+            div.innerHTML = `<h3>${title}</h3><pre>${content}</pre>`;
+            detailsDiv.appendChild(div);
+        }
+
+        // Test immediately after script loads
+        addStatus('Testing fresh SDK...', 'info');
+
+        // Give it a tick to initialize
+        setTimeout(() => {
+            console.log('=== DEBUG INFO ===');
+            console.log('typeof window:', typeof window);
+            console.log('typeof window.ChimeSDK:', typeof window.ChimeSDK);
+            console.log('typeof ChimeSDK:', typeof window.ChimeSDK);
+            console.log('window.ChimeSDK:', window.ChimeSDK);
+
+            if (typeof window.ChimeSDK !== 'undefined') {
+                addStatus('✅ SUCCESS: window.ChimeSDK is defined!', 'success');
+
+                // List all available classes
+                const classes = Object.keys(window.ChimeSDK);
+                addDetail(`Available SDK Classes (${classes.length} total)`,
+                         classes.sort().join('\n'));
+
+                // Test critical classes
+                const criticalClasses = [
+                    'ConsoleLogger',
+                    'DefaultDeviceController',
+                    'DefaultMeetingSession',
+                    'MeetingSessionConfiguration',
+                    'MeetingSessionStatusCode'
+                ];
+
+                let allFound = true;
+                const results = {};
+
+                criticalClasses.forEach(cls => {
+                    const exists = typeof window.ChimeSDK[cls] !== 'undefined';
+                    results[cls] = exists ? '✅ Found' : '❌ Missing';
+                    if (!exists) allFound = false;
+                });
+
+                addDetail('Critical SDK Classes Check', JSON.stringify(results, null, 2));
+
+                if (allFound) {
+                    addStatus('✅ All critical SDK classes available!', 'success');
+                    addStatus('🎉 SDK is fully functional!', 'success');
+                } else {
+                    addStatus('⚠️ Some SDK classes missing', 'error');
+                }
+
+                // Try to instantiate a logger (simplest class)
+                try {
+                    const logger = new window.ChimeSDK.ConsoleLogger('TestLogger');
+                    addStatus('✅ Successfully instantiated ConsoleLogger', 'success');
+                    logger.info('Test log from instantiated logger');
+                } catch (err) {
+                    addStatus('❌ Failed to instantiate ConsoleLogger: ' + err.message, 'error');
+                }
+
+            } else {
+                addStatus('❌ FAIL: window.ChimeSDK is undefined', 'error');
+                addDetail('Available window properties (sample)',
+                         Object.keys(window).slice(0, 50).join(', ') + '...');
+            }
+        }, 50);
+    </script>
+</body>
+</html>

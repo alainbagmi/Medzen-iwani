@@ -17,9 +17,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-// Import web media permissions helper for proper browser permission handling
-import '/custom_code/actions/request_web_media_permissions.dart';
-
 /// Pre-joining dialog for video calls Allows user to configure mic/camera
 /// before joining Matches the Agora pattern for permission handling
 class ChimePreJoiningDialog extends StatefulWidget {
@@ -60,110 +57,87 @@ class _ChimePreJoiningDialogState extends State<ChimePreJoiningDialog> {
     setState(() => _isCheckingPermissions = true);
 
     try {
+      // Check current status first
       final micStatus = await Permission.microphone.status;
       final cameraStatus = await Permission.camera.status;
 
+      debugPrint('📱 Initial mic status: ${micStatus.toString()}');
+      debugPrint('📱 Initial camera status: ${cameraStatus.toString()}');
+
+      // If not already granted, request them proactively
+      PermissionStatus finalMicStatus = micStatus;
+      PermissionStatus finalCameraStatus = cameraStatus;
+
+      if (!micStatus.isGranted && !micStatus.isDenied) {
+        debugPrint('🎤 Requesting microphone permission...');
+        finalMicStatus = await Permission.microphone.request();
+      }
+
+      if (!cameraStatus.isGranted && !cameraStatus.isDenied) {
+        debugPrint('📹 Requesting camera permission...');
+        finalCameraStatus = await Permission.camera.request();
+      }
+
       setState(() {
-        _micEnabled = micStatus.isGranted;
-        _cameraEnabled = cameraStatus.isGranted;
+        _micEnabled = finalMicStatus.isGranted;
+        _cameraEnabled = finalCameraStatus.isGranted;
         _isCheckingPermissions = false;
       });
+
+      debugPrint(
+          '✅ Permission initialization complete - Mic: ${finalMicStatus.isGranted}, Camera: ${finalCameraStatus.isGranted}');
     } catch (e) {
-      debugPrint('Error checking permissions: $e');
+      debugPrint('Error checking/requesting permissions: $e');
       setState(() => _isCheckingPermissions = false);
     }
   }
 
   Future<void> _requestPermissions() async {
+    if (kIsWeb) {
+      // Web permissions are requested by the browser when accessing media
+      widget.onJoin(_micEnabled, _cameraEnabled);
+      return;
+    }
+
     setState(() {
       _isCheckingPermissions = true;
       _permissionError = null;
     });
 
-    // Handle web platform separately using getUserMedia
-    if (kIsWeb) {
-      debugPrint('🌐 Web platform: Requesting permissions via getUserMedia');
-      try {
-        // Request web media permissions using our helper
-        // This triggers the browser's permission prompt
-        final result = await requestWebMediaPermissions(
-          audio: _micEnabled,
-          video: _cameraEnabled,
-        );
-
-        if (!mounted) return;
-
-        if (result.granted) {
-          debugPrint('✅ Web permissions granted');
-          setState(() => _isCheckingPermissions = false);
-
-          // Update mic/camera state based on what was actually granted
-          if (_micEnabled && !result.audioGranted) {
+    try {
+      // Request microphone permission if mic is enabled and not already granted
+      if (_micEnabled) {
+        final micStatus = await Permission.microphone.status;
+        if (!micStatus.isGranted) {
+          debugPrint('🎤 Requesting microphone permission...');
+          final micGranted = await Permission.microphone.request();
+          if (!micGranted.isGranted) {
             setState(() {
+              _permissionError = 'Microphone permission denied';
               _micEnabled = false;
-              _permissionError = 'Microphone permission not available';
             });
-          }
-          if (_cameraEnabled && !result.videoGranted) {
-            setState(() {
-              _cameraEnabled = false;
-              _permissionError = _permissionError != null
-                  ? '$_permissionError. Camera permission not available'
-                  : 'Camera permission not available';
-            });
-          }
-
-          // Proceed if at least one permission was granted
-          if (result.audioGranted || result.videoGranted) {
-            widget.onJoin(_micEnabled, _cameraEnabled);
-          } else {
-            // Show error if nothing was granted
-            _showWebPermissionErrorDialog(result.errorMessage);
           }
         } else {
-          debugPrint('❌ Web permissions denied: ${result.errorMessage}');
-          setState(() {
-            _isCheckingPermissions = false;
-            _permissionError = result.errorMessage;
-          });
-          _showWebPermissionErrorDialog(result.errorMessage);
-        }
-      } catch (e) {
-        debugPrint('❌ Error requesting web permissions: $e');
-        setState(() {
-          _isCheckingPermissions = false;
-          _permissionError = 'Failed to access camera/microphone';
-        });
-        _showWebPermissionErrorDialog(
-          'Failed to access camera/microphone. Please check your browser settings.',
-        );
-      }
-      return;
-    }
-
-    // Handle native platforms (iOS/Android) using permission_handler
-    try {
-      // Request microphone permission if mic is enabled
-      if (_micEnabled) {
-        final micStatus = await Permission.microphone.request();
-        if (!micStatus.isGranted) {
-          setState(() {
-            _permissionError = 'Microphone permission denied';
-            _micEnabled = false;
-          });
+          debugPrint('✅ Microphone permission already granted');
         }
       }
 
-      // Request camera permission if camera is enabled
+      // Request camera permission if camera is enabled and not already granted
       if (_cameraEnabled) {
-        final cameraStatus = await Permission.camera.request();
+        final cameraStatus = await Permission.camera.status;
         if (!cameraStatus.isGranted) {
-          setState(() {
-            _permissionError = _permissionError != null
-                ? '$_permissionError. Camera permission denied'
-                : 'Camera permission denied';
-            _cameraEnabled = false;
-          });
+          debugPrint('📹 Requesting camera permission...');
+          final cameraGranted = await Permission.camera.request();
+          if (!cameraGranted.isGranted) {
+            setState(() {
+              _permissionError = _permissionError != null
+                  ? '$_permissionError. Camera permission denied'
+                  : 'Camera permission denied';
+              _cameraEnabled = false;
+            });
+          }
+        } else {
+          debugPrint('✅ Camera permission already granted');
         }
       }
 
@@ -171,9 +145,11 @@ class _ChimePreJoiningDialogState extends State<ChimePreJoiningDialog> {
 
       // Proceed if at least mic is available (video is optional)
       if (_micEnabled || _cameraEnabled) {
+        debugPrint('✅ Permission check passed - joining call');
         widget.onJoin(_micEnabled, _cameraEnabled);
       } else if (_permissionError != null) {
         // Show settings dialog if both denied
+        debugPrint('❌ Both permissions denied - showing settings dialog');
         _showPermissionSettingsDialog();
       }
     } catch (e) {
@@ -183,78 +159,6 @@ class _ChimePreJoiningDialogState extends State<ChimePreJoiningDialog> {
         _permissionError = 'Failed to request permissions';
       });
     }
-  }
-
-  /// Show web-specific permission error dialog with helpful instructions
-  void _showWebPermissionErrorDialog(String? errorMessage) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.videocam_off, color: Colors.red.shade700, size: 28),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Permission Required',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              errorMessage ?? 'Camera and microphone access is required for video calls.',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'How to enable permissions:',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '1. Click the lock/info icon in your browser\'s address bar\n'
-                    '2. Find Camera and Microphone settings\n'
-                    '3. Set both to "Allow"\n'
-                    '4. Refresh the page and try again',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showPermissionSettingsDialog() {

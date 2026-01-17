@@ -87,7 +87,6 @@ class _MyAppState extends State<MyApp> {
   late Stream<BaseAuthUser> userStream;
 
   final authUserSub = authenticatedUserStream.listen((_) {});
-  final fcmTokenSub = fcmTokenUserStream.listen((_) {});
 
   @override
   void initState() {
@@ -109,7 +108,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     authUserSub.cancel();
-    fcmTokenSub.cancel();
     super.dispose();
   }
 
@@ -126,7 +124,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Medzen Health',
+      title: 'Medzen Dev',
       scrollBehavior: MyAppScrollBehavior(),
       localizationsDelegates: [
         FFLocalizationsDelegate(),

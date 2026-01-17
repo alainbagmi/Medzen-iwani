@@ -36,10 +36,6 @@ class PatientsSettingsPageModel
       FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
   String uploadedFileUrl_uploadData6b2 = '';
 
-  // State field(s) for phonenumber widget.
-  FocusNode? phonenumberFocusNode;
-  TextEditingController? phonenumberTextController;
-  String? Function(BuildContext, String?)? phonenumberTextControllerValidator;
   // State field(s) for insuranceprovider widget.
   FocusNode? insuranceproviderFocusNode;
   TextEditingController? insuranceproviderTextController;
@@ -87,9 +83,6 @@ class PatientsSettingsPageModel
   void dispose() {
     topBarModel.dispose();
     sideNavModel.dispose();
-    phonenumberFocusNode?.dispose();
-    phonenumberTextController?.dispose();
-
     insuranceproviderFocusNode?.dispose();
     insuranceproviderTextController?.dispose();
 

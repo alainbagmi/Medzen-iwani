@@ -1,58 +1,48 @@
-/// Stub file for web-specific imports on non-web platforms
-/// This allows conditional imports to work on mobile/IO platforms
-/// The actual web functionality is only used in web builds
+// Stub file for non-web platforms
+// This provides minimal implementations of web-specific classes
+// Used only when dart:html is not available (iOS, Android)
 
-// Stub implementations of dart:html types
-class CSSStyleDeclaration {
-  String border = '';
-  String width = '';
-  String height = '';
+// ignore_for_file: non_constant_identifier_names, unused_element
+
+typedef EventListener = Function(Object);
+
+class CssStyleDeclaration {
+  String? border;
+  String? width;
+  String? height;
 }
 
 class IFrameElement {
-  late String id;
-  late CSSStyleDeclaration style;
-  late String allow;
-  late _Window? contentWindow;
+  String? id;
+  String? allow;
+  dynamic contentWindow;
+  final style = CssStyleDeclaration();
 
-  IFrameElement() {
-    style = CSSStyleDeclaration();
-    contentWindow = _Window();
-  }
-
+  void addEventListener(String type, EventListener? listener) {}
+  void removeEventListener(String type, EventListener? listener) {}
+  void postMessage(Object message, String targetOrigin) {}
   void setAttribute(String name, String value) {}
-}
-
-class _Window {
-  void postMessage(dynamic message, String targetOrigin) {}
-}
-
-class Window {
-  void addEventListener(String event, EventListener? listener) {}
-  void removeEventListener(String event, EventListener? listener) {}
-  dynamic postMessage(dynamic message, String targetOrigin) => null;
 }
 
 class Document {
   Element? getElementById(String id) => null;
 }
 
-class Element {}
-
-typedef EventListener = void Function(Event);
-
-class Event {
-  final String type;
-  Event(this.type);
+class Element {
+  void addEventListener(String type, EventListener? listener) {}
+  void removeEventListener(String type, EventListener? listener) {}
 }
 
-// Stub window and document instances
-final window = Window();
+class Window {
+  void addEventListener(String type, EventListener? listener) {}
+  void removeEventListener(String type, EventListener? listener) {}
+}
+
 final document = Document();
+final window = Window();
 
-// Stub implementations of dart:ui_web types
-class _PlatformViewRegistry {
-  void registerViewFactory(String viewTypeId, dynamic factory) {}
+class PlatformViewRegistry {
+  void registerViewFactory(String viewTypeId, dynamic Function(int viewId) factory) {}
 }
 
-final platformViewRegistry = _PlatformViewRegistry();
+final platformViewRegistry = PlatformViewRegistry();

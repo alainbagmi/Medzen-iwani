@@ -71,105 +71,109 @@ class _FacilityAdminProfilePageWidgetState
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
+    return FutureBuilder<ApiCallResponse>(
+      future: SupagraphqlGroup.userDetailsCall.call(
+        userId: FFAppState().AuthuserID,
+      ),
+      builder: (context, snapshot) {
+        // Customize what your widget looks like when it's loading.
+        if (!snapshot.hasData) {
+          return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: Icon(
-                    Icons.chevron_left,
-                    size: 35.0,
+            body: Center(
+              child: SizedBox(
+                width: 50.0,
+                height: 50.0,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
                   ),
-                  showNotificationBadge: false,
-                  logoutbutton: true,
-                  btnaction: () async {
-                    context.safePop();
-                  },
                 ),
               ),
             ),
-            centerTitle: true,
-            elevation: 0.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: Stack(
-            children: [
-              if (responsiveVisibility(
-                context: context,
-                tablet: false,
-                tabletLandscape: false,
-                desktop: false,
-              ))
-                Align(
-                  alignment: AlignmentDirectional(0.0, 1.05),
-                  child: Container(
-                    width: double.infinity,
-                    height: MediaQuery.sizeOf(context).height * 0.095,
-                    decoration: BoxDecoration(
-                      color: FlutterFlowTheme.of(context).secondaryBackground,
-                    ),
-                    child: wrapWithModel(
-                      model: _model.mainBottomNavModel1,
-                      updateCallback: () => safeSetState(() {}),
-                      child: MainBottomNavWidget(),
+          );
+        }
+        final facilityAdminProfilePageUserDetailsResponse = snapshot.data!;
+
+        return GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(80.0),
+              child: AppBar(
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                automaticallyImplyLeading: false,
+                actions: [],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: wrapWithModel(
+                    model: _model.topBarModel,
+                    updateCallback: () => safeSetState(() {}),
+                    child: TopBarWidget(
+                      btnicon: Icon(
+                        Icons.chevron_left,
+                        size: 35.0,
+                      ),
+                      showNotificationBadge: false,
+                      logoutbutton: true,
+                      btnaction: () async {
+                        context.safePop();
+                      },
                     ),
                   ),
                 ),
-              Row(
-                mainAxisSize: MainAxisSize.max,
+                centerTitle: true,
+                elevation: 0.0,
+              ),
+            ),
+            body: SafeArea(
+              top: true,
+              child: Stack(
                 children: [
                   if (responsiveVisibility(
                     context: context,
-                    phone: false,
+                    tablet: false,
+                    tabletLandscape: false,
+                    desktop: false,
                   ))
-                    wrapWithModel(
-                      model: _model.sideNavModel,
-                      updateCallback: () => safeSetState(() {}),
-                      child: SideNavWidget(),
-                    ),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(),
-                      child: FutureBuilder<ApiCallResponse>(
-                        future: SupagraphqlGroup.userDetailsCall.call(
-                          userId: FFAppState().AuthuserID,
+                    Align(
+                      alignment: AlignmentDirectional(0.0, 1.05),
+                      child: Container(
+                        width: double.infinity,
+                        height: MediaQuery.sizeOf(context).height * 0.095,
+                        decoration: BoxDecoration(
+                          color:
+                              FlutterFlowTheme.of(context).secondaryBackground,
                         ),
-                        builder: (context, snapshot) {
-                          // Customize what your widget looks like when it's loading.
-                          if (!snapshot.hasData) {
-                            return Center(
-                              child: SizedBox(
-                                width: 50.0,
-                                height: 50.0,
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    FlutterFlowTheme.of(context).primary,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          final rowUserDetailsResponse = snapshot.data!;
-
-                          return Row(
+                        child: wrapWithModel(
+                          model: _model.mainBottomNavModel1,
+                          updateCallback: () => safeSetState(() {}),
+                          child: MainBottomNavWidget(),
+                        ),
+                      ),
+                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      if (responsiveVisibility(
+                        context: context,
+                        phone: false,
+                      ))
+                        wrapWithModel(
+                          model: _model.sideNavModel,
+                          updateCallback: () => safeSetState(() {}),
+                          child: SideNavWidget(),
+                        ),
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          decoration: BoxDecoration(),
+                          child: Row(
                             mainAxisSize: MainAxisSize.max,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -350,7 +354,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .fullname(
-                                                                    rowUserDetailsResponse
+                                                                    facilityAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   'null',
@@ -437,7 +441,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userDetails(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.date_of_birth''',
@@ -522,7 +526,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userDetails(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.gender''',
@@ -688,7 +692,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.id_card_number''',
@@ -774,7 +778,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.id_card_issue_date''',
@@ -860,7 +864,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.id_card_expiration_date''',
@@ -1025,7 +1029,7 @@ class _FacilityAdminProfilePageWidgetState
                                                               SupagraphqlGroup
                                                                   .userDetailsCall
                                                                   .number(
-                                                                rowUserDetailsResponse
+                                                                facilityAdminProfilePageUserDetailsResponse
                                                                     .jsonBody,
                                                               ),
                                                               'null',
@@ -1120,7 +1124,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        rowUserDetailsResponse
+                                                                        facilityAdminProfilePageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.street_address''',
@@ -1131,7 +1135,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        rowUserDetailsResponse
+                                                                        facilityAdminProfilePageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.city''',
@@ -1142,7 +1146,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        rowUserDetailsResponse
+                                                                        facilityAdminProfilePageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.state''',
@@ -1313,7 +1317,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.insurance_provider''',
@@ -1398,7 +1402,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.insurance_number''',
@@ -1564,7 +1568,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.emergency_contact_name''',
@@ -1649,7 +1653,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.emergency_contact_relationship''',
@@ -1734,7 +1738,7 @@ class _FacilityAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userProfile(
-                                                                  rowUserDetailsResponse
+                                                                  facilityAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.emergency_contact_phone''',
@@ -1831,34 +1835,35 @@ class _FacilityAdminProfilePageWidgetState
                                 ),
                               ),
                             ],
-                          );
-                        },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (responsiveVisibility(
+                    context: context,
+                    tablet: false,
+                    tabletLandscape: false,
+                    desktop: false,
+                  ))
+                    Align(
+                      alignment: AlignmentDirectional(0.0, 1.03),
+                      child: Padding(
+                        padding:
+                            EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
+                        child: wrapWithModel(
+                          model: _model.mainBottomNavModel2,
+                          updateCallback: () => safeSetState(() {}),
+                          child: MainBottomNavWidget(),
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
-              if (responsiveVisibility(
-                context: context,
-                tablet: false,
-                tabletLandscape: false,
-                desktop: false,
-              ))
-                Align(
-                  alignment: AlignmentDirectional(0.0, 1.03),
-                  child: Padding(
-                    padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
-                    child: wrapWithModel(
-                      model: _model.mainBottomNavModel2,
-                      updateCallback: () => safeSetState(() {}),
-                      child: MainBottomNavWidget(),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

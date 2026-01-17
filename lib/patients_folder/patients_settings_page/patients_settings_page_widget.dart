@@ -45,8 +45,6 @@ class _PatientsSettingsPageWidgetState
     super.initState();
     _model = createModel(context, () => PatientsSettingsPageModel());
 
-    _model.phonenumberFocusNode ??= FocusNode();
-
     _model.insuranceproviderFocusNode ??= FocusNode();
 
     _model.policynumberFocusNode ??= FocusNode();
@@ -717,127 +715,35 @@ class _PatientsSettingsPageWidgetState
                                                                 ),
                                                           ),
                                                         ),
-                                                        Expanded(
-                                                          child: Align(
-                                                            alignment:
-                                                                AlignmentDirectional(
-                                                                    0.0, 0.0),
-                                                            child: Padding(
-                                                              padding:
-                                                                  EdgeInsetsDirectional
-                                                                      .fromSTEB(
-                                                                          5.0,
-                                                                          0.0,
-                                                                          0.0,
-                                                                          0.0),
-                                                              child:
-                                                                  TextFormField(
-                                                                controller: _model
-                                                                        .phonenumberTextController ??=
-                                                                    TextEditingController(
-                                                                  text: valueOrDefault<
-                                                                      String>(
-                                                                    SupagraphqlGroup
-                                                                        .userDetailsCall
-                                                                        .number(
-                                                                      patientsSettingsPageUserDetailsResponse
-                                                                          .jsonBody,
-                                                                    ),
-                                                                    'null',
-                                                                  ),
+                                                        Align(
+                                                          alignment:
+                                                              AlignmentDirectional(
+                                                                  0.0, 0.0),
+                                                          child: Padding(
+                                                            padding:
+                                                                EdgeInsetsDirectional
+                                                                    .fromSTEB(
+                                                                        5.0,
+                                                                        0.0,
+                                                                        0.0,
+                                                                        0.0),
+                                                            child: Text(
+                                                              valueOrDefault<
+                                                                  String>(
+                                                                SupagraphqlGroup
+                                                                    .userDetailsCall
+                                                                    .number(
+                                                                  patientsSettingsPageUserDetailsResponse
+                                                                      .jsonBody,
                                                                 ),
-                                                                focusNode: _model
-                                                                    .phonenumberFocusNode,
-                                                                onChanged: (_) =>
-                                                                    EasyDebounce
-                                                                        .debounce(
-                                                                  '_model.phonenumberTextController',
-                                                                  Duration(
-                                                                      milliseconds:
-                                                                          2000),
-                                                                  () async {
-                                                                    FFAppState()
-                                                                            .editPhoneNumber =
-                                                                        _model
-                                                                            .phonenumberTextController
-                                                                            .text;
-                                                                    safeSetState(
-                                                                        () {});
-                                                                  },
-                                                                ),
-                                                                obscureText:
-                                                                    false,
-                                                                decoration:
-                                                                    InputDecoration(
-                                                                  enabledBorder:
-                                                                      UnderlineInputBorder(
-                                                                    borderSide:
-                                                                        BorderSide(
-                                                                      color: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .alternate,
-                                                                      width:
-                                                                          1.0,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            12.0),
-                                                                  ),
-                                                                  focusedBorder:
-                                                                      UnderlineInputBorder(
-                                                                    borderSide:
-                                                                        BorderSide(
-                                                                      color: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .primary,
-                                                                      width:
-                                                                          1.0,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            12.0),
-                                                                  ),
-                                                                  errorBorder:
-                                                                      UnderlineInputBorder(
-                                                                    borderSide:
-                                                                        BorderSide(
-                                                                      color: Color(
-                                                                          0x00000000),
-                                                                      width:
-                                                                          1.0,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            12.0),
-                                                                  ),
-                                                                  focusedErrorBorder:
-                                                                      UnderlineInputBorder(
-                                                                    borderSide:
-                                                                        BorderSide(
-                                                                      color: Color(
-                                                                          0x00000000),
-                                                                      width:
-                                                                          1.0,
-                                                                    ),
-                                                                    borderRadius:
-                                                                        BorderRadius.circular(
-                                                                            12.0),
-                                                                  ),
-                                                                ),
-                                                                style: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .override(
-                                                                      font: GoogleFonts
-                                                                          .inter(
-                                                                        fontWeight:
-                                                                            FontWeight.w500,
-                                                                        fontStyle: FlutterFlowTheme.of(context)
-                                                                            .bodyMedium
-                                                                            .fontStyle,
-                                                                      ),
-                                                                      letterSpacing:
-                                                                          0.0,
+                                                                'null',
+                                                              ),
+                                                              style: FlutterFlowTheme
+                                                                      .of(context)
+                                                                  .bodyMedium
+                                                                  .override(
+                                                                    font: GoogleFonts
+                                                                        .inter(
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .w500,
@@ -846,14 +752,16 @@ class _PatientsSettingsPageWidgetState
                                                                           .bodyMedium
                                                                           .fontStyle,
                                                                     ),
-                                                                keyboardType:
-                                                                    TextInputType
-                                                                        .phone,
-                                                                validator: _model
-                                                                    .phonenumberTextControllerValidator
-                                                                    .asValidator(
-                                                                        context),
-                                                              ),
+                                                                    letterSpacing:
+                                                                        0.0,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                    fontStyle: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .bodyMedium
+                                                                        .fontStyle,
+                                                                  ),
                                                             ),
                                                           ),
                                                         ),
@@ -3597,16 +3505,6 @@ class _PatientsSettingsPageWidgetState
                                           },
                                           matchingRows: (rows) => rows.eqOrNull(
                                             'user_id',
-                                            FFAppState().AuthuserID,
-                                          ),
-                                        );
-                                        await UsersTable().update(
-                                          data: {
-                                            'phone_number': _model
-                                                .phonenumberTextController.text,
-                                          },
-                                          matchingRows: (rows) => rows.eqOrNull(
-                                            'id',
                                             FFAppState().AuthuserID,
                                           ),
                                         );

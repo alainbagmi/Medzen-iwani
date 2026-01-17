@@ -1,0 +1,77 @@
+{
+  "family": "medzen-ehrbase-ehrbase",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::558069890522:role/medzen-ehrbase-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::558069890522:role/medzen-ehrbase-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "ehrbase",
+      "image": "ehrbase/ehrbase:2.26.0",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "DB_URL",
+          "value": "jdbc:postgresql://medzen-ehrbase-db.c702q40oic90.eu-west-1.rds.amazonaws.com:5432/ehrbase"
+        },
+        {
+          "name": "DB_USER",
+          "value": "ehrbase_restricted"
+        },
+        {
+          "name": "DB_USER_ADMIN",
+          "value": "ehrbase_admin"
+        },
+        {
+          "name": "SECURITY_AUTHTYPE",
+          "value": "BASIC"
+        },
+        {
+          "name": "SECURITY_AUTHUSER",
+          "value": "ehrbase-user"
+        },
+        {
+          "name": "SPRING_PROFILES_ACTIVE",
+          "value": "docker"
+        },
+        {
+          "name": "JAVA_TOOL_OPTIONS",
+          "value": "-Xmx1536m"
+        },
+        {
+          "name": "SERVER_NODENAME",
+          "value": "aws-ecs-node"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DB_PASS",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:558069890522:secret:medzen-ehrbase/db_user_password-UFbgXy"
+        },
+        {
+          "name": "DB_PASS_ADMIN",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:558069890522:secret:medzen-ehrbase/db_admin_password-XbPJVv"
+        },
+        {
+          "name": "SECURITY_AUTHPASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:eu-west-1:558069890522:secret:medzen-ehrbase/ehrbase_basic_auth-HM8gue:password::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/medzen-ehrbase",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "ehrbase"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+fields @timestamp, @message
+| filter @message like /status/
+| parse @message /duration=(?<duration>\d+)/
+| stats avg(duration), max(duration), min(duration), pct(duration, 95) by bin(5m)

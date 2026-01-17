@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedZen CDN Test - Chime SDK</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0073bb;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-weight: 600;
+        }
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background: #e7f3ff;
+            color: #004085;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-box">
+        <h1>🚀 MedZen CloudFront CDN Test</h1>
+        <p>Testing Chime SDK loading from CloudFront distribution</p>
+
+        <div id="status" class="status loading">⏳ Loading Chime SDK from CDN...</div>
+
+        <div id="details"></div>
+
+        <div class="info">
+            <strong>CDN URL:</strong><br>
+            <code>https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js</code>
+            <br><br>
+            <strong>Expected Result:</strong><br>
+            ✅ Chime SDK loads successfully<br>
+            ✅ Global <code>ChimeSDK</code> object is available<br>
+            ✅ Version 3.x detected
+        </div>
+    </div>
+
+    <!-- Load Chime SDK from MedZen CDN -->
+    <script src="https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js"></script>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const detailsDiv = document.getElementById('details');
+
+        // Wait for SDK to load
+        setTimeout(() => {
+            let html = '';
+
+            if (typeof ChimeSDK !== 'undefined') {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ SUCCESS! Chime SDK loaded from CDN';
+
+                html += '<h3>SDK Details:</h3>';
+                html += '<ul>';
+                html += '<li>✅ Global ChimeSDK object: Available</li>';
+
+                // Check for common ChimeSDK classes
+                const classes = [
+                    'DefaultMeetingSession',
+                    'DefaultDeviceController',
+                    'ConsoleLogger',
+                    'MeetingSessionConfiguration'
+                ];
+
+                classes.forEach(className => {
+                    if (ChimeSDK[className]) {
+                        html += `<li>✅ ChimeSDK.${className}: Available</li>`;
+                    } else {
+                        html += `<li>⚠️ ChimeSDK.${className}: Not found</li>`;
+                    }
+                });
+
+                // Try to detect version
+                if (ChimeSDK.Versioning) {
+                    html += `<li>📦 SDK Version: ${ChimeSDK.Versioning.sdkVersion || 'Unknown'}</li>`;
+                } else {
+                    html += '<li>📦 SDK Version: 3.x (custom build)</li>';
+                }
+
+                html += '</ul>';
+
+                html += '<div class="info" style="background: #d4edda;">';
+                html += '<strong>✅ CDN Configuration Successful!</strong><br><br>';
+                html += 'The Chime SDK is now being served from CloudFront with:<br>';
+                html += '• 1-year cache (max-age=31536000)<br>';
+                html += '• Global edge distribution<br>';
+                html += '• HTTPS encryption<br>';
+                html += '• Improved load times worldwide';
+                html += '</div>';
+
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ ERROR: Chime SDK failed to load';
+
+                html += '<p>The SDK could not be loaded from the CDN. Possible issues:</p>';
+                html += '<ul>';
+                html += '<li>CloudFront distribution not propagated (wait 15-20 minutes)</li>';
+                html += '<li>S3 bucket policy incorrect</li>';
+                html += '<li>CORS configuration needed</li>';
+                html += '<li>File not uploaded to S3</li>';
+                html += '</ul>';
+            }
+
+            detailsDiv.innerHTML = html;
+
+        }, 2000); // Give SDK 2 seconds to load
+    </script>
+</body>
+</html>

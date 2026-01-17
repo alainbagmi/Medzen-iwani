@@ -71,6 +71,11 @@ class UsersRecord extends FirestoreRecord {
   String get facilityid => _facilityid ?? '';
   bool hasFacilityid() => _facilityid != null;
 
+  // "created_by" field.
+  DocumentReference? _createdBy;
+  DocumentReference? get createdBy => _createdBy;
+  bool hasCreatedBy() => _createdBy != null;
+
   void _initializeFields() {
     _email = snapshotData['email'] as String?;
     _displayName = snapshotData['display_name'] as String?;
@@ -83,6 +88,7 @@ class UsersRecord extends FirestoreRecord {
     _role = snapshotData['role'] as String?;
     _supabaseUuid = snapshotData['supabase_uuid'] as String?;
     _facilityid = snapshotData['facilityid'] as String?;
+    _createdBy = snapshotData['created_by'] as DocumentReference?;
   }
 
   static CollectionReference get collection =>
@@ -130,6 +136,7 @@ Map<String, dynamic> createUsersRecordData({
   String? role,
   String? supabaseUuid,
   String? facilityid,
+  DocumentReference? createdBy,
 }) {
   final firestoreData = mapToFirestore(
     <String, dynamic>{
@@ -144,6 +151,7 @@ Map<String, dynamic> createUsersRecordData({
       'role': role,
       'supabase_uuid': supabaseUuid,
       'facilityid': facilityid,
+      'created_by': createdBy,
     }.withoutNulls,
   );
 
@@ -165,7 +173,8 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e1?.userNumber == e2?.userNumber &&
         e1?.role == e2?.role &&
         e1?.supabaseUuid == e2?.supabaseUuid &&
-        e1?.facilityid == e2?.facilityid;
+        e1?.facilityid == e2?.facilityid &&
+        e1?.createdBy == e2?.createdBy;
   }
 
   @override
@@ -180,7 +189,8 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e?.userNumber,
         e?.role,
         e?.supabaseUuid,
-        e?.facilityid
+        e?.facilityid,
+        e?.createdBy
       ]);
 
   @override

@@ -70,86 +70,89 @@ class _SystemAdminProfilePageWidgetState
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
+    return FutureBuilder<ApiCallResponse>(
+      future: SupagraphqlGroup.userDetailsCall.call(
+        userId: FFAppState().AuthuserID,
+      ),
+      builder: (context, snapshot) {
+        // Customize what your widget looks like when it's loading.
+        if (!snapshot.hasData) {
+          return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: Icon(
-                    Icons.chevron_left,
-                    size: 35.0,
+            body: Center(
+              child: SizedBox(
+                width: 50.0,
+                height: 50.0,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
                   ),
-                  showNotificationBadge: false,
-                  logoutbutton: true,
-                  btnaction: () async {
-                    context.safePop();
-                  },
                 ),
               ),
             ),
-            centerTitle: true,
-            elevation: 0.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: Stack(
-            children: [
-              Stack(
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
-                    children: [
-                      if (responsiveVisibility(
-                        context: context,
-                        phone: false,
-                      ))
-                        wrapWithModel(
-                          model: _model.sideNavModel,
-                          updateCallback: () => safeSetState(() {}),
-                          child: SideNavWidget(),
-                        ),
-                      Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          decoration: BoxDecoration(),
-                          child: FutureBuilder<ApiCallResponse>(
-                            future: SupagraphqlGroup.userDetailsCall.call(
-                              userId: FFAppState().AuthuserID,
-                            ),
-                            builder: (context, snapshot) {
-                              // Customize what your widget looks like when it's loading.
-                              if (!snapshot.hasData) {
-                                return Center(
-                                  child: SizedBox(
-                                    width: 50.0,
-                                    height: 50.0,
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        FlutterFlowTheme.of(context).primary,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }
-                              final rowUserDetailsResponse = snapshot.data!;
+          );
+        }
+        final systemAdminProfilePageUserDetailsResponse = snapshot.data!;
 
-                              return Row(
+        return GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(80.0),
+              child: AppBar(
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                automaticallyImplyLeading: false,
+                actions: [],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: wrapWithModel(
+                    model: _model.topBarModel,
+                    updateCallback: () => safeSetState(() {}),
+                    child: TopBarWidget(
+                      btnicon: Icon(
+                        Icons.chevron_left,
+                        size: 35.0,
+                      ),
+                      showNotificationBadge: false,
+                      logoutbutton: true,
+                      btnaction: () async {
+                        context.safePop();
+                      },
+                    ),
+                  ),
+                ),
+                centerTitle: true,
+                elevation: 0.0,
+              ),
+            ),
+            body: SafeArea(
+              top: true,
+              child: Stack(
+                children: [
+                  Stack(
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          if (responsiveVisibility(
+                            context: context,
+                            phone: false,
+                          ))
+                            wrapWithModel(
+                              model: _model.sideNavModel,
+                              updateCallback: () => safeSetState(() {}),
+                              child: SideNavWidget(),
+                            ),
+                          Expanded(
+                            child: Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              decoration: BoxDecoration(),
+                              child: Row(
                                 mainAxisSize: MainAxisSize.max,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -331,7 +334,7 @@ class _SystemAdminProfilePageWidgetState
                                                                     SupagraphqlGroup
                                                                         .userDetailsCall
                                                                         .fullname(
-                                                                      rowUserDetailsResponse
+                                                                      systemAdminProfilePageUserDetailsResponse
                                                                           .jsonBody,
                                                                     ),
                                                                     'null',
@@ -414,7 +417,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userDetails(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.date_of_birth''',
@@ -495,7 +498,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userDetails(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.gender''',
@@ -660,7 +663,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.id_card_number''',
@@ -741,7 +744,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.id_card_issue_date''',
@@ -822,7 +825,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.id_card_expiration_date''',
@@ -986,7 +989,7 @@ class _SystemAdminProfilePageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .number(
-                                                                  rowUserDetailsResponse
+                                                                  systemAdminProfilePageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 'null',
@@ -1076,7 +1079,7 @@ class _SystemAdminProfilePageWidgetState
                                                                         SupagraphqlGroup
                                                                             .userDetailsCall
                                                                             .userProfile(
-                                                                          rowUserDetailsResponse
+                                                                          systemAdminProfilePageUserDetailsResponse
                                                                               .jsonBody,
                                                                         ),
                                                                         r'''$.street_address''',
@@ -1087,7 +1090,7 @@ class _SystemAdminProfilePageWidgetState
                                                                         SupagraphqlGroup
                                                                             .userDetailsCall
                                                                             .userProfile(
-                                                                          rowUserDetailsResponse
+                                                                          systemAdminProfilePageUserDetailsResponse
                                                                               .jsonBody,
                                                                         ),
                                                                         r'''$.city''',
@@ -1098,7 +1101,7 @@ class _SystemAdminProfilePageWidgetState
                                                                         SupagraphqlGroup
                                                                             .userDetailsCall
                                                                             .userProfile(
-                                                                          rowUserDetailsResponse
+                                                                          systemAdminProfilePageUserDetailsResponse
                                                                               .jsonBody,
                                                                         ),
                                                                         r'''$.state''',
@@ -1268,7 +1271,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_provider''',
@@ -1349,7 +1352,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_number''',
@@ -1514,7 +1517,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_name''',
@@ -1595,7 +1598,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_relationship''',
@@ -1676,7 +1679,7 @@ class _SystemAdminProfilePageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    systemAdminProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_phone''',
@@ -1754,30 +1757,31 @@ class _SystemAdminProfilePageWidgetState
                                     ),
                                   ),
                                 ],
-                              );
-                            },
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
+                  Align(
+                    alignment: AlignmentDirectional(0.0, 1.04),
+                    child: Padding(
+                      padding:
+                          EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
+                      child: wrapWithModel(
+                        model: _model.mainBottomNavModel,
+                        updateCallback: () => safeSetState(() {}),
+                        child: MainBottomNavWidget(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              Align(
-                alignment: AlignmentDirectional(0.0, 1.04),
-                child: Padding(
-                  padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
-                  child: wrapWithModel(
-                    model: _model.mainBottomNavModel,
-                    updateCallback: () => safeSetState(() {}),
-                    child: MainBottomNavWidget(),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -1,0 +1,17 @@
+{
+  "Comment": "Update ehr.medzenhealth.app to point to new eu-central-1 ALB",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "ehr.medzenhealth.app",
+        "Type": "A",
+        "AliasTarget": {
+          "HostedZoneId": "Z215JYRZR1TBD5",
+          "DNSName": "medzen-ehrbase-alb-358109499.eu-central-1.elb.amazonaws.com",
+          "EvaluateTargetHealth": true
+        }
+      }
+    }
+  ]
+}

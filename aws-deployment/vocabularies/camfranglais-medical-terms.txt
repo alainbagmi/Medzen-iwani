@@ -1,0 +1,73 @@
+Phrase	IPA	SoundsLike	DisplayAs
+le dos			back pain
+la tête			head
+mal au ventre			stomach ache
+fever-là			fever
+hospital-là			hospital
+docteur-là			doctor
+medicament		med-i-ca-mon	medication
+malade			sick
+soigner			treat
+guerir			cure
+douleur			pain
+je suis malade			I am sick
+ca fait mal			it hurts
+la grippe			flu
+le rhume			cold
+la toux			cough
+le sang			blood
+le coeur			heart
+les poumons			lungs
+le foie			liver
+les reins			kidneys
+l'estomac			stomach
+la pression			blood pressure
+le diabète			diabetes
+l'asthme			asthma
+le paludisme			malaria
+la fièvre			fever
+l'injection			injection
+le comprimé			tablet
+la gélule			capsule
+la piqûre			injection
+l'ordonnance			prescription
+le traitement			treatment
+l'opération			surgery
+l'analyse			test
+la radio			x-ray
+le scanner			scan
+l'échographie			ultrasound
+la femme enceinte			pregnant woman
+l'accouchement			childbirth
+le bébé			baby
+l'urgence			emergency
+grave			serious
+mort			dead
+vivant			alive
+guéri			healed
+hospitalisé			hospitalized
+sorti			discharged
+rendez-vous			appointment
+consultation			consultation
+infirmier			nurse
+pharmacie			pharmacy
+hôpital			hospital
+clinique			clinic
+centre de santé			health center
+tension			blood pressure
+sucre			diabetes
+paludisme			malaria
+typhoid			typhoid
+choléra			cholera
+hépatite			hepatitis
+VIH			HIV
+SIDA			AIDS
+tuberculose			tuberculosis
+cancer			cancer
+AVC			stroke
+crise cardiaque			heart attack
+infarctus			myocardial infarction
+fracture			fracture
+blessure			wound
+plaie			wound
+brûlure			burn

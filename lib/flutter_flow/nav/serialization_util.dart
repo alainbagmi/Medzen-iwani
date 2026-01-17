@@ -277,10 +277,14 @@ dynamic deserializeParam<T>(
             return VSpecialtyProviderCountsRow(data);
           case SpatialRefSysRow:
             return SpatialRefSysRow(data);
+          case FacilitiesPatientsRow:
+            return FacilitiesPatientsRow(data);
           case MedicationsRow:
             return MedicationsRow(data);
           case CustomVocabulariesRow:
             return CustomVocabulariesRow(data);
+          case TranscriptionUsageDailyRow:
+            return TranscriptionUsageDailyRow(data);
           case NurseProfilesRow:
             return NurseProfilesRow(data);
           case PharmacistProfilesRow:
@@ -403,6 +407,8 @@ dynamic deserializeParam<T>(
             return MedicalRecordConditionsRow(data);
           case MedicalPractitionersViewRow:
             return MedicalPractitionersViewRow(data);
+          case TranscriptionAnalyticsRow:
+            return TranscriptionAnalyticsRow(data);
           case CustomVocabularyAnalyticsRow:
             return CustomVocabularyAnalyticsRow(data);
           case AdmissionDischargesRow:
@@ -449,6 +455,10 @@ dynamic deserializeParam<T>(
             return SystemDashboardStatsRow(data);
           case ChimeMessagingChannelsRow:
             return ChimeMessagingChannelsRow(data);
+          case NearbySearchOptionsRow:
+            return NearbySearchOptionsRow(data);
+          case FacilitiesWithLocationRow:
+            return FacilitiesWithLocationRow(data);
           case PrescriptionsRow:
             return PrescriptionsRow(data);
           case StorageFileOwnershipRow:
@@ -533,6 +543,8 @@ dynamic deserializeParam<T>(
             return AiLanguageUsageStatsRow(data);
           case FacilityTypesRow:
             return FacilityTypesRow(data);
+          case PatientFacilitiesRow:
+            return PatientFacilitiesRow(data);
           case DoctorPerformanceReportsRow:
             return DoctorPerformanceReportsRow(data);
           case VProviderSpecialtyDetailsRow:
@@ -593,6 +605,8 @@ dynamic deserializeParam<T>(
             return MedicalRecordingMetadataRow(data);
           case SpecialtiesRow:
             return SpecialtiesRow(data);
+          case ConsultationNoteDraftsRow:
+            return ConsultationNoteDraftsRow(data);
           case UserActivityLogsRow:
             return UserActivityLogsRow(data);
           case VPowersyncReplicationStatusRow:
@@ -603,6 +617,8 @@ dynamic deserializeParam<T>(
             return ReviewsRow(data);
           case PromotionUsageRow:
             return PromotionUsageRow(data);
+          case CallNotificationsRow:
+            return CallNotificationsRow(data);
           case NotificationsRow:
             return NotificationsRow(data);
           case AppointmentOverviewRow:

@@ -1,0 +1,245 @@
+{
+  "Comment": "MedZen SOAP Note Generation Workflow - Orchestrates medical transcription to SOAP note generation with Bedrock and Supabase",
+  "StartAt": "ValidateInput",
+  "States": {
+    "ValidateInput": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-validate-session-supabase",
+      "Parameters": {
+        "sessionId.$": "$.sessionId"
+      },
+      "ResultPath": "$.sessionData",
+      "Next": "CheckTranscriptionEnabled",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "InvalidInputError"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 2,
+          "BackoffRate": 2.0
+        }
+      ]
+    },
+    "CheckTranscriptionEnabled": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.transcriptionEnabled",
+          "BooleanEquals": false,
+          "Next": "SkipSOAPGeneration"
+        }
+      ],
+      "Default": "FetchTranscript"
+    },
+    "FetchTranscript": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-fetch-transcript",
+      "Parameters": {
+        "sessionId.$": "$.sessionId",
+        "transcriptId.$": "$.transcriptId"
+      },
+      "ResultPath": "$.transcript",
+      "Next": "EnrichTranscriptMetadata",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "TranscriptFetchError"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ]
+    },
+    "EnrichTranscriptMetadata": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-enrich-metadata",
+      "Parameters": {
+        "appointmentId.$": "$.appointmentId",
+        "sessionId.$": "$.sessionId",
+        "transcript.$": "$.transcript"
+      },
+      "ResultPath": "$.enrichedData",
+      "Next": "GenerateSOAPFromTranscript",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "MetadataEnrichmentError"
+        }
+      ]
+    },
+    "GenerateSOAPFromTranscript": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-generate-soap-from-transcript",
+      "Parameters": {
+        "sessionId.$": "$.sessionId",
+        "appointmentId.$": "$.appointmentId",
+        "providerId.$": "$.providerId",
+        "providerName.$": "$.enrichedData.providerName",
+        "providerSpecialty.$": "$.enrichedData.providerSpecialty",
+        "patientName.$": "$.enrichedData.patientName",
+        "transcript.$": "$.transcript.transcript",
+        "callStartTime.$": "$.enrichedData.callStartTime",
+        "callEndTime.$": "$.enrichedData.callEndTime",
+        "transcriptLanguage.$": "$.enrichedData.language"
+      },
+      "ResultPath": "$.parsedSOAP",
+      "TimeoutSeconds": 120,
+      "Next": "SaveSOAPToSupabase",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "Next": "BedrockUnavailable"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "BedrockGenerationError"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["ThrottlingException"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 5,
+          "BackoffRate": 2.0
+        },
+        {
+          "ErrorEquals": ["ServiceUnavailableException"],
+          "IntervalSeconds": 10,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ]
+    },
+    "SaveSOAPToSupabase": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-save-soap-to-supabase",
+      "Parameters": {
+        "sessionId.$": "$.sessionId",
+        "appointmentId.$": "$.appointmentId",
+        "soapData.$": "$.parsedSOAP.soapNote",
+        "bedrockTokens.$": "$.parsedSOAP.bedrockTokens",
+        "aiModel": "claude-opus-4-5-20251101-v1:0"
+      },
+      "ResultPath": "$.supabaseSOAPResult",
+      "TimeoutSeconds": 60,
+      "Next": "UpdateSessionStatus",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "Next": "SupabaseSOAPSaveError"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ]
+    },
+    "UpdateSessionStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-update-session-status-supabase",
+      "Parameters": {
+        "sessionId.$": "$.sessionId",
+        "status": "soap_generated",
+        "soapGenerated": true
+      },
+      "ResultPath": "$.sessionUpdate",
+      "TimeoutSeconds": 30,
+      "Next": "SendSuccessNotification",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.sessionUpdateError",
+          "Next": "SendSuccessNotification"
+        }
+      ]
+    },
+    "SendSuccessNotification": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-send-notification",
+      "Parameters": {
+        "type": "soap_generated",
+        "providerId.$": "$.providerId",
+        "sessionId.$": "$.sessionId",
+        "appointmentId.$": "$.appointmentId"
+      },
+      "ResultPath": "$.notification",
+      "TimeoutSeconds": 30,
+      "Next": "Success",
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.notificationError",
+          "Next": "Success"
+        }
+      ]
+    },
+    "SkipSOAPGeneration": {
+      "Type": "Pass",
+      "Result": {
+        "message": "Transcription not enabled, skipping SOAP generation",
+        "sessionId.$": "$.sessionId"
+      },
+      "End": true
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "InvalidInputError": {
+      "Type": "Fail",
+      "Error": "InvalidInput",
+      "Cause": "Failed to validate session ID in Supabase"
+    },
+    "TranscriptFetchError": {
+      "Type": "Fail",
+      "Error": "TranscriptFetchFailed",
+      "Cause": "Could not retrieve transcript from database"
+    },
+    "MetadataEnrichmentError": {
+      "Type": "Fail",
+      "Error": "MetadataEnrichmentFailed",
+      "Cause": "Failed to enrich transcript with appointment metadata"
+    },
+    "BedrockUnavailable": {
+      "Type": "Pass",
+      "Result": {
+        "message": "Bedrock Claude Opus 4.5 not available - queued for retry",
+        "sessionId.$": "$.sessionId",
+        "requiresManualRetry": true
+      },
+      "Next": "QueueForLaterRetry"
+    },
+    "QueueForLaterRetry": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sqs:sendMessage",
+      "Parameters": {
+        "QueueUrl": "https://sqs.us-east-1.amazonaws.com/ACCOUNT_ID/medzen-soap-retry-queue",
+        "MessageBody.$": "States.JsonToString($)"
+      },
+      "End": true
+    },
+    "BedrockGenerationError": {
+      "Type": "Fail",
+      "Error": "BedrockGenerationFailed",
+      "Cause": "Bedrock Claude Opus 4.5 failed to generate SOAP note"
+    },
+    "SupabaseSOAPSaveError": {
+      "Type": "Fail",
+      "Error": "SupabaseSOAPSaveFailed",
+      "Cause": "Failed to save SOAP note to Supabase"
+    }
+  }
+}

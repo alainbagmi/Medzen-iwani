@@ -283,4 +283,28 @@ class VideoCallSessionsRow extends SupabaseDataRow {
       getField<DateTime>('live_transcription_started_at');
   set liveTranscriptionStartedAt(DateTime? value) =>
       setField<DateTime>('live_transcription_started_at', value);
+
+  int? get transcriptionDurationSeconds =>
+      getField<int>('transcription_duration_seconds');
+  set transcriptionDurationSeconds(int? value) =>
+      setField<int>('transcription_duration_seconds', value);
+
+  double? get transcriptionEstimatedCostUsd =>
+      getField<double>('transcription_estimated_cost_usd');
+  set transcriptionEstimatedCostUsd(double? value) =>
+      setField<double>('transcription_estimated_cost_usd', value);
+
+  int? get transcriptionMaxDurationMinutes =>
+      getField<int>('transcription_max_duration_minutes');
+  set transcriptionMaxDurationMinutes(int? value) =>
+      setField<int>('transcription_max_duration_minutes', value);
+
+  bool? get transcriptionAutoStopped =>
+      getField<bool>('transcription_auto_stopped');
+  set transcriptionAutoStopped(bool? value) =>
+      setField<bool>('transcription_auto_stopped', value);
+
+  String? get transcriptionMode => getField<String>('transcription_mode');
+  set transcriptionMode(String? value) =>
+      setField<String>('transcription_mode', value);
 }

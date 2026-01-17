@@ -70,12 +70,36 @@ export async function verifyAwsSignatureV4(
 
     const [, credential, signedHeaders, signature] = authParts;
 
-    // Verify credential format: ACCESS_KEY_ID/YYYYMMDD/region/service/aws4_request
-    const credentialRegex = /^[A-Z0-9]+\/\d{8}\/[a-z0-9-]+\/[a-z0-9-]+\/aws4_request$/;
-    if (!credentialRegex.test(credential)) {
+    // Verify credential format and parse components
+    const credentialRegex = /^([A-Z0-9]+)\/(\d{8})\/([a-z0-9-]+)\/([a-z0-9-]+)\/aws4_request$/;
+    const credentialMatch = credential.match(credentialRegex);
+
+    if (!credentialMatch) {
       console.error('[AWS SigV4] Invalid credential format:', credential);
       return false;
     }
+
+    const [, accessKeyId, dateStr, credentialRegion, credentialService] = credentialMatch;
+
+    // CRITICAL: Verify that region and service match expectations
+    // This prevents attackers from forging signatures with wrong region/service
+    if (credentialRegion !== region) {
+      console.error(`[AWS SigV4] Region mismatch: credential region '${credentialRegion}' does not match expected '${region}'`);
+      return false;
+    }
+
+    if (credentialService !== service && credentialService !== 'execute-api') {
+      // Allow execute-api for API Gateway; also allow the specified service
+      console.error(`[AWS SigV4] Service mismatch: credential service '${credentialService}' does not match expected '${service}' or 'execute-api'`);
+      return false;
+    }
+
+    console.log('[AWS SigV4] Credential validation passed:', {
+      region: credentialRegion,
+      service: credentialService,
+      date: dateStr,
+      accessKeyId: accessKeyId.substring(0, 4) + '...', // Log only first 4 chars for security
+    });
 
     // Verify timestamp (within 15 minutes to prevent replay attacks)
     const requestTime = parseAwsDate(amzDate);

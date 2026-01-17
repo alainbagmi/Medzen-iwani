@@ -1,0 +1,128 @@
+{
+    "Stacks": [
+        {
+            "StackId": "arn:aws:cloudformation:eu-west-1:558069890522:stack/medzen-chime-sdk-eu-west-1/e9c4a9e0-c618-11f0-98cc-0672ef9cfb3b",
+            "StackName": "medzen-chime-sdk-eu-west-1",
+            "Description": "MedZen Amazon Chime SDK Multi-Region Infrastructure - Video Calling & Medical Transcription",
+            "Parameters": [
+                {
+                    "ParameterKey": "ExistingRecordingsBucket",
+                    "ParameterValue": "medzen-meeting-recordings-558069890522"
+                },
+                {
+                    "ParameterKey": "ExistingKMSKeyArn",
+                    "ParameterValue": "arn:aws:kms:eu-west-1:558069890522:key/5e84763b-0627-410f-b9bf-661e4021fba3"
+                },
+                {
+                    "ParameterKey": "ExistingTranscriptsBucket",
+                    "ParameterValue": "medzen-meeting-transcripts-558069890522"
+                },
+                {
+                    "ParameterKey": "ExistingMedicalDataBucket",
+                    "ParameterValue": "medzen-medical-data-558069890522"
+                },
+                {
+                    "ParameterKey": "ProjectName",
+                    "ParameterValue": "medzen"
+                },
+                {
+                    "ParameterKey": "SupabaseServiceKey",
+                    "ParameterValue": "****"
+                },
+                {
+                    "ParameterKey": "Environment",
+                    "ParameterValue": "production"
+                },
+                {
+                    "ParameterKey": "RetentionDays",
+                    "ParameterValue": "2555"
+                },
+                {
+                    "ParameterKey": "LambdaMemory",
+                    "ParameterValue": "1024"
+                },
+                {
+                    "ParameterKey": "SupabaseUrl",
+                    "ParameterValue": "****"
+                }
+            ],
+            "CreationTime": "2025-11-20T13:57:55.247Z",
+            "LastUpdatedTime": "2025-11-28T20:35:05.646Z",
+            "RollbackConfiguration": {},
+            "StackStatus": "UPDATE_COMPLETE",
+            "DisableRollback": false,
+            "NotificationARNs": [],
+            "Capabilities": [
+                "CAPABILITY_IAM",
+                "CAPABILITY_NAMED_IAM"
+            ],
+            "Outputs": [
+                {
+                    "OutputKey": "MedicalDataBucketName",
+                    "OutputValue": "medzen-medical-data-558069890522",
+                    "Description": "Medical data S3 bucket name (existing)",
+                    "ExportName": "medzen-eu-west-1-MedicalDataBucket"
+                },
+                {
+                    "OutputKey": "KMSKeyArn",
+                    "OutputValue": "arn:aws:kms:eu-west-1:558069890522:key/5e84763b-0627-410f-b9bf-661e4021fba3",
+                    "Description": "KMS Key ARN for Chime encryption (existing)",
+                    "ExportName": "medzen-eu-west-1-ChimeKMSKeyArn"
+                },
+                {
+                    "OutputKey": "MessagingHandlerFunctionArn",
+                    "OutputValue": "arn:aws:lambda:eu-west-1:558069890522:function:medzen-messaging-handler",
+                    "Description": "Messaging Handler Lambda ARN",
+                    "ExportName": "medzen-eu-west-1-MessagingHandlerArn"
+                },
+                {
+                    "OutputKey": "TranscriptsBucketName",
+                    "OutputValue": "medzen-meeting-transcripts-558069890522",
+                    "Description": "Transcripts S3 bucket name (existing)",
+                    "ExportName": "medzen-eu-west-1-TranscriptsBucket"
+                },
+                {
+                    "OutputKey": "AuditTableName",
+                    "OutputValue": "medzen-meeting-audit",
+                    "Description": "DynamoDB audit table name",
+                    "ExportName": "medzen-eu-west-1-AuditTable"
+                },
+                {
+                    "OutputKey": "MeetingManagerFunctionArn",
+                    "OutputValue": "arn:aws:lambda:eu-west-1:558069890522:function:medzen-meeting-manager",
+                    "Description": "Meeting Manager Lambda ARN",
+                    "ExportName": "medzen-eu-west-1-MeetingManagerArn"
+                },
+                {
+                    "OutputKey": "RecordingsBucketName",
+                    "OutputValue": "medzen-meeting-recordings-558069890522",
+                    "Description": "Recordings S3 bucket name (existing)",
+                    "ExportName": "medzen-eu-west-1-RecordingsBucket"
+                },
+                {
+                    "OutputKey": "RecordingHandlerFunctionArn",
+                    "OutputValue": "arn:aws:lambda:eu-west-1:558069890522:function:medzen-recording-handler",
+                    "Description": "Recording Handler Lambda ARN",
+                    "ExportName": "medzen-eu-west-1-RecordingHandlerArn"
+                },
+                {
+                    "OutputKey": "TranscriptionProcessorFunctionArn",
+                    "OutputValue": "arn:aws:lambda:eu-west-1:558069890522:function:medzen-transcription-processor",
+                    "Description": "Transcription Processor Lambda ARN",
+                    "ExportName": "medzen-eu-west-1-TranscriptionProcessorArn"
+                },
+                {
+                    "OutputKey": "ChimeApiEndpoint",
+                    "OutputValue": "https://g840y1ewxb.execute-api.eu-west-1.amazonaws.com",
+                    "Description": "Chime SDK API Gateway endpoint",
+                    "ExportName": "medzen-eu-west-1-ChimeApiEndpoint"
+                }
+            ],
+            "Tags": [],
+            "EnableTerminationProtection": false,
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED"
+            }
+        }
+    ]
+}

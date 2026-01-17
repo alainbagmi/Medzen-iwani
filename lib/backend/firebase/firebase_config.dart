@@ -2,7 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 Future initFirebase() async {
-  if (kIsWeb) {
+  try {
+    // Try initializing Firebase - on web and desktop, this is required
+    // On Android/iOS, native configs may already initialize it
     await Firebase.initializeApp(
         options: FirebaseOptions(
             apiKey: "AIzaSyCWGcgzxeKgytwlIVMs6_7Dmu0e2EEmBTQ",
@@ -10,9 +12,15 @@ Future initFirebase() async {
             projectId: "medzen-bf20e",
             storageBucket: "medzen-bf20e.firebasestorage.app",
             messagingSenderId: "1084592687667",
-            appId: "1:1084592687667:web:ec6aeeedc7c8535cb0b146",
-            measurementId: "G-SMXWQMHERC"));
-  } else {
-    await Firebase.initializeApp();
+            appId: kIsWeb
+                ? "1:1084592687667:web:ec6aeeedc7c8535cb0b146"
+                : "1:1084592687667:android:8c6c6e3e7e3e3e3e",
+            measurementId: kIsWeb ? "G-SMXWQMHERC" : null));
+  } catch (e) {
+    // Firebase already initialized by native code (Android/iOS)
+    // This is expected - native configs init Firebase before Dart code runs
+    if (!e.toString().contains('duplicate-app')) {
+      rethrow;
+    }
   }
 }

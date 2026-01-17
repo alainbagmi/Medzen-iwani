@@ -34,10 +34,6 @@ class SystemAdminSettingsPageModel
       FFUploadedFile(bytes: Uint8List.fromList([]), originalFilename: '');
   String uploadedFileUrl_uploadDataL4r = '';
 
-  // State field(s) for phonenumber widget.
-  FocusNode? phonenumberFocusNode;
-  TextEditingController? phonenumberTextController;
-  String? Function(BuildContext, String?)? phonenumberTextControllerValidator;
   // State field(s) for insuranceprovider widget.
   FocusNode? insuranceproviderFocusNode;
   TextEditingController? insuranceproviderTextController;
@@ -88,9 +84,6 @@ class SystemAdminSettingsPageModel
   @override
   void dispose() {
     sideNavModel.dispose();
-    phonenumberFocusNode?.dispose();
-    phonenumberTextController?.dispose();
-
     insuranceproviderFocusNode?.dispose();
     insuranceproviderTextController?.dispose();
 

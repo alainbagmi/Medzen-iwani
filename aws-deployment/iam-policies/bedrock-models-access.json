@@ -1,0 +1,58 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockInvokeAllModels",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": "arn:aws:bedrock:eu-central-1::foundation-model/*"
+    },
+    {
+      "Sid": "BedrockDiscoveryAllModels",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:GetFoundationModel",
+        "bedrock:ListFoundationModels",
+        "bedrock:GetInferenceProfile",
+        "bedrock:ListInferenceProfiles"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "BedrockSpecificVendors",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:eu-central-1::foundation-model/amazon.nova-*",
+        "arn:aws:bedrock:eu-central-1::foundation-model/anthropic.claude-*",
+        "arn:aws:bedrock:eu-central-1::foundation-model/meta.llama*",
+        "arn:aws:bedrock:eu-central-1::foundation-model/mistral*",
+        "arn:aws:bedrock:eu-central-1::foundation-model/cohere*"
+      ]
+    },
+    {
+      "Sid": "SupabaseAccess",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:eu-central-1:*:secret:supabase-*"
+    },
+    {
+      "Sid": "CloudWatchLogsForMonitoring",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:eu-central-1:*:log-group:/aws/lambda/*"
+    }
+  ]
+}

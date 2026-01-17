@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CDN Comparison Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .cdn-test {
+            background: white;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .pass { border-left: 4px solid #10b981; }
+        .fail { border-left: 4px solid #ef4444; }
+        .testing { border-left: 4px solid #3b82f6; }
+        h2 { margin-top: 0; }
+        .result { font-weight: bold; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .result.pass { background: #d1fae5; color: #065f46; }
+        .result.fail { background: #fee2e2; color: #991b1b; }
+        pre { background: #f3f4f6; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 CDN Comparison Test</h1>
+    <p>Testing Chime SDK from different CDNs to find a working one...</p>
+
+    <div id="tests"></div>
+
+    <script>
+        const testsDiv = document.getElementById('tests');
+        const cdns = [
+            {
+                name: 'AWS CloudFront (Official)',
+                url: 'https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-3.19.0.min.js',
+                varName: 'CloudFrontSDK'
+            },
+            {
+                name: 'unpkg.com',
+                url: 'https://unpkg.com/amazon-chime-sdk-js@3.19.0/build/amazon-chime-sdk.min.js',
+                varName: 'UnpkgSDK'
+            },
+            {
+                name: 'jsDelivr',
+                url: 'https://cdn.jsdelivr.net/npm/amazon-chime-sdk-js@3.19.0/build/amazon-chime-sdk.min.js',
+                varName: 'JsdelivrSDK'
+            },
+            {
+                name: 'unpkg.com (latest)',
+                url: 'https://unpkg.com/amazon-chime-sdk-js/build/amazon-chime-sdk.min.js',
+                varName: 'UnpkgLatestSDK'
+            }
+        ];
+
+        function createTestDiv(cdn) {
+            const div = document.createElement('div');
+            div.className = 'cdn-test testing';
+            div.id = 'test-' + cdn.varName;
+            div.innerHTML = `
+                <h2>${cdn.name}</h2>
+                <p><code>${cdn.url}</code></p>
+                <div id="result-${cdn.varName}">⏳ Testing...</div>
+            `;
+            testsDiv.appendChild(div);
+            return div;
+        }
+
+        function updateResult(cdn, success, message, details = '') {
+            const div = document.getElementById('test-' + cdn.varName);
+            const resultDiv = document.getElementById('result-' + cdn.varName);
+
+            div.className = 'cdn-test ' + (success ? 'pass' : 'fail');
+            resultDiv.innerHTML = `
+                <div class="result ${success ? 'pass' : 'fail'}">
+                    ${success ? '✅' : '❌'} ${message}
+                </div>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+        }
+
+        function testCDN(cdn) {
+            createTestDiv(cdn);
+
+            return new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = cdn.url;
+                script.crossOrigin = 'anonymous';
+
+                const timeout = setTimeout(() => {
+                    updateResult(cdn, false, 'Timeout (10s)', 'Script took too long to load');
+                    resolve(false);
+                }, 10000);
+
+                script.onload = () => {
+                    clearTimeout(timeout);
+
+                    // Wait a bit for initialization
+                    setTimeout(() => {
+                        // Check for ChimeSDK in various locations
+                        const locations = [
+                            { name: 'window.ChimeSDK', value: window.ChimeSDK },
+                            { name: 'globalThis.ChimeSDK', value: globalThis.ChimeSDK },
+                            { name: 'ChimeSDK (global)', value: typeof ChimeSDK !== 'undefined' ? ChimeSDK : undefined }
+                        ];
+
+                        let found = null;
+                        for (const loc of locations) {
+                            if (loc.value && typeof loc.value === 'object') {
+                                found = { location: loc.name, sdk: loc.value };
+                                break;
+                            }
+                        }
+
+                        if (found) {
+                            const keys = Object.keys(found.sdk);
+                            const hasLogger = found.sdk.ConsoleLogger !== undefined;
+                            const hasSession = found.sdk.DefaultMeetingSession !== undefined;
+
+                            let details = `✅ Found at: ${found.location}\n`;
+                            details += `✅ ${keys.length} classes available\n`;
+                            details += `${hasLogger ? '✅' : '❌'} ConsoleLogger present\n`;
+                            details += `${hasSession ? '✅' : '❌'} DefaultMeetingSession present\n`;
+                            details += `\nSample classes:\n${keys.slice(0, 10).join('\n')}`;
+
+                            if (hasLogger && hasSession) {
+                                // Try to instantiate
+                                try {
+                                    const logger = new found.sdk.ConsoleLogger('Test');
+                                    logger.info('SDK test successful!');
+                                    details += '\n\n✅ Successfully instantiated ConsoleLogger!';
+                                    updateResult(cdn, true, 'SUCCESS! SDK fully functional', details);
+                                    resolve(true);
+                                } catch (err) {
+                                    details += '\n\n❌ Failed to instantiate: ' + err.message;
+                                    updateResult(cdn, false, 'SDK loaded but not functional', details);
+                                    resolve(false);
+                                }
+                            } else {
+                                updateResult(cdn, false, 'SDK incomplete', details);
+                                resolve(false);
+                            }
+                        } else {
+                            let debugInfo = 'ChimeSDK not found in:\n';
+                            locations.forEach(loc => {
+                                debugInfo += `- ${loc.name}: ${typeof loc.value} (${loc.value})\n`;
+                            });
+
+                            updateResult(cdn, false, 'SDK not exported to window', debugInfo);
+                            resolve(false);
+                        }
+                    }, 300);
+                };
+
+                script.onerror = () => {
+                    clearTimeout(timeout);
+                    updateResult(cdn, false, 'Failed to load', 'Network error or CORS issue');
+                    resolve(false);
+                };
+
+                document.head.appendChild(script);
+            });
+        }
+
+        // Test all CDNs sequentially
+        async function runTests() {
+            for (const cdn of cdns) {
+                await testCDN(cdn);
+                // Wait a bit between tests
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            console.log('All CDN tests complete');
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

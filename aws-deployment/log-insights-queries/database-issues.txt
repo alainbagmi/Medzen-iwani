@@ -1,0 +1,4 @@
+fields @timestamp, @message
+| filter @message like /database/ or @message like /connection/ or @message like /timeout/
+| sort @timestamp desc
+| limit 50

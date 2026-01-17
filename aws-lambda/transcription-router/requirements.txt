@@ -1,0 +1,12 @@
+# MedZen Transcription Router Lambda Dependencies
+
+# AWS SDK
+boto3>=1.34.0
+botocore>=1.34.0
+
+# HTTP requests (for OpenAI Whisper API)
+requests>=2.31.0
+urllib3>=2.0.0
+
+# JSON handling
+simplejson>=3.19.0

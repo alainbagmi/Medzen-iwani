@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🧪 Test Local SDK File</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            padding: 40px;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 12px;
+        }
+        h1 { color: #38bdf8; }
+        .result {
+            padding: 16px 20px;
+            margin: 12px 0;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .success {
+            background: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .error {
+            background: #7f1d1d;
+            border-left: 4px solid #ef4444;
+        }
+        .info {
+            background: #1e3a8a;
+            border-left: 4px solid #3b82f6;
+        }
+        pre {
+            background: #0f172a;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Testing YOUR Local SDK File</h1>
+        <p>Testing: <code>amazon-chime-sdk-fresh.min.js</code></p>
+        <div id="results"></div>
+    </div>
+
+    <!-- Load YOUR local SDK file -->
+    <script src="./amazon-chime-sdk-fresh.min.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(`[${type}]`, message);
+        }
+
+        setTimeout(() => {
+            console.log('=== LOCAL SDK TEST ===');
+            console.log('window:', window);
+            console.log('typeof ChimeSDK:', typeof ChimeSDK);
+            console.log('typeof window.ChimeSDK:', typeof window.ChimeSDK);
+            console.log('typeof globalThis.ChimeSDK:', typeof globalThis.ChimeSDK);
+
+            // Try all possible exports
+            const sdk = window.ChimeSDK || globalThis.ChimeSDK || (typeof ChimeSDK !== 'undefined' ? ChimeSDK : null);
+
+            if (sdk && typeof sdk === 'object' && Object.keys(sdk).length > 0) {
+                log(`✅ SDK Found! (via ${window.ChimeSDK ? 'window.ChimeSDK' : 'other'})`, 'success');
+
+                const classes = Object.keys(sdk);
+                log(`✅ ${classes.length} classes available`, 'success');
+
+                const snippet = classes.slice(0, 20).join(', ');
+                log(`Classes: ${snippet}...`, 'info');
+
+                // Test instantiation
+                try {
+                    const logger = new sdk.ConsoleLogger('LocalTest', sdk.LogLevel.INFO);
+                    logger.info('🎉 Local SDK is working!');
+                    log('✅ Successfully instantiated ConsoleLogger!', 'success');
+
+                    log(`<h2>🎉 SUCCESS! Your local SDK file works!</h2>
+                        <p>You can use this file in your Flutter WebView widget.</p>
+                        <pre>// In your widget:
+const html = r'''
+&lt;script src="./amazon-chime-sdk-fresh.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const sdk = window.ChimeSDK || ChimeSDK;
+  const logger = new sdk.ConsoleLogger('MedZen');
+  // ... rest of your code
+&lt;/script&gt;
+''';</pre>`, 'success');
+
+                } catch (err) {
+                    log(`❌ Instantiation failed: ${err.message}`, 'error');
+                    log(`<pre>${err.stack}</pre>`, 'error');
+                }
+
+            } else if (sdk !== null && sdk !== undefined) {
+                log(`❌ SDK property exists but is: ${typeof sdk} = ${sdk}`, 'error');
+                log('This is the same broken bundle issue', 'error');
+
+            } else {
+                log('❌ SDK not found in any location', 'error');
+
+                // Debug
+                const allProps = Object.keys(window);
+                const sdkProps = allProps.filter(p =>
+                    p.toLowerCase().includes('chime') ||
+                    p.toLowerCase().includes('sdk')
+                );
+
+                log(`Window properties with SDK: ${sdkProps.join(', ') || 'none'}`, 'info');
+
+                log(`<h3>Next Steps:</h3>
+                    <ol>
+                        <li>The local file might be corrupted</li>
+                        <li>Build your own bundle from npm:
+                            <pre>npm install amazon-chime-sdk-js
+webpack --config webpack.config.js</pre>
+                        </li>
+                        <li>Or use a pre-built v2.x SDK (older version)</li>
+                    </ol>`, 'info');
+            }
+        }, 500);
+    </script>
+</body>
+</html>

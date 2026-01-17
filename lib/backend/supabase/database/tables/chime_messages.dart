@@ -70,4 +70,32 @@ class ChimeMessagesRow extends SupabaseDataRow {
 
   String? get senderAvatar => getField<String>('sender_avatar');
   set senderAvatar(String? value) => setField<String>('sender_avatar', value);
+
+  String? get senderRole => getField<String>('sender_role');
+  set senderRole(String? value) => setField<String>('sender_role', value);
+
+  String? get fileUrl => getField<String>('file_url');
+  set fileUrl(String? value) => setField<String>('file_url', value);
+
+  String? get fileName => getField<String>('file_name');
+  set fileName(String? value) => setField<String>('file_name', value);
+
+  String? get fileMime => getField<String>('file_mime');
+  set fileMime(String? value) => setField<String>('file_mime', value);
+
+  int? get fileSize => getField<int>('file_size');
+  set fileSize(int? value) => setField<int>('file_size', value);
+
+  String? get fileType => getField<String>('file_type');
+  set fileType(String? value) => setField<String>('file_type', value);
+
+  String? get receiverId => getField<String>('receiver_id');
+  set receiverId(String? value) => setField<String>('receiver_id', value);
+
+  String? get receiverName => getField<String>('receiver_name');
+  set receiverName(String? value) => setField<String>('receiver_name', value);
+
+  String? get receiverAvatar => getField<String>('receiver_avatar');
+  set receiverAvatar(String? value) =>
+      setField<String>('receiver_avatar', value);
 }

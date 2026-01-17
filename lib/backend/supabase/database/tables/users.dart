@@ -134,4 +134,17 @@ class UsersRow extends SupabaseDataRow {
 
   String? get ehrId => getField<String>('ehr_id');
   set ehrId(String? value) => setField<String>('ehr_id', value);
+
+  double? get latitude => getField<double>('latitude');
+  set latitude(double? value) => setField<double>('latitude', value);
+
+  double? get longitude => getField<double>('longitude');
+  set longitude(double? value) => setField<double>('longitude', value);
+
+  DateTime? get locationUpdatedAt => getField<DateTime>('location_updated_at');
+  set locationUpdatedAt(DateTime? value) =>
+      setField<DateTime>('location_updated_at', value);
+
+  String? get geog => getField<String>('geog');
+  set geog(String? value) => setField<String>('geog', value);
 }

@@ -153,145 +153,149 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
-        floatingActionButton: Align(
-          alignment: AlignmentDirectional(1.0, 0.82),
-          child: FloatingActionButton(
-            onPressed: () async {
-              await showModalBottomSheet(
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                enableDrag: false,
-                context: context,
-                builder: (context) {
-                  return GestureDetector(
-                    onTap: () {
-                      FocusScope.of(context).unfocus();
-                      FocusManager.instance.primaryFocus?.unfocus();
-                    },
-                    child: Padding(
-                      padding: MediaQuery.viewInsetsOf(context),
-                      child: StartChatWidget(),
-                    ),
-                  );
-                },
-              ).then((value) => safeSetState(() {}));
-            },
-            backgroundColor: Color(0x004B39EF),
-            elevation: 8.0,
-            child: Material(
-              color: Colors.transparent,
-              elevation: 100.0,
-              shape: const CircleBorder(),
-              child: ClipOval(
-                child: Container(
+    return AuthUserStreamWidget(
+      builder: (context) => FutureBuilder<ApiCallResponse>(
+        future: SupagraphqlGroup.userDetailsCall.call(
+          userId: valueOrDefault(currentUserDocument?.supabaseUuid, ''),
+        ),
+        builder: (context, snapshot) {
+          // Customize what your widget looks like when it's loading.
+          if (!snapshot.hasData) {
+            return Scaffold(
+              backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+              body: Center(
+                child: SizedBox(
                   width: 50.0,
                   height: 50.0,
-                  decoration: BoxDecoration(
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 4.0,
-                        color: Color(0x33000000),
-                        offset: Offset(
-                          0.0,
-                          2.0,
-                        ),
-                      )
-                    ],
-                    gradient: LinearGradient(
-                      colors: [
-                        FlutterFlowTheme.of(context).primaryBackground,
-                        FlutterFlowTheme.of(context).alternate
-                      ],
-                      stops: [0.0, 1.0],
-                      begin: AlignmentDirectional(0.0, -1.0),
-                      end: AlignmentDirectional(0, 1.0),
-                    ),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: FlutterFlowTheme.of(context).alternate,
-                      width: 3.0,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.all(2.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(44.0),
-                      child: Image.asset(
-                        'assets/images/medzen.doctor.png',
-                        width: 51.6,
-                        height: 50.6,
-                        fit: BoxFit.fitHeight,
-                      ),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      FlutterFlowTheme.of(context).primary,
                     ),
                   ),
                 ),
               ),
-            ).animateOnPageLoad(
-                animationsMap['containerOnPageLoadAnimation1']!),
-          ),
-        ),
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
-            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: FaIcon(
-                    FontAwesomeIcons.solidBell,
-                    color: FlutterFlowTheme.of(context).primary,
-                    size: 28.0,
-                  ),
-                  showNotificationBadge: false,
-                  logoutbutton: true,
-                  btnaction: () async {
-                    context.pushNamed(NotificationsWidget.routeName);
-                  },
-                ),
-              ),
-              centerTitle: true,
-              expandedTitleScale: 1.0,
-            ),
-            elevation: 20.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: AuthUserStreamWidget(
-            builder: (context) => FutureBuilder<ApiCallResponse>(
-              future: SupagraphqlGroup.userDetailsCall.call(
-                userId: valueOrDefault(currentUserDocument?.supabaseUuid, ''),
-              ),
-              builder: (context, snapshot) {
-                // Customize what your widget looks like when it's loading.
-                if (!snapshot.hasData) {
-                  return Center(
-                    child: SizedBox(
-                      width: 50.0,
-                      height: 50.0,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          FlutterFlowTheme.of(context).primary,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                final mainRowUserDetailsResponse = snapshot.data!;
+            );
+          }
+          final providerLandingPageUserDetailsResponse = snapshot.data!;
 
-                return Row(
+          return GestureDetector(
+            onTap: () {
+              FocusScope.of(context).unfocus();
+              FocusManager.instance.primaryFocus?.unfocus();
+            },
+            child: Scaffold(
+              key: scaffoldKey,
+              backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+              floatingActionButton: Align(
+                alignment: AlignmentDirectional(1.0, 0.82),
+                child: FloatingActionButton(
+                  onPressed: () async {
+                    await showModalBottomSheet(
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      enableDrag: false,
+                      context: context,
+                      builder: (context) {
+                        return GestureDetector(
+                          onTap: () {
+                            FocusScope.of(context).unfocus();
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
+                          child: Padding(
+                            padding: MediaQuery.viewInsetsOf(context),
+                            child: StartChatWidget(),
+                          ),
+                        );
+                      },
+                    ).then((value) => safeSetState(() {}));
+                  },
+                  backgroundColor: Color(0x004B39EF),
+                  elevation: 8.0,
+                  child: Material(
+                    color: Colors.transparent,
+                    elevation: 100.0,
+                    shape: const CircleBorder(),
+                    child: ClipOval(
+                      child: Container(
+                        width: 50.0,
+                        height: 50.0,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              blurRadius: 4.0,
+                              color: Color(0x33000000),
+                              offset: Offset(
+                                0.0,
+                                2.0,
+                              ),
+                            )
+                          ],
+                          gradient: LinearGradient(
+                            colors: [
+                              FlutterFlowTheme.of(context).primaryBackground,
+                              FlutterFlowTheme.of(context).alternate
+                            ],
+                            stops: [0.0, 1.0],
+                            begin: AlignmentDirectional(0.0, -1.0),
+                            end: AlignmentDirectional(0, 1.0),
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: FlutterFlowTheme.of(context).alternate,
+                            width: 3.0,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(2.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(44.0),
+                            child: Image.asset(
+                              'assets/images/medzen.doctor.png',
+                              width: 51.6,
+                              height: 50.6,
+                              fit: BoxFit.fitHeight,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ).animateOnPageLoad(
+                      animationsMap['containerOnPageLoadAnimation1']!),
+                ),
+              ),
+              appBar: PreferredSize(
+                preferredSize: Size.fromHeight(80.0),
+                child: AppBar(
+                  backgroundColor:
+                      FlutterFlowTheme.of(context).primaryBackground,
+                  automaticallyImplyLeading: false,
+                  actions: [],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: wrapWithModel(
+                      model: _model.topBarModel,
+                      updateCallback: () => safeSetState(() {}),
+                      child: TopBarWidget(
+                        btnicon: FaIcon(
+                          FontAwesomeIcons.solidBell,
+                          color: FlutterFlowTheme.of(context).primary,
+                          size: 28.0,
+                        ),
+                        showNotificationBadge: false,
+                        logoutbutton: true,
+                        btnaction: () async {
+                          context.pushNamed(NotificationsWidget.routeName);
+                        },
+                      ),
+                    ),
+                    centerTitle: true,
+                    expandedTitleScale: 1.0,
+                  ),
+                  elevation: 20.0,
+                ),
+              ),
+              body: SafeArea(
+                top: true,
+                child: Row(
                   mainAxisSize: MainAxisSize.max,
                   children: [
                     if (responsiveVisibility(
@@ -827,7 +831,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                                 valueOrDefault<String>(
                                                                                   getJsonField(
                                                                                     SupagraphqlGroup.userDetailsCall.userDetails(
-                                                                                      mainRowUserDetailsResponse.jsonBody,
+                                                                                      providerLandingPageUserDetailsResponse.jsonBody,
                                                                                     ),
                                                                                     r'''$.full_name''',
                                                                                   )?.toString(),
@@ -886,7 +890,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               valueOrDefault<String>(
                                                                                 getJsonField(
                                                                                   SupagraphqlGroup.userDetailsCall.medicalproviderprofiles(
-                                                                                    mainRowUserDetailsResponse.jsonBody,
+                                                                                    providerLandingPageUserDetailsResponse.jsonBody,
                                                                                   ),
                                                                                   r'''$.professional_role''',
                                                                                 )?.toString(),
@@ -943,7 +947,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               valueOrDefault<String>(
                                                                                 getJsonField(
                                                                                   SupagraphqlGroup.userDetailsCall.medicalproviderprofiles(
-                                                                                    mainRowUserDetailsResponse.jsonBody,
+                                                                                    providerLandingPageUserDetailsResponse.jsonBody,
                                                                                   ),
                                                                                   r'''$.primary_specialization''',
                                                                                 )?.toString(),
@@ -1004,7 +1008,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               valueOrDefault<String>(
                                                                                 getJsonField(
                                                                                   SupagraphqlGroup.userDetailsCall.medicalproviderprofiles(
-                                                                                    mainRowUserDetailsResponse.jsonBody,
+                                                                                    providerLandingPageUserDetailsResponse.jsonBody,
                                                                                   ),
                                                                                   r'''$.years_of_experience''',
                                                                                 )?.toString(),
@@ -1098,7 +1102,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               valueOrDefault<String>(
                                                                                 getJsonField(
                                                                                   SupagraphqlGroup.userDetailsCall.userProfile(
-                                                                                    mainRowUserDetailsResponse.jsonBody,
+                                                                                    providerLandingPageUserDetailsResponse.jsonBody,
                                                                                   ),
                                                                                   r'''$.bio''',
                                                                                 )?.toString(),
@@ -1293,7 +1297,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               String>(
                                                                             getJsonField(
                                                                               SupagraphqlGroup.userDetailsCall.userProfile(
-                                                                                mainRowUserDetailsResponse.jsonBody,
+                                                                                providerLandingPageUserDetailsResponse.jsonBody,
                                                                               ),
                                                                               r'''$.emergency_contact_name''',
                                                                             )?.toString(),
@@ -1348,7 +1352,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               String>(
                                                                             getJsonField(
                                                                               SupagraphqlGroup.userDetailsCall.userProfile(
-                                                                                mainRowUserDetailsResponse.jsonBody,
+                                                                                providerLandingPageUserDetailsResponse.jsonBody,
                                                                               ),
                                                                               r'''$.emergency_contact_relationship''',
                                                                             )?.toString(),
@@ -1403,7 +1407,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               String>(
                                                                             getJsonField(
                                                                               SupagraphqlGroup.userDetailsCall.userProfile(
-                                                                                mainRowUserDetailsResponse.jsonBody,
+                                                                                providerLandingPageUserDetailsResponse.jsonBody,
                                                                               ),
                                                                               r'''$.emergency_contact_phone''',
                                                                             )?.toString(),
@@ -1590,7 +1594,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               valueOrDefault<String>(
                                                                                 getJsonField(
                                                                                   SupagraphqlGroup.userDetailsCall.medicalproviderprofiles(
-                                                                                    mainRowUserDetailsResponse.jsonBody,
+                                                                                    providerLandingPageUserDetailsResponse.jsonBody,
                                                                                   ),
                                                                                   r'''$.medical_license_number''',
                                                                                 )?.toString(),
@@ -1637,7 +1641,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                               valueOrDefault<String>(
                                                                                 getJsonField(
                                                                                   SupagraphqlGroup.userDetailsCall.medicalproviderprofiles(
-                                                                                    mainRowUserDetailsResponse.jsonBody,
+                                                                                    providerLandingPageUserDetailsResponse.jsonBody,
                                                                                   ),
                                                                                   r'''$.license_expiry_date''',
                                                                                 )?.toString(),
@@ -2558,11 +2562,11 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                       ),
                     ),
                   ],
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

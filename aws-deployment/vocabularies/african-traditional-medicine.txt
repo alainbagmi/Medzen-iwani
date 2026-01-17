@@ -1,0 +1,51 @@
+Phrase	IPA	SoundsLike	DisplayAs
+juju			traditional medicine
+herbalist			herbalist
+traditional healer			traditional healer
+native doctor			native doctor
+witch doctor			traditional healer
+medicine man			traditional healer
+agbo		ag-bo	herbal medicine
+aloe vera		a-lo-e ver-a	aloe vera
+moringa		mo-rin-ga	moringa
+neem			neem
+bitter leaf			bitter leaf
+scent leaf			scent leaf
+uziza			uziza
+uda			uda
+ginger			ginger
+garlic			garlic
+turmeric		tur-mer-ik	turmeric
+black seed			black seed
+shea butter			shea butter
+palm oil			palm oil
+coconut oil			coconut oil
+castor oil			castor oil
+herb			herb
+root			root
+bark			bark
+leaf			leaf
+seed			seed
+flower			flower
+steam bath			steam bath
+massage			massage
+cupping			cupping
+scarification			scarification
+incantation			incantation
+spiritual healing			spiritual healing
+prayer			prayer
+blessing			blessing
+protection			protection
+evil spirit			evil spirit
+curse			curse
+hex			hex
+spell			spell
+charm			charm
+amulet			amulet
+talisman			talisman
+divination			divination
+oracle			oracle
+sacrifice			sacrifice
+offering			offering
+ritual			ritual
+ceremony			ceremony

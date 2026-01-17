@@ -1,0 +1,84 @@
+Phrase	IPA	SoundsLike	DisplayAs
+wahala			problem
+belle		bel-lay	stomach
+head dey pain me			I have a headache
+body dey hot			fever
+body dey cold			chills
+dash			give
+carry			take
+chop			eat
+drink			drink
+swallow			swallow
+inject			inject
+doctor		dok-ta	doctor
+nurse		nurs	nurse
+hospital		hos-pi-tal	hospital
+clinic		kli-nik	clinic
+medicine		med-sin	medicine
+drug		drug	medication
+tablet			tablet
+capsule		cap-sul	capsule
+injection		in-jek-shon	injection
+BP			blood pressure
+sugar			blood sugar
+malaria		ma-la-ri-a	malaria
+typhoid		ty-foid	typhoid fever
+cough			cough
+catarrh		ca-tarr	cold
+running nose			runny nose
+headache		hed-ache	headache
+backache		back-ache	back pain
+leg pain			leg pain
+arm pain			arm pain
+chest pain			chest pain
+belly pain			abdominal pain
+diarrhea		di-a-re-a	diarrhea
+vomiting			vomiting
+fever			fever
+wound			wound
+injury			injury
+accident			accident
+operation			surgery
+scan			scan
+x-ray		ex-ray	x-ray
+test			test
+blood test			blood test
+urine test			urine test
+pregnant			pregnant
+belle big			pregnant
+delivery			childbirth
+labor			labor
+baby			baby
+pikin			child
+emergency			emergency
+serious			serious
+critical			critical
+admitted			admitted
+discharged			discharged
+recovered			recovered
+dead			deceased
+die			die
+heart		hart	heart
+liver		li-va	liver
+kidney		kid-ney	kidney
+lung		lung	lung
+stomach		sto-mak	stomach
+intestine		in-tes-tin	intestine
+brain		brain	brain
+bone		bone	bone
+muscle		mus-sel	muscle
+skin		skin	skin
+blood		blood	blood
+pressure		pre-sha	pressure
+diabetes		di-a-be-tis	diabetes
+asthma		as-ma	asthma
+stroke		stroke	stroke
+cancer		can-sa	cancer
+HIV		H-I-V	HIV
+AIDS		AIDS	AIDS
+TB		T-B	tuberculosis
+hepatitis		hep-a-ti-tis	hepatitis
+yellow fever			yellow fever
+cholera		ko-le-ra	cholera
+measles		mea-sels	measles
+chickenpox		chi-ken-pox	chickenpox

@@ -44,8 +44,6 @@ class _SystemAdminSettingsPageWidgetState
     super.initState();
     _model = createModel(context, () => SystemAdminSettingsPageModel());
 
-    _model.phonenumberFocusNode ??= FocusNode();
-
     _model.insuranceproviderFocusNode ??= FocusNode();
 
     _model.policynumberFocusNode ??= FocusNode();
@@ -74,65 +72,68 @@ class _SystemAdminSettingsPageWidgetState
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
+    return FutureBuilder<ApiCallResponse>(
+      future: SupagraphqlGroup.userDetailsCall.call(
+        userId: FFAppState().AuthuserID,
+      ),
+      builder: (context, snapshot) {
+        // Customize what your widget looks like when it's loading.
+        if (!snapshot.hasData) {
+          return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: Icon(
-                    Icons.chevron_left,
-                    size: 35.0,
+            body: Center(
+              child: SizedBox(
+                width: 50.0,
+                height: 50.0,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
                   ),
-                  btnaction: () async {
-                    context.safePop();
-                  },
                 ),
               ),
             ),
-            centerTitle: true,
-            elevation: 0.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: Stack(
-            children: [
-              FutureBuilder<ApiCallResponse>(
-                future: SupagraphqlGroup.userDetailsCall.call(
-                  userId: FFAppState().AuthuserID,
-                ),
-                builder: (context, snapshot) {
-                  // Customize what your widget looks like when it's loading.
-                  if (!snapshot.hasData) {
-                    return Center(
-                      child: SizedBox(
-                        width: 50.0,
-                        height: 50.0,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            FlutterFlowTheme.of(context).primary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  final mainRowUserDetailsResponse = snapshot.data!;
+          );
+        }
+        final systemAdminSettingsPageUserDetailsResponse = snapshot.data!;
 
-                  return Row(
+        return GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(80.0),
+              child: AppBar(
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                automaticallyImplyLeading: false,
+                actions: [],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: wrapWithModel(
+                    model: _model.topBarModel,
+                    updateCallback: () => safeSetState(() {}),
+                    child: TopBarWidget(
+                      btnicon: Icon(
+                        Icons.chevron_left,
+                        size: 35.0,
+                      ),
+                      btnaction: () async {
+                        context.safePop();
+                      },
+                    ),
+                  ),
+                ),
+                centerTitle: true,
+                elevation: 0.0,
+              ),
+            ),
+            body: SafeArea(
+              top: true,
+              child: Stack(
+                children: [
+                  Row(
                     mainAxisSize: MainAxisSize.max,
                     children: [
                       if (responsiveVisibility(
@@ -274,7 +275,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userDetails(
-                                                                        mainRowUserDetailsResponse
+                                                                        systemAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.avatar_url''',
@@ -473,7 +474,7 @@ class _SystemAdminSettingsPageWidgetState
                                                               SupagraphqlGroup
                                                                   .userDetailsCall
                                                                   .userDetails(
-                                                                mainRowUserDetailsResponse
+                                                                systemAdminSettingsPageUserDetailsResponse
                                                                     .jsonBody,
                                                               ),
                                                               r'''$.full_name''',
@@ -522,7 +523,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .userDetails(
-                                                                  mainRowUserDetailsResponse
+                                                                  systemAdminSettingsPageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.date_of_birth''',
@@ -565,157 +566,24 @@ class _SystemAdminSettingsPageWidgetState
                                                           MainAxisSize.max,
                                                       children: [
                                                         Expanded(
-                                                          child: Container(
-                                                            width: 200.0,
-                                                            child:
-                                                                TextFormField(
-                                                              controller: _model
-                                                                      .phonenumberTextController ??=
-                                                                  TextEditingController(
-                                                                text:
-                                                                    valueOrDefault<
-                                                                        String>(
-                                                                  SupagraphqlGroup
-                                                                      .userDetailsCall
-                                                                      .number(
-                                                                    mainRowUserDetailsResponse
-                                                                        .jsonBody,
-                                                                  ),
-                                                                  'null',
-                                                                ),
+                                                          child: Text(
+                                                            valueOrDefault<
+                                                                String>(
+                                                              SupagraphqlGroup
+                                                                  .userDetailsCall
+                                                                  .number(
+                                                                systemAdminSettingsPageUserDetailsResponse
+                                                                    .jsonBody,
                                                               ),
-                                                              focusNode: _model
-                                                                  .phonenumberFocusNode,
-                                                              onChanged: (_) =>
-                                                                  EasyDebounce
-                                                                      .debounce(
-                                                                '_model.phonenumberTextController',
-                                                                Duration(
-                                                                    milliseconds:
-                                                                        2000),
-                                                                () async {
-                                                                  FFAppState()
-                                                                          .editPhoneNumber =
-                                                                      _model
-                                                                          .phonenumberTextController
-                                                                          .text;
-                                                                  safeSetState(
-                                                                      () {});
-                                                                },
-                                                              ),
-                                                              autofocus: false,
-                                                              enabled: true,
-                                                              obscureText:
-                                                                  false,
-                                                              decoration:
-                                                                  InputDecoration(
-                                                                isDense: true,
-                                                                hintText:
-                                                                    FFLocalizations.of(
-                                                                            context)
-                                                                        .getText(
-                                                                  '1abgdhhg' /* TextField */,
-                                                                ),
-                                                                hintStyle: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .labelMedium
-                                                                    .override(
-                                                                      font: GoogleFonts
+                                                              'null',
+                                                            ),
+                                                            style: FlutterFlowTheme
+                                                                    .of(context)
+                                                                .bodyMedium
+                                                                .override(
+                                                                  font:
+                                                                      GoogleFonts
                                                                           .inter(
-                                                                        fontWeight: FlutterFlowTheme.of(context)
-                                                                            .labelMedium
-                                                                            .fontWeight,
-                                                                        fontStyle: FlutterFlowTheme.of(context)
-                                                                            .labelMedium
-                                                                            .fontStyle,
-                                                                      ),
-                                                                      letterSpacing:
-                                                                          0.0,
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .labelMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .labelMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                enabledBorder:
-                                                                    OutlineInputBorder(
-                                                                  borderSide:
-                                                                      BorderSide(
-                                                                    color: Color(
-                                                                        0x00000000),
-                                                                    width: 1.0,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              8.0),
-                                                                ),
-                                                                focusedBorder:
-                                                                    OutlineInputBorder(
-                                                                  borderSide:
-                                                                      BorderSide(
-                                                                    color: Color(
-                                                                        0x00000000),
-                                                                    width: 1.0,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              8.0),
-                                                                ),
-                                                                errorBorder:
-                                                                    OutlineInputBorder(
-                                                                  borderSide:
-                                                                      BorderSide(
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .error,
-                                                                    width: 1.0,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              8.0),
-                                                                ),
-                                                                focusedErrorBorder:
-                                                                    OutlineInputBorder(
-                                                                  borderSide:
-                                                                      BorderSide(
-                                                                    color: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .error,
-                                                                    width: 1.0,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
-                                                                              8.0),
-                                                                ),
-                                                                filled: true,
-                                                                fillColor: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .secondaryBackground,
-                                                              ),
-                                                              style: FlutterFlowTheme
-                                                                      .of(context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
-                                                                      fontWeight: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontWeight,
-                                                                      fontStyle: FlutterFlowTheme.of(
-                                                                              context)
-                                                                          .bodyMedium
-                                                                          .fontStyle,
-                                                                    ),
-                                                                    letterSpacing:
-                                                                        0.0,
                                                                     fontWeight: FlutterFlowTheme.of(
                                                                             context)
                                                                         .bodyMedium
@@ -725,17 +593,17 @@ class _SystemAdminSettingsPageWidgetState
                                                                         .bodyMedium
                                                                         .fontStyle,
                                                                   ),
-                                                              cursorColor:
-                                                                  FlutterFlowTheme.of(
+                                                                  letterSpacing:
+                                                                      0.0,
+                                                                  fontWeight: FlutterFlowTheme.of(
                                                                           context)
-                                                                      .primaryText,
-                                                              enableInteractiveSelection:
-                                                                  true,
-                                                              validator: _model
-                                                                  .phonenumberTextControllerValidator
-                                                                  .asValidator(
-                                                                      context),
-                                                            ),
+                                                                      .bodyMedium
+                                                                      .fontWeight,
+                                                                  fontStyle: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .bodyMedium
+                                                                      .fontStyle,
+                                                                ),
                                                           ),
                                                         ),
                                                       ],
@@ -877,7 +745,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    systemAdminSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_provider''',
@@ -970,7 +838,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    systemAdminSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_number''',
@@ -1154,7 +1022,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        mainRowUserDetailsResponse
+                                                                        systemAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.emergency_contact_name''',
@@ -1251,7 +1119,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        mainRowUserDetailsResponse
+                                                                        systemAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.emergency_contact_relationship''',
@@ -1487,7 +1355,7 @@ class _SystemAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        mainRowUserDetailsResponse
+                                                                        systemAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.emergency_contact_phone''',
@@ -3185,18 +3053,6 @@ class _SystemAdminSettingsPageWidgetState
                                               FFAppState().AuthuserID,
                                             ),
                                           );
-                                          await UsersTable().update(
-                                            data: {
-                                              'phone_number': _model
-                                                  .phonenumberTextController
-                                                  .text,
-                                            },
-                                            matchingRows: (rows) =>
-                                                rows.eqOrNull(
-                                              'id',
-                                              FFAppState().AuthuserID,
-                                            ),
-                                          );
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             SnackBar(
@@ -3357,13 +3213,13 @@ class _SystemAdminSettingsPageWidgetState
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

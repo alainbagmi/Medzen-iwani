@@ -105,115 +105,613 @@ const LANGUAGE_CONFIG: Record<string, {
   engine: 'medical' | 'standard';
   awsCode: string;
   displayName: string;
-  isNative: boolean; // true if natively supported by AWS Transcribe
+  isNative: boolean;
+  medicalVocabulary?: string; // Custom medical vocabulary for this language
+  medicalEntitiesSupported: boolean; // Can we extract medical entities in this language?
   fallbackNote?: string;
 }> = {
   // === ENGLISH VARIANTS ===
-  'en-US': { engine: 'medical', awsCode: 'en-US', displayName: 'English (US)', isNative: true },
-  'en-GB': { engine: 'standard', awsCode: 'en-GB', displayName: 'English (UK)', isNative: true },
-  'en-ZA': { engine: 'standard', awsCode: 'en-ZA', displayName: 'English (South Africa)', isNative: true },
-  'en-KE': { engine: 'standard', awsCode: 'en-US', displayName: 'English (Kenya)', isNative: false, fallbackNote: 'Using US English' },
-  'en-NG': { engine: 'standard', awsCode: 'en-US', displayName: 'English (Nigeria)', isNative: false, fallbackNote: 'Using US English' },
+  // en-US uses AWS Transcribe Medical (full medical support)
+  'en-US': {
+    engine: 'medical',
+    awsCode: 'en-US',
+    displayName: 'English (US)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-en',
+    medicalEntitiesSupported: true
+  },
 
-  // === FRENCH VARIANTS ===
-  'fr-FR': { engine: 'standard', awsCode: 'fr-FR', displayName: 'French (France)', isNative: true },
-  'fr-CA': { engine: 'standard', awsCode: 'fr-CA', displayName: 'French (Canada)', isNative: true },
-  'fr': { engine: 'standard', awsCode: 'fr-FR', displayName: 'French', isNative: true },
-  'fr-CM': { engine: 'standard', awsCode: 'fr-FR', displayName: 'French (Cameroon)', isNative: false, fallbackNote: 'Using France French' },
-  'fr-SN': { engine: 'standard', awsCode: 'fr-FR', displayName: 'French (Senegal)', isNative: false, fallbackNote: 'Using France French' },
-  'fr-CI': { engine: 'standard', awsCode: 'fr-FR', displayName: 'French (Ivory Coast)', isNative: false, fallbackNote: 'Using France French' },
-  'fr-CD': { engine: 'standard', awsCode: 'fr-FR', displayName: 'French (DRC)', isNative: false, fallbackNote: 'Using France French' },
+  // English variants use Standard + medical vocabulary
+  'en-GB': {
+    engine: 'standard',
+    awsCode: 'en-GB',
+    displayName: 'English (UK)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-en',
+    medicalEntitiesSupported: true
+  },
+  'en-ZA': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'English (South Africa)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-en',
+    medicalEntitiesSupported: true
+  },
+  'en-KE': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'English (Kenya)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using US English'
+  },
+  'en-NG': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'English (Nigeria)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using US English'
+  },
+
+  // === FRENCH VARIANTS - FULL MEDICAL SUPPORT ===
+  'fr-FR': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'French (France)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-fr',
+    medicalEntitiesSupported: true
+  },
+  'fr-CA': {
+    engine: 'standard',
+    awsCode: 'fr-CA',
+    displayName: 'French (Canada)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-fr',
+    medicalEntitiesSupported: true
+  },
+  'fr': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'French',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-fr',
+    medicalEntitiesSupported: true
+  },
+  'fr-CM': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'French (Cameroon)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-fr-cm',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using France French with Cameroon medical terms'
+  },
+  'fr-SN': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'French (Senegal)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using France French'
+  },
+  'fr-CI': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'French (Ivory Coast)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using France French'
+  },
+  'fr-CD': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'French (DRC)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using France French with DRC medical terms'
+  },
 
   // === AFRICAN LANGUAGES - NATIVELY SUPPORTED ===
-  'af': { engine: 'standard', awsCode: 'af-ZA', displayName: 'Afrikaans', isNative: true },
-  'af-ZA': { engine: 'standard', awsCode: 'af-ZA', displayName: 'Afrikaans (South Africa)', isNative: true },
+  'af': {
+    engine: 'standard',
+    awsCode: 'af-ZA',
+    displayName: 'Afrikaans',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-af',
+    medicalEntitiesSupported: true
+  },
+  'af-ZA': {
+    engine: 'standard',
+    awsCode: 'af-ZA',
+    displayName: 'Afrikaans (South Africa)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-af',
+    medicalEntitiesSupported: true
+  },
 
-  // Swahili variants - batch only, but we support them
-  'sw': { engine: 'standard', awsCode: 'sw-KE', displayName: 'Swahili', isNative: true },
-  'sw-KE': { engine: 'standard', awsCode: 'sw-KE', displayName: 'Swahili (Kenya)', isNative: true },
-  'sw-TZ': { engine: 'standard', awsCode: 'sw-TZ', displayName: 'Swahili (Tanzania)', isNative: true },
-  'sw-UG': { engine: 'standard', awsCode: 'sw-UG', displayName: 'Swahili (Uganda)', isNative: true },
-  'sw-RW': { engine: 'standard', awsCode: 'sw-RW', displayName: 'Swahili (Rwanda)', isNative: true },
-  'sw-BI': { engine: 'standard', awsCode: 'sw-BI', displayName: 'Swahili (Burundi)', isNative: true },
+  // Swahili variants - batch only, but we support them with medical vocabulary
+  'sw': {
+    engine: 'standard',
+    awsCode: 'sw-KE',
+    displayName: 'Swahili',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-sw',
+    medicalEntitiesSupported: true
+  },
+  'sw-KE': {
+    engine: 'standard',
+    awsCode: 'sw-KE',
+    displayName: 'Swahili (Kenya)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-sw',
+    medicalEntitiesSupported: true
+  },
+  'sw-TZ': {
+    engine: 'standard',
+    awsCode: 'sw-TZ',
+    displayName: 'Swahili (Tanzania)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-sw',
+    medicalEntitiesSupported: true
+  },
+  'sw-UG': {
+    engine: 'standard',
+    awsCode: 'sw-UG',
+    displayName: 'Swahili (Uganda)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-sw',
+    medicalEntitiesSupported: true
+  },
+  'sw-RW': {
+    engine: 'standard',
+    awsCode: 'sw-RW',
+    displayName: 'Swahili (Rwanda)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-sw',
+    medicalEntitiesSupported: true
+  },
+  'sw-BI': {
+    engine: 'standard',
+    awsCode: 'sw-BI',
+    displayName: 'Swahili (Burundi)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-sw',
+    medicalEntitiesSupported: true
+  },
 
   // Zulu - batch & streaming
-  'zu': { engine: 'standard', awsCode: 'zu-ZA', displayName: 'Zulu', isNative: true },
-  'zu-ZA': { engine: 'standard', awsCode: 'zu-ZA', displayName: 'Zulu (South Africa)', isNative: true },
+  'zu': {
+    engine: 'standard',
+    awsCode: 'zu-ZA',
+    displayName: 'Zulu',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-zu',
+    medicalEntitiesSupported: true
+  },
+  'zu-ZA': {
+    engine: 'standard',
+    awsCode: 'zu-ZA',
+    displayName: 'Zulu (South Africa)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-zu',
+    medicalEntitiesSupported: true
+  },
 
   // Somali - batch & streaming
-  'so': { engine: 'standard', awsCode: 'so-SO', displayName: 'Somali', isNative: true },
-  'so-SO': { engine: 'standard', awsCode: 'so-SO', displayName: 'Somali (Somalia)', isNative: true },
+  'so': {
+    engine: 'standard',
+    awsCode: 'so-SO',
+    displayName: 'Somali',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-so',
+    medicalEntitiesSupported: true
+  },
+  'so-SO': {
+    engine: 'standard',
+    awsCode: 'so-SO',
+    displayName: 'Somali (Somalia)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-so',
+    medicalEntitiesSupported: true
+  },
 
   // Hausa - batch only
-  'ha': { engine: 'standard', awsCode: 'ha-NG', displayName: 'Hausa', isNative: true },
-  'ha-NG': { engine: 'standard', awsCode: 'ha-NG', displayName: 'Hausa (Nigeria)', isNative: true },
+  'ha': {
+    engine: 'standard',
+    awsCode: 'ha-NG',
+    displayName: 'Hausa',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-ha',
+    medicalEntitiesSupported: true
+  },
+  'ha-NG': {
+    engine: 'standard',
+    awsCode: 'ha-NG',
+    displayName: 'Hausa (Nigeria)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-ha',
+    medicalEntitiesSupported: true
+  },
 
   // Wolof - batch only
-  'wo': { engine: 'standard', awsCode: 'wo-SN', displayName: 'Wolof', isNative: true },
-  'wo-SN': { engine: 'standard', awsCode: 'wo-SN', displayName: 'Wolof (Senegal)', isNative: true },
+  'wo': {
+    engine: 'standard',
+    awsCode: 'wo-SN',
+    displayName: 'Wolof',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-wo',
+    medicalEntitiesSupported: true
+  },
+  'wo-SN': {
+    engine: 'standard',
+    awsCode: 'wo-SN',
+    displayName: 'Wolof (Senegal)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-wo',
+    medicalEntitiesSupported: true
+  },
 
   // Kinyarwanda - batch only
-  'rw': { engine: 'standard', awsCode: 'rw-RW', displayName: 'Kinyarwanda', isNative: true },
-  'rw-RW': { engine: 'standard', awsCode: 'rw-RW', displayName: 'Kinyarwanda (Rwanda)', isNative: true },
+  'rw': {
+    engine: 'standard',
+    awsCode: 'rw-RW',
+    displayName: 'Kinyarwanda',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-rw',
+    medicalEntitiesSupported: true
+  },
+  'rw-RW': {
+    engine: 'standard',
+    awsCode: 'rw-RW',
+    displayName: 'Kinyarwanda (Rwanda)',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-rw',
+    medicalEntitiesSupported: true
+  },
 
-  // === AFRICAN LANGUAGES - NOT SUPPORTED (FALLBACK) ===
+  // === AFRICAN LANGUAGES - NOT NATIVELY SUPPORTED (FALLBACK) ===
+  // These languages are not directly supported by AWS Transcribe but we use a related language
+  // and plan to add custom vocabularies for medical terms in Q1 2026
+
   // Central African
-  'sg': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Sango', isNative: false, fallbackNote: 'Using French (lingua franca in CAR)' },
+  'sg': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Sango',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-sg-fallback-fr', // Planned: dedicated Sango vocab
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (lingua franca in CAR)'
+  },
 
-  // West African
-  'ff': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Fulfulde/Fula', isNative: false, fallbackNote: 'Using French (common second language)' },
-  'yo': { engine: 'standard', awsCode: 'en-US', displayName: 'Yoruba', isNative: false, fallbackNote: 'Using English (common in Nigeria)' },
-  'ig': { engine: 'standard', awsCode: 'en-US', displayName: 'Igbo', isNative: false, fallbackNote: 'Using English (common in Nigeria)' },
-  'tw': { engine: 'standard', awsCode: 'en-US', displayName: 'Twi', isNative: false, fallbackNote: 'Using English (common in Ghana)' },
-  'ee': { engine: 'standard', awsCode: 'en-US', displayName: 'Ewe', isNative: false, fallbackNote: 'Using English' },
-  'ak': { engine: 'standard', awsCode: 'en-US', displayName: 'Akan', isNative: false, fallbackNote: 'Using English (common in Ghana)' },
-  'bm': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Bambara', isNative: false, fallbackNote: 'Using French (common in Mali)' },
+  // West African - CRITICAL FOR NIGERIA
+  'ff': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Fulfulde/Fula',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ff-fallback-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (common second language)'
+  },
+  'yo': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Yoruba',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-yo-fallback-en', // Planned: dedicated Yoruba medical vocab
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English (common in Nigeria) - Yoruba medical vocabulary planned for Q1 2026'
+  },
+  'ig': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Igbo',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ig-fallback-en', // Planned: dedicated Igbo medical vocab
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English (common in Nigeria) - Igbo medical vocabulary planned for Q1 2026'
+  },
+  'tw': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Twi',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-tw-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English (common in Ghana)'
+  },
+  'ee': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Ewe',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ee-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English'
+  },
+  'ak': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Akan',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ak-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English (common in Ghana)'
+  },
+  'bm': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Bambara',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-bm-fallback-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (common in Mali)'
+  },
 
   // East African
-  'am': { engine: 'standard', awsCode: 'en-US', displayName: 'Amharic', isNative: false, fallbackNote: 'Using English' },
-  'om': { engine: 'standard', awsCode: 'en-US', displayName: 'Oromo', isNative: false, fallbackNote: 'Using English' },
-  'ti': { engine: 'standard', awsCode: 'en-US', displayName: 'Tigrinya', isNative: false, fallbackNote: 'Using English' },
-  'lg': { engine: 'standard', awsCode: 'en-US', displayName: 'Luganda', isNative: false, fallbackNote: 'Using English (common in Uganda)' },
-  'rn': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Kirundi', isNative: false, fallbackNote: 'Using French (official in Burundi)' },
+  'am': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Amharic',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-am-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English'
+  },
+  'om': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Oromo',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-om-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English'
+  },
+  'ti': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Tigrinya',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ti-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English'
+  },
+  'lg': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Luganda',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-lg-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English (common in Uganda) - Luganda medical vocabulary planned for Q1 2026'
+  },
+  'rn': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Kirundi',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-rn-fallback-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (official in Burundi)'
+  },
 
-  // Central African
-  'ln': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Lingala', isNative: false, fallbackNote: 'Using French (common in DRC)' },
-  'kg': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Kikongo', isNative: false, fallbackNote: 'Using French (common in DRC)' },
-  'lu': { engine: 'standard', awsCode: 'fr-FR', displayName: 'Luba-Katanga', isNative: false, fallbackNote: 'Using French (common in DRC)' },
+  // Central African - CRITICAL FOR DRC
+  'ln': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Lingala',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ln-fallback-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (common in DRC) - Lingala medical vocabulary planned for Q1 2026'
+  },
+  'kg': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Kikongo',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-kg-fallback-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (common in DRC) - Kikongo medical vocabulary planned for Q1 2026'
+  },
+  'lu': {
+    engine: 'standard',
+    awsCode: 'fr-FR',
+    displayName: 'Luba-Katanga',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-lu-fallback-fr',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using French (common in DRC)'
+  },
 
   // Southern African
-  'xh': { engine: 'standard', awsCode: 'en-ZA', displayName: 'Xhosa', isNative: false, fallbackNote: 'Using South African English' },
-  'st': { engine: 'standard', awsCode: 'en-ZA', displayName: 'Sesotho', isNative: false, fallbackNote: 'Using South African English' },
-  'tn': { engine: 'standard', awsCode: 'en-ZA', displayName: 'Setswana', isNative: false, fallbackNote: 'Using South African English' },
-  'ts': { engine: 'standard', awsCode: 'en-ZA', displayName: 'Tsonga', isNative: false, fallbackNote: 'Using South African English' },
-  've': { engine: 'standard', awsCode: 'en-ZA', displayName: 'Venda', isNative: false, fallbackNote: 'Using South African English' },
-  'nr': { engine: 'standard', awsCode: 'zu-ZA', displayName: 'Southern Ndebele', isNative: false, fallbackNote: 'Using Zulu (related language)' },
-  'ss': { engine: 'standard', awsCode: 'zu-ZA', displayName: 'Swati', isNative: false, fallbackNote: 'Using Zulu (related language)' },
-  'ny': { engine: 'standard', awsCode: 'en-US', displayName: 'Chichewa', isNative: false, fallbackNote: 'Using English' },
-  'sn': { engine: 'standard', awsCode: 'en-ZA', displayName: 'Shona', isNative: false, fallbackNote: 'Using South African English' },
-  'nd': { engine: 'standard', awsCode: 'zu-ZA', displayName: 'Northern Ndebele', isNative: false, fallbackNote: 'Using Zulu (related language)' },
+  'xh': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'Xhosa',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-xh-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using South African English'
+  },
+  'st': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'Sesotho',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-st-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using South African English'
+  },
+  'tn': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'Setswana',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-tn-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using South African English'
+  },
+  'ts': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'Tsonga',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ts-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using South African English'
+  },
+  've': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'Venda',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ve-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using South African English'
+  },
+  'nr': {
+    engine: 'standard',
+    awsCode: 'zu-ZA',
+    displayName: 'Southern Ndebele',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-nr-fallback-zu',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Zulu (related language)'
+  },
+  'ss': {
+    engine: 'standard',
+    awsCode: 'zu-ZA',
+    displayName: 'Swati',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ss-fallback-zu',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Zulu (related language)'
+  },
+  'ny': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Chichewa',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ny-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English'
+  },
+  'sn': {
+    engine: 'standard',
+    awsCode: 'en-ZA',
+    displayName: 'Shona',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-sn-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using South African English'
+  },
+  'nd': {
+    engine: 'standard',
+    awsCode: 'zu-ZA',
+    displayName: 'Northern Ndebele',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-nd-fallback-zu',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Zulu (related language)'
+  },
 
-  // Creoles & Pidgins
-  'pcm': { engine: 'standard', awsCode: 'en-US', displayName: 'Nigerian Pidgin', isNative: false, fallbackNote: 'Using English' },
-  'kri': { engine: 'standard', awsCode: 'en-US', displayName: 'Krio (Sierra Leone)', isNative: false, fallbackNote: 'Using English' },
+  // Creoles & Pidgins - CRITICAL FOR NIGERIA & WEST AFRICA
+  'pcm': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Nigerian Pidgin',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-pcm-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English - Nigerian Pidgin medical vocabulary planned for Q1 2026'
+  },
+  'kri': {
+    engine: 'standard',
+    awsCode: 'en-US',
+    displayName: 'Krio (Sierra Leone)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-kri-fallback-en',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using English'
+  },
 
   // Arabic variants (North Africa)
-  'ar': { engine: 'standard', awsCode: 'ar-AE', displayName: 'Arabic', isNative: true },
-  'ar-EG': { engine: 'standard', awsCode: 'ar-AE', displayName: 'Arabic (Egypt)', isNative: false, fallbackNote: 'Using Gulf Arabic' },
-  'ar-MA': { engine: 'standard', awsCode: 'ar-AE', displayName: 'Arabic (Morocco)', isNative: false, fallbackNote: 'Using Gulf Arabic' },
-  'ar-DZ': { engine: 'standard', awsCode: 'ar-AE', displayName: 'Arabic (Algeria)', isNative: false, fallbackNote: 'Using Gulf Arabic' },
-  'ar-TN': { engine: 'standard', awsCode: 'ar-AE', displayName: 'Arabic (Tunisia)', isNative: false, fallbackNote: 'Using Gulf Arabic' },
-  'ar-SD': { engine: 'standard', awsCode: 'ar-AE', displayName: 'Arabic (Sudan)', isNative: false, fallbackNote: 'Using Gulf Arabic' },
+  'ar': {
+    engine: 'standard',
+    awsCode: 'ar-AE',
+    displayName: 'Arabic',
+    isNative: true,
+    medicalVocabulary: 'medzen-medical-vocab-ar',
+    medicalEntitiesSupported: true
+  },
+  'ar-EG': {
+    engine: 'standard',
+    awsCode: 'ar-AE',
+    displayName: 'Arabic (Egypt)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ar',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Gulf Arabic'
+  },
+  'ar-MA': {
+    engine: 'standard',
+    awsCode: 'ar-AE',
+    displayName: 'Arabic (Morocco)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ar',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Gulf Arabic'
+  },
+  'ar-DZ': {
+    engine: 'standard',
+    awsCode: 'ar-AE',
+    displayName: 'Arabic (Algeria)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ar',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Gulf Arabic'
+  },
+  'ar-TN': {
+    engine: 'standard',
+    awsCode: 'ar-AE',
+    displayName: 'Arabic (Tunisia)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ar',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Gulf Arabic'
+  },
+  'ar-SD': {
+    engine: 'standard',
+    awsCode: 'ar-AE',
+    displayName: 'Arabic (Sudan)',
+    isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-ar',
+    medicalEntitiesSupported: true,
+    fallbackNote: 'Using Gulf Arabic'
+  },
 };
 
 /**
  * Get language configuration with fallback
+ * Returns complete config including medical vocabulary and entity extraction support
  */
 function getLanguageConfig(language: string): {
   engine: 'medical' | 'standard';
   awsCode: string;
   displayName: string;
   isNative: boolean;
+  medicalVocabulary?: string;
+  medicalEntitiesSupported: boolean;
   fallbackNote?: string;
 } {
   const config = LANGUAGE_CONFIG[language];
@@ -230,6 +728,8 @@ function getLanguageConfig(language: string): {
     awsCode: 'en-US',
     displayName: 'English (US) - Fallback',
     isNative: false,
+    medicalVocabulary: 'medzen-medical-vocab-en', // Fallback to English medical vocab
+    medicalEntitiesSupported: true,
     fallbackNote: 'Language not recognized, using English'
   };
 }
@@ -372,8 +872,9 @@ serve(async (req: Request) => {
 
     if (sessionFetchError) {
       console.error('[Medical Transcription] Failed to fetch session:', sessionFetchError);
+      const errorMsg = sessionFetchError.message || sessionFetchError.code || JSON.stringify(sessionFetchError);
       return new Response(
-        JSON.stringify({ error: 'Session not found', details: sessionFetchError.message }),
+        JSON.stringify({ error: 'Session not found', details: errorMsg }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -398,7 +899,36 @@ serve(async (req: Request) => {
     const chimeClient = createChimeClient(mediaRegion);
 
     if (action === 'start') {
+      // ===== IDEMPOTENCY CHECK =====
+      // If transcription is already enabled, return success immediately (don't restart)
+      // This prevents duplicate StartMeetingTranscription calls and ensures safe retry behavior
+      if (sessionData?.live_transcription_enabled === true) {
+        console.log(`[Medical Transcription] Transcription already enabled for session ${sessionId}. Returning success (idempotent).`);
+
+        // Fetch current transcription config
+        const { data: currentSession } = await supabase
+          .from('video_call_sessions')
+          .select('live_transcription_language, live_transcription_engine, transcription_status')
+          .eq('id', sessionId)
+          .single();
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Transcription already active (idempotent response)',
+            config: {
+              requestedLanguage: currentSession?.live_transcription_language || language,
+              selectedEngine: currentSession?.live_transcription_engine,
+              transcriptionStatus: currentSession?.transcription_status,
+              note: 'This is an idempotent response - transcription was already running'
+            }
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Check daily budget before starting
+      console.log(`[Medical Transcription] Step 1: Checking daily budget...`);
       const budgetCheck = await checkDailyBudget(supabase);
       if (!budgetCheck.allowed) {
         console.warn(`[Medical Transcription] Daily budget exceeded. Used: $${budgetCheck.used}`);
@@ -415,39 +945,99 @@ serve(async (req: Request) => {
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      console.log(`[Medical Transcription] ✅ Budget check passed`);
 
       // Validate and set duration limit
+      console.log(`[Medical Transcription] Step 2: Validating duration limit...`);
       const maxDurationMinutes = validateDurationLimit(body.maxDurationMinutes);
       const estimatedMaxCost = estimateCost(maxDurationMinutes);
+      console.log(`[Medical Transcription] ✅ Duration validated: ${maxDurationMinutes} min, estimated max cost: $${estimatedMaxCost}`);
+
+      // Get language configuration and determine which engine to use
+      console.log(`[Medical Transcription] Step 3: Getting language config for '${language}'...`);
+      const languageConfig = getLanguageConfig(language);
+      const selectedEngine = languageConfig.engine;
+      const awsLanguageCode = languageConfig.awsCode;
+      console.log(`[Medical Transcription] ✅ Language config found: ${languageConfig.displayName} (${awsLanguageCode}) → Engine: ${selectedEngine}`);
 
       console.log(`[Medical Transcription] Starting with max duration: ${maxDurationMinutes} min, estimated max cost: $${estimatedMaxCost}`);
+      console.log(`[Medical Transcription] Language: ${language} (${languageConfig.displayName}) → AWS code: ${awsLanguageCode}, Engine: ${selectedEngine}`);
 
-      // Start medical transcription with AWS Transcribe Medical
+      // CRITICAL: AWS Transcribe Medical ONLY supports en-US
+      // If user requested a language that should use medical engine but isn't en-US,
+      // intelligently downgrade to standard engine
+      let finalEngine = selectedEngine;
+      if (selectedEngine === 'medical' && language !== 'en-US') {
+        console.warn(`[Medical Transcription] Language '${language}' requested medical engine but AWS Medical only supports en-US. Downgrading to standard engine.`);
+        finalEngine = 'standard';
+      }
+
+      // HYBRID MEDICAL TRANSCRIPTION MODEL:
+      // - en-US: Uses AWS Transcribe Medical with medical specialties
+      // - All other languages: Uses Standard with language-specific medical vocabularies + AI entity extraction
+      const medicalVocabularyName = languageConfig.medicalVocabulary ||
+        (finalEngine === 'medical' ? Deno.env.get('MEDICAL_VOCABULARY_NAME') : Deno.env.get('STANDARD_VOCABULARY_NAME'));
+
+      console.log(`[Medical Transcription] Step 4: Building StartMeetingTranscriptionCommand...`);
+      console.log(`  meetingId: ${meetingId}`);
+      console.log(`  finalEngine: ${finalEngine}`);
+      console.log(`  medicalVocabularyName: ${medicalVocabularyName}`);
+      console.log(`  language: ${language}`);
+
       const startCommand = new StartMeetingTranscriptionCommand({
         MeetingId: meetingId,
-        TranscriptionConfiguration: {
-          EngineTranscribeMedicalSettings: {
-            LanguageCode: language as 'en-US' | 'en-GB' | 'es-US',
-            Specialty: specialty as 'PRIMARYCARE' | 'CARDIOLOGY' | 'NEUROLOGY' | 'ONCOLOGY' | 'RADIOLOGY' | 'UROLOGY',
-            Type: 'CONVERSATION', // Doctor-patient conversation
-            VocabularyName: Deno.env.get('MEDICAL_VOCABULARY_NAME'), // Optional custom vocabulary
-            ContentIdentificationType: contentIdentificationType,
-          },
-        },
+        TranscriptionConfiguration: finalEngine === 'medical'
+          ? {
+              // Medical engine (en-US only) - AWS Transcribe Medical with specialty support
+              EngineTranscribeMedicalSettings: {
+                LanguageCode: 'en-US', // Enforced - medical only supports en-US
+                Specialty: specialty as 'PRIMARYCARE' | 'CARDIOLOGY' | 'NEUROLOGY' | 'ONCOLOGY' | 'RADIOLOGY' | 'UROLOGY',
+                Type: 'CONVERSATION', // Doctor-patient conversation
+                VocabularyName: medicalVocabularyName, // Use language-specific medical vocabulary (en-US)
+                ContentIdentificationType: contentIdentificationType,
+              },
+            }
+          : {
+              // Standard engine with medical vocabulary (all languages)
+              // This enables medical transcription for French, Swahili, Zulu, and all other languages
+              EngineTranscribeSettings: {
+                LanguageCode: awsLanguageCode as any,
+                VocabularyName: medicalVocabularyName, // Use language-specific medical vocabulary (e.g., fr, sw, zu)
+                ContentIdentificationType: contentIdentificationType,
+              },
+            },
       });
 
-      await chimeClient.send(startCommand);
+      console.log(`[Medical Transcription] Step 5: Executing StartMeetingTranscriptionCommand on Chime...`);
+      try {
+        await chimeClient.send(startCommand);
+        console.log(`[Medical Transcription] ✅ StartMeetingTranscriptionCommand succeeded`);
+      } catch (error) {
+        console.error(`[Medical Transcription] ❌ StartMeetingTranscriptionCommand failed:`, error);
+        if (error instanceof Error) {
+          console.error(`  Error name: ${error.name}`);
+          console.error(`  Error message: ${error.message}`);
+          console.error(`  Error stack: ${error.stack}`);
+        }
+        throw new Error(`Failed to start Chime transcription: ${error instanceof Error ? error.message : String(error)}`);
+      }
 
       // Publish start metric
+      console.log(`[Medical Transcription] Step 6: Publishing metrics...`);
       await publishMetric('TranscriptionStarted', 1);
       await publishMetric('InProgressJobs', 1);
+      console.log(`[Medical Transcription] ✅ Metrics published`);
 
-      // Update session with transcription status and duration limit
+      // Update session with transcription status, language, engine, and medical vocabulary
+      console.log(`[Medical Transcription] Step 7: Updating session record...`);
       const { error: updateError } = await supabase
         .from('video_call_sessions')
         .update({
           live_transcription_enabled: true,
           live_transcription_language: language,
+          live_transcription_engine: finalEngine, // Track which engine was used (medical or standard)
+          live_transcription_medical_vocabulary: medicalVocabularyName, // Track medical vocabulary
+          live_transcription_medical_entities_enabled: languageConfig.medicalEntitiesSupported, // AI entity extraction support
           live_transcription_started_at: new Date().toISOString(),
           transcription_status: 'in_progress',
           transcription_max_duration_minutes: maxDurationMinutes,
@@ -458,36 +1048,72 @@ serve(async (req: Request) => {
         .eq('id', sessionId);
 
       if (updateError) {
-        console.error('Error updating session:', updateError);
+        console.error(`[Medical Transcription] ❌ Error updating session:`, updateError);
+        const errorMsg = updateError.message || updateError.code || JSON.stringify(updateError);
+        console.error(`  Message: ${errorMsg}`);
         await publishMetric('DatabaseErrors', 1);
-        throw updateError;
+        throw new Error(`Failed to update session: ${errorMsg}`);
       }
+      console.log(`[Medical Transcription] ✅ Session updated successfully`);
 
-      // Log to audit trail
-      await supabase.from('video_call_audit_log').insert({
+
+      // Log to audit trail with full medical transcription configuration
+      console.log(`[Medical Transcription] Step 8: Inserting audit log...`);
+      const { error: auditError } = await supabase.from('video_call_audit_log').insert({
         session_id: sessionId,
         event_type: 'TRANSCRIPTION_STARTED',
         event_data: {
           meetingId,
           language,
+          languageDisplayName: languageConfig.displayName,
+          engine: finalEngine,
+          medicalVocabulary: medicalVocabularyName,
+          medicalEntitiesSupported: languageConfig.medicalEntitiesSupported,
           specialty,
           enableSpeakerIdentification,
           maxDurationMinutes,
           estimatedMaxCost,
-          budgetRemaining: budgetCheck.remaining
+          budgetRemaining: budgetCheck.remaining,
+          note: 'Hybrid medical transcription: all languages with medical vocabulary support'
         },
         created_at: new Date().toISOString(),
       });
 
-      console.log(`[Medical Transcription] Started successfully for ${meetingId}`);
+      if (auditError) {
+        console.error(`[Medical Transcription] ⚠️ Warning: Audit log insertion failed (non-critical):`, auditError);
+        // Don't throw - audit log failure shouldn't block transcription start
+      } else {
+        console.log(`[Medical Transcription] ✅ Audit log inserted`);
+      }
+
+      console.log(`[Medical Transcription] ✅ Started successfully for ${meetingId}`);
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'Medical transcription started',
+          message: finalEngine === 'medical'
+            ? `Medical transcription started with ${languageConfig.displayName} and medical specialties`
+            : `Standard transcription started with ${languageConfig.displayName} and medical vocabulary support`,
           config: {
-            language,
-            specialty,
+            requestedLanguage: language,
+            languageDisplayName: languageConfig.displayName,
+            selectedEngine: finalEngine,
+            medicalCapabilities: {
+              // HYBRID MEDICAL MODEL: All languages now support medical transcription
+              medicalVocabularyUsed: medicalVocabularyName,
+              medicalEntitiesSupported: languageConfig.medicalEntitiesSupported,
+              medicalSpecialtiesAvailable: finalEngine === 'medical', // Only en-US has specialties
+              availableSpecialties: finalEngine === 'medical'
+                ? ['PRIMARYCARE', 'CARDIOLOGY', 'NEUROLOGY', 'ONCOLOGY', 'RADIOLOGY', 'UROLOGY']
+                : [],
+              note: finalEngine === 'standard'
+                ? `Medical vocabulary enabled (${medicalVocabularyName}). Medical specialties only available in English (US).`
+                : undefined
+            },
+            downgradeNote: selectedEngine === 'medical' && finalEngine === 'standard'
+              ? 'AWS Transcribe Medical (with specialties) only supports en-US. Using standard engine with medical vocabulary instead.'
+              : undefined,
+            specialty: finalEngine === 'medical' ? specialty : undefined,
             speakerIdentification: enableSpeakerIdentification,
             maxDurationMinutes,
             estimatedMaxCost,
@@ -519,7 +1145,14 @@ serve(async (req: Request) => {
         MeetingId: meetingId,
       });
 
-      await chimeClient.send(stopCommand);
+      try {
+        await chimeClient.send(stopCommand);
+        console.log(`[Medical Transcription] ✅ Meeting transcription stopped for ${meetingId}`);
+      } catch (stopError) {
+        // Meeting may have already ended - log as warning but continue
+        console.warn(`[Medical Transcription] ⚠️ Transcription stop error: ${stopError instanceof Error ? stopError.message : JSON.stringify(stopError)}`);
+        console.warn(`  This can happen if the meeting already ended or expired. Continuing with session finalization...`);
+      }
 
       // Publish stop metrics
       await publishMetric('TranscriptionStopped', 1);
@@ -643,15 +1276,43 @@ serve(async (req: Request) => {
     );
 
   } catch (error) {
-    console.error('[Medical Transcription] Error:', error);
+    console.error('[Medical Transcription] ❌ ERROR in main handler:', error);
+
+    if (error instanceof Error) {
+      console.error(`  Error name: ${error.name}`);
+      console.error(`  Error message: ${error.message}`);
+      console.error(`  Error stack: ${error.stack}`);
+    } else {
+      console.error(`  Error (non-Error object):`, JSON.stringify(error));
+    }
 
     // Publish failure metric
-    await publishMetric('FailedJobs', 1);
-    await publishMetric('APIErrors', 1);
+    try {
+      await publishMetric('FailedJobs', 1);
+      await publishMetric('APIErrors', 1);
+    } catch (metricError) {
+      console.error('[Medical Transcription] Failed to publish error metrics:', metricError);
+    }
+
+    // Extract error message with proper object handling
+    let errorMessage = 'Unknown error';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === 'object' && error !== null && 'message' in error) {
+      errorMessage = String((error as any).message);
+    } else if (typeof error === 'string') {
+      errorMessage = error;
+    } else {
+      errorMessage = JSON.stringify(error);
+    }
+
+    console.error(`[Medical Transcription] Returning 500 error: ${errorMessage}`);
 
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'Failed to control transcription',
+        error: errorMessage,
+        code: 'TRANSCRIPTION_ERROR',
+        timestamp: new Date().toISOString(),
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

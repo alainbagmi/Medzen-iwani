@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Testing SDK v2.x</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        .result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background: #10b981; }
+        .error { background: #ef4444; }
+        .info { background: #3b82f6; }
+        pre { background: rgba(0,0,0,0.5); padding: 15px; border-radius: 6px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Testing SDK v2.x</h1>
+        <p>Trying older versions that might have working browser bundles...</p>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        const versions = [
+            '2.28.0',
+            '2.20.0',
+            '2.10.0',
+            '2.0.0'
+        ];
+
+        let currentIndex = 0;
+
+        function testVersion(version) {
+            log(`Testing v${version}...`, 'info');
+
+            const script = document.createElement('script');
+            script.src = `https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-${version}.min.js`;
+            script.crossOrigin = 'anonymous';
+
+            script.onload = () => {
+                setTimeout(() => {
+                    const sdk = window.ChimeSDK || window.chime;
+
+                    if (sdk && typeof sdk === 'object' && Object.keys(sdk).length > 0) {
+                        log(`✅ v${version} WORKS!`, 'success');
+                        log(`${Object.keys(sdk).length} classes found`, 'success');
+
+                        try {
+                            const logger = new sdk.ConsoleLogger('Test');
+                            logger.info('SDK is functional!');
+                            log(`✅ Successfully instantiated ConsoleLogger from v${version}`, 'success');
+
+                            log(`<h2>🎉 USE THIS VERSION!</h2>
+                                <pre>&lt;script src="https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-${version}.min.js"&gt;&lt;/script&gt;</pre>`, 'success');
+
+                        } catch (err) {
+                            log(`❌ v${version} loaded but instantiation failed: ${err.message}`, 'error');
+                            testNext();
+                        }
+
+                    } else {
+                        log(`❌ v${version} SDK is undefined or broken`, 'error');
+                        testNext();
+                    }
+                }, 300);
+            };
+
+            script.onerror = () => {
+                log(`❌ v${version} failed to load (404 or network error)`, 'error');
+                testNext();
+            };
+
+            document.head.appendChild(script);
+        }
+
+        function testNext() {
+            currentIndex++;
+            if (currentIndex < versions.length) {
+                setTimeout(() => testVersion(versions[currentIndex]), 500);
+            } else {
+                log('❌ All tested versions failed. You need to build your own bundle.', 'error');
+            }
+        }
+
+        testVersion(versions[currentIndex]);
+    </script>
+</body>
+</html>

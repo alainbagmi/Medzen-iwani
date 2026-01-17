@@ -2389,6 +2389,41 @@ class AWSResetPwdCall {
       ));
 }
 
+class FirebaseCreateUserCall {
+  static Future<ApiCallResponse> call({
+    String? api,
+    String? key,
+    String? email = '',
+    String? displayname = '',
+  }) async {
+    api ??= FFDevEnvironmentValues().FirebaseCreateUserURL;
+    key ??= FFDevEnvironmentValues().FirebaseCreateUserApi;
+
+    final ffApiRequestBody = '''
+{
+  "email": "${escapeStringForJson(email)}",
+  "displayName": "${escapeStringForJson(displayname)}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'Firebase Create User',
+      apiUrl: '${api}',
+      callType: ApiCallType.POST,
+      headers: {
+        'x-api-key': '${key}',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+}
+
 class ApiPagingParams {
   int nextPageNumber = 0;
   int numItems = 0;

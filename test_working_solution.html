@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>✅ Working Chime SDK Solution</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { margin-top: 0; }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .pass { background: #10b981; }
+        .fail { background: #ef4444; }
+        .info { background: #3b82f6; }
+        pre {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ Working Chime SDK Implementation</h1>
+        <p>Testing multiple loading strategies...</p>
+        <div id="results"></div>
+    </div>
+
+    <!-- Try Strategy 1: Direct script tag (traditional) -->
+    <script src="https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-3.19.0.min.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addResult(message, pass) {
+            const div = document.createElement('div');
+            div.className = `status ${pass ? 'pass' : 'fail'}`;
+            div.textContent = (pass ? '✅ ' : '❌ ') + message;
+            results.appendChild(div);
+        }
+
+        function testStrategy1() {
+            addResult('Strategy 1: Direct <script> tag', false);
+
+            // Give it time to load
+            setTimeout(() => {
+                if (typeof ChimeSDK !== 'undefined') {
+                    addResult('Global ChimeSDK available!', true);
+                    displaySDKInfo(ChimeSDK);
+                } else if (typeof window.ChimeSDK !== 'undefined') {
+                    addResult('window.ChimeSDK available!', true);
+                    displaySDKInfo(window.ChimeSDK);
+                } else {
+                    addResult('ChimeSDK not found via Strategy 1', false);
+                    testStrategy2();
+                }
+            }, 1000);
+        }
+
+        function testStrategy2() {
+            addResult('Strategy 2: Dynamic import', false);
+
+            // Try using import() for ES modules
+            import('https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-3.19.0.min.js')
+                .then(SDK => {
+                    addResult('Dynamic import successful!', true);
+                    displaySDKInfo(SDK);
+                })
+                .catch(err => {
+                    addResult('Import failed: ' + err.message, false);
+                    testStrategy3();
+                });
+        }
+
+        function testStrategy3() {
+            addResult('Strategy 3: NPM CDN (unpkg)', false);
+
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/amazon-chime-sdk-js@3.19.0/build/amazon-chime-sdk.min.js';
+
+            script.onload = () => {
+                setTimeout(() => {
+                    if (typeof ChimeSDK !== 'undefined') {
+                        addResult('unpkg.com version loaded!', true);
+                        displaySDKInfo(ChimeSDK);
+                    } else {
+                        addResult('unpkg.com failed', false);
+                        testStrategy4();
+                    }
+                }, 500);
+            };
+
+            script.onerror = () => {
+                addResult('unpkg.com load error', false);
+                testStrategy4();
+            };
+
+            document.head.appendChild(script);
+        }
+
+        function testStrategy4() {
+            addResult('Strategy 4: jsDelivr CDN', false);
+
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/amazon-chime-sdk-js@3.19.0/build/amazon-chime-sdk.min.js';
+
+            script.onload = () => {
+                setTimeout(() => {
+                    if (typeof ChimeSDK !== 'undefined' || typeof window.ChimeSDK !== 'undefined') {
+                        addResult('jsDelivr version loaded!', true);
+                        displaySDKInfo(window.ChimeSDK || ChimeSDK);
+                    } else {
+                        addResult('All strategies failed!', false);
+                        showDebugInfo();
+                    }
+                }, 500);
+            };
+
+            script.onerror = () => {
+                addResult('jsDelivr load error', false);
+                showDebugInfo();
+            };
+
+            document.head.appendChild(script);
+        }
+
+        function displaySDKInfo(SDK) {
+            const div = document.createElement('div');
+            div.className = 'status pass';
+
+            const classes = Object.keys(SDK);
+            div.innerHTML = `
+                <h3>🎉 Chime SDK Loaded Successfully!</h3>
+                <p><strong>${classes.length}</strong> classes available</p>
+                <pre>${classes.slice(0, 30).join('\n')}\n... and ${classes.length - 30} more</pre>
+            `;
+
+            results.appendChild(div);
+
+            // Try to create a logger
+            try {
+                const logger = new SDK.ConsoleLogger('TestLogger');
+                addResult('✅ Successfully instantiated ConsoleLogger', true);
+                logger.info('Chime SDK is working!');
+            } catch (err) {
+                addResult('❌ Failed to instantiate logger: ' + err.message, false);
+            }
+        }
+
+        function showDebugInfo() {
+            const div = document.createElement('div');
+            div.className = 'status fail';
+
+            const allProps = Object.keys(window);
+            const sdkProps = allProps.filter(p =>
+                p.toLowerCase().includes('chime') ||
+                p.toLowerCase().includes('sdk')
+            );
+
+            div.innerHTML = `
+                <h3>Debug Information</h3>
+                <p>SDK-related properties: ${sdkProps.join(', ') || 'none'}</p>
+                <p>Total window properties: ${allProps.length}</p>
+                <p>Protocol: ${window.location.protocol}</p>
+                <p>Check browser console for errors</p>
+            `;
+
+            results.appendChild(div);
+        }
+
+        // Start testing
+        addResult('Testing Chime SDK loading strategies...', true);
+        testStrategy1();
+    </script>
+</body>
+</html>

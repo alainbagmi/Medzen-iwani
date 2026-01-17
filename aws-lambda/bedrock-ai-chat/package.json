@@ -1,0 +1,16 @@
+{
+  "name": "medzen-ai-chat-handler",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MedX AI Chat Handler using Amazon Nova Pro for MedZen Health",
+  "main": "index.mjs",
+  "scripts": {
+    "package": "zip -r function.zip index.mjs node_modules package.json",
+    "deploy": "aws lambda update-function-code --function-name medzen-ai-chat-handler --zip-file fileb://function.zip --region eu-west-1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.450.0"
+  },
+  "author": "MedZen Health",
+  "license": "UNLICENSED"
+}

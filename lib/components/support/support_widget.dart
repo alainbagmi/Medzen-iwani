@@ -594,7 +594,7 @@ class _SupportWidgetState extends State<SupportWidget>
                                       : () async {
                                           await launchUrl(Uri(
                                               scheme: 'mailto',
-                                              path: 'suppport@medzenhealth.app',
+                                              path: 'support@medzenhealth.app',
                                               query: {
                                                 'subject': _model.subjectValue!,
                                                 'body':

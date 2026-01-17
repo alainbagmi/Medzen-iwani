@@ -51,89 +51,92 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
+    return FutureBuilder<ApiCallResponse>(
+      future: SupagraphqlGroup.userDetailsCall.call(
+        userId: FFAppState().AuthuserID,
+      ),
+      builder: (context, snapshot) {
+        // Customize what your widget looks like when it's loading.
+        if (!snapshot.hasData) {
+          return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: Icon(
-                    Icons.chevron_left,
-                    size: 35.0,
+            body: Center(
+              child: SizedBox(
+                width: 50.0,
+                height: 50.0,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
                   ),
-                  showNotificationBadge: false,
-                  logoutbutton: true,
-                  btnaction: () async {
-                    context.safePop();
-                  },
                 ),
               ),
             ),
-            centerTitle: true,
-            elevation: 0.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: Stack(
-            children: [
-              Stack(
+          );
+        }
+        final providerProfilePageUserDetailsResponse = snapshot.data!;
+
+        return GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(80.0),
+              child: AppBar(
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                automaticallyImplyLeading: false,
+                actions: [],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: wrapWithModel(
+                    model: _model.topBarModel,
+                    updateCallback: () => safeSetState(() {}),
+                    child: TopBarWidget(
+                      btnicon: Icon(
+                        Icons.chevron_left,
+                        size: 35.0,
+                      ),
+                      showNotificationBadge: false,
+                      logoutbutton: true,
+                      btnaction: () async {
+                        context.safePop();
+                      },
+                    ),
+                  ),
+                ),
+                centerTitle: true,
+                elevation: 0.0,
+              ),
+            ),
+            body: SafeArea(
+              top: true,
+              child: Stack(
                 children: [
                   Stack(
-                    children: [],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      if (responsiveVisibility(
-                        context: context,
-                        phone: false,
-                      ))
-                        wrapWithModel(
-                          model: _model.sideNavModel,
-                          updateCallback: () => safeSetState(() {}),
-                          child: SideNavWidget(),
-                        ),
-                      Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          decoration: BoxDecoration(),
-                          child: FutureBuilder<ApiCallResponse>(
-                            future: SupagraphqlGroup.userDetailsCall.call(
-                              userId: FFAppState().AuthuserID,
+                      Stack(
+                        children: [],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          if (responsiveVisibility(
+                            context: context,
+                            phone: false,
+                          ))
+                            wrapWithModel(
+                              model: _model.sideNavModel,
+                              updateCallback: () => safeSetState(() {}),
+                              child: SideNavWidget(),
                             ),
-                            builder: (context, snapshot) {
-                              // Customize what your widget looks like when it's loading.
-                              if (!snapshot.hasData) {
-                                return Center(
-                                  child: SizedBox(
-                                    width: 50.0,
-                                    height: 50.0,
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        FlutterFlowTheme.of(context).primary,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }
-                              final rowUserDetailsResponse = snapshot.data!;
-
-                              return Row(
+                          Expanded(
+                            child: Container(
+                              width: double.infinity,
+                              height: double.infinity,
+                              decoration: BoxDecoration(),
+                              child: Row(
                                 mainAxisSize: MainAxisSize.max,
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -316,7 +319,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userDetails(
-                                                                        rowUserDetailsResponse
+                                                                        providerProfilePageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.full_name''',
@@ -401,7 +404,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userDetails(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.date_of_birth''',
@@ -482,7 +485,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userDetails(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.gender''',
@@ -647,7 +650,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .medicalproviderprofiles(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.medical_license_number''',
@@ -728,7 +731,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.id_card_number''',
@@ -809,7 +812,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.id_card_issue_date''',
@@ -890,7 +893,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.id_card_expiration_date''',
@@ -1055,7 +1058,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userDetails(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.phone_number''',
@@ -1147,7 +1150,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                         SupagraphqlGroup
                                                                             .userDetailsCall
                                                                             .userProfile(
-                                                                          rowUserDetailsResponse
+                                                                          providerProfilePageUserDetailsResponse
                                                                               .jsonBody,
                                                                         ),
                                                                         r'''$.street_address''',
@@ -1158,7 +1161,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                         SupagraphqlGroup
                                                                             .userDetailsCall
                                                                             .userProfile(
-                                                                          rowUserDetailsResponse
+                                                                          providerProfilePageUserDetailsResponse
                                                                               .jsonBody,
                                                                         ),
                                                                         r'''$.city''',
@@ -1168,7 +1171,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        rowUserDetailsResponse
+                                                                        providerProfilePageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.state''',
@@ -1336,7 +1339,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_provider''',
@@ -1417,7 +1420,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_number''',
@@ -1582,7 +1585,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_name''',
@@ -1663,7 +1666,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_relationship''',
@@ -1744,7 +1747,7 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    rowUserDetailsResponse
+                                                                    providerProfilePageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_phone''',
@@ -1840,33 +1843,33 @@ class _ProviderProfilePageWidgetState extends State<ProviderProfilePageWidget> {
                                     ),
                                   ),
                                 ],
-                              );
-                            },
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
+                  if (responsiveVisibility(
+                    context: context,
+                    tablet: false,
+                    tabletLandscape: false,
+                    desktop: false,
+                  ))
+                    Align(
+                      alignment: AlignmentDirectional(0.0, 1.02),
+                      child: wrapWithModel(
+                        model: _model.mainBottomNavModel,
+                        updateCallback: () => safeSetState(() {}),
+                        child: MainBottomNavWidget(),
+                      ),
+                    ),
                 ],
               ),
-              if (responsiveVisibility(
-                context: context,
-                tablet: false,
-                tabletLandscape: false,
-                desktop: false,
-              ))
-                Align(
-                  alignment: AlignmentDirectional(0.0, 1.02),
-                  child: wrapWithModel(
-                    model: _model.mainBottomNavModel,
-                    updateCallback: () => safeSetState(() {}),
-                    child: MainBottomNavWidget(),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

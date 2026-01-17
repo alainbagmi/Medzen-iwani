@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Chime SDK Export</title>
+</head>
+<body>
+    <h1>Chime SDK Export Test</h1>
+    <div id="result"></div>
+
+    <script src="https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js"></script>
+    <script>
+        window.addEventListener('load', () => {
+            const resultDiv = document.getElementById('result');
+            let html = '<h2>Test Results:</h2>';
+
+            // Check what's available
+            html += '<p><strong>window.ChimeSDK exists:</strong> ' + (typeof window.ChimeSDK !== 'undefined') + '</p>';
+            html += '<p><strong>window.ChimeSDK type:</strong> ' + typeof window.ChimeSDK + '</p>';
+
+            if (typeof window.ChimeSDK !== 'undefined') {
+                html += '<p><strong>ChimeSDK keys:</strong> ' + Object.keys(window.ChimeSDK).slice(0, 10).join(', ') + '</p>';
+                html += '<p><strong>ChimeSDK.ConsoleLogger exists:</strong> ' + (typeof window.ChimeSDK.ConsoleLogger !== 'undefined') + '</p>';
+                html += '<p><strong>ChimeSDK.MeetingSessionConfiguration exists:</strong> ' + (typeof window.ChimeSDK.MeetingSessionConfiguration !== 'undefined') + '</p>';
+                html += '<p><strong>ChimeSDK.DefaultMeetingSession exists:</strong> ' + (typeof window.ChimeSDK.DefaultMeetingSession !== 'undefined') + '</p>';
+            }
+
+            // Try the global this scope
+            html += '<p><strong>this.ChimeSDK exists:</strong> ' + (typeof this.ChimeSDK !== 'undefined') + '</p>';
+
+            // Try globalThis
+            html += '<p><strong>globalThis.ChimeSDK exists:</strong> ' + (typeof globalThis.ChimeSDK !== 'undefined') + '</p>';
+
+            resultDiv.innerHTML = html;
+            console.log('ChimeSDK:', window.ChimeSDK);
+        });
+    </script>
+</body>
+</html>

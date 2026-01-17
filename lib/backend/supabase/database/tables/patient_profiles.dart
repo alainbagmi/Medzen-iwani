@@ -176,4 +176,7 @@ class PatientProfilesRow extends SupabaseDataRow {
 
   DateTime? get updatedAt => getField<DateTime>('updated_at');
   set updatedAt(DateTime? value) => setField<DateTime>('updated_at', value);
+
+  String? get bloodType => getField<String>('blood_type');
+  set bloodType(String? value) => setField<String>('blood_type', value);
 }

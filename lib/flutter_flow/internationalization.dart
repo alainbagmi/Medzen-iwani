@@ -5647,11 +5647,6 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
       'af': 'Telefoonnommer:',
       'fr': 'Numéro de téléphone:',
     },
-    'x3gdq8oi': {
-      'en': '',
-      'af': '',
-      'fr': '',
-    },
     'g3fbt70p': {
       'en': 'Insurance Information',
       'af': 'Versekeringsinligting',
@@ -5849,11 +5844,6 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
       'en': 'Profile Information',
       'af': 'Profielinligting',
       'fr': 'Informations de profil',
-    },
-    'dmj1hhyn': {
-      'en': '',
-      'af': '',
-      'fr': '',
     },
     '1jvc73vp': {
       'en': 'Insurance Information',
@@ -6425,11 +6415,6 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
       'en': 'Profile Information',
       'af': 'Profielinligting',
       'fr': 'Informations de profil',
-    },
-    '1abgdhhg': {
-      'en': 'TextField',
-      'af': 'Teksveld',
-      'fr': 'Champ de texte',
     },
     'unmrsry3': {
       'en': 'Insurance Information',
@@ -10027,45 +10012,30 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
   },
   // facilityadmin_patientsPage
   {
-    'atlxltq4': {
+    'bz4ju3am': {
       'en': 'Patients',
       'af': 'Pasiënte',
       'fr': 'Les patients',
     },
-    'zc2nkdra': {
+    '0walxx9e': {
+      'en': 'New',
+      'af': 'Terugvoer',
+      'fr': 'Commentaires',
+    },
+    'qatw53b7': {
       'en': 'Search patients...',
       'af': 'Soek pasiënte...',
       'fr': 'Rechercher des patients...',
     },
-    'ib0a4tgt': {
-      'en': 'Name: ',
-      'af': 'Naam:',
-      'fr': 'Nom:',
+    'pzcx7wnj': {
+      'en': 'History',
+      'af': 'Terugvoer',
+      'fr': 'Commentaires',
     },
-    'hy17tasv': {
-      'en': 'patient name',
-      'af': 'pasiëntnaam',
-      'fr': 'nom du patient',
-    },
-    '4i5fip4u': {
-      'en': 'DOB: ',
-      'af': 'Geboortedatum:',
-      'fr': 'Date de naissance :',
-    },
-    'yrprcql5': {
-      'en': 'Status',
-      'af': 'Status',
-      'fr': 'Statut',
-    },
-    'ffdituk2': {
-      'en': 'ID: ',
-      'af': 'ID:',
-      'fr': 'IDENTIFIANT:',
-    },
-    'nhqolycu': {
-      'en': 'ID',
-      'af': 'ID',
-      'fr': 'IDENTIFIANT',
+    'xs8xh3x8': {
+      'en': 'New',
+      'af': 'Terugvoer',
+      'fr': 'Commentaires',
     },
     '5p08njk5': {
       'en': 'Home',
@@ -11625,6 +11595,748 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
       'en': 'Yes',
       'af': 'Ja',
       'fr': 'Oui',
+    },
+  },
+  // PatientCreation
+  {
+    'wb3cz23a': {
+      'en': 'Patient Basic Information',
+      'af': 'Pasiënt Basiese Inligting',
+      'fr': 'Informations de base pour le patient',
+    },
+    '54oox4tl': {
+      'en': 'Personal Information',
+      'af': 'Persoonlike Inligting',
+      'fr': 'Informations personnelles',
+    },
+    '1cb7ep0f': {
+      'en': '',
+      'af': '',
+      'fr': '',
+    },
+    'yhqpcuqt': {
+      'en': 'patient',
+      'af': 'pasiënt',
+      'fr': 'patient',
+    },
+    'ejisymtm': {
+      'en': 'Select...',
+      'af': 'Kies...',
+      'fr': 'Sélectionner...',
+    },
+    'kbj2ee67': {
+      'en': 'Search...',
+      'af': 'Soek...',
+      'fr': 'Recherche...',
+    },
+    'nnb3hspz': {
+      'en': 'French',
+      'af': 'Frans',
+      'fr': 'Français',
+    },
+    'eyy8jad2': {
+      'en': 'English',
+      'af': 'Engels',
+      'fr': 'Anglais',
+    },
+    'aahr5fk5': {
+      'en': 'Fulfulde',
+      'af': 'Fulfulde',
+      'fr': 'Fulfulde',
+    },
+    '43ifxfbq': {
+      'en': 'Preferred Spoken Language',
+      'af': 'Voorkeur Gesproke Taal',
+      'fr': 'Langue parlée préférée',
+    },
+    'yvnt66jk': {
+      'en': 'First Name',
+      'af': 'Voornaam',
+      'fr': 'Prénom',
+    },
+    '1waqu9a8': {
+      'en': 'Middle Name',
+      'af': 'Middelnaam',
+      'fr': 'Deuxième prénom',
+    },
+    'nis6ckwr': {
+      'en': 'Last Name',
+      'af': 'Van',
+      'fr': 'Nom de famille',
+    },
+    'uwep6rp2': {
+      'en': 'Date Of Birth',
+      'af': 'Geboortedatum',
+      'fr': 'Date de naissance',
+    },
+    'jkkwpvbq': {
+      'en': 'ID Card Details',
+      'af': 'ID-kaartbesonderhede',
+      'fr': 'Détails de la carte d\'identité',
+    },
+    'scdklflb': {
+      'en': 'ID CARD NUMBER',
+      'af': 'ID-KAARTNOMMER',
+      'fr': 'NUMÉRO DE CARTE D\'IDENTITÉ',
+    },
+    'l4prskva': {
+      'en': 'ISSUE DATE',
+      'af': 'UITREIKINGSDATUM',
+      'fr': 'DATE D\'ÉMISSION',
+    },
+    '96lb3b0a': {
+      'en': 'EXPIRATION DATE',
+      'af': 'VERVALDATUM',
+      'fr': 'DATE D\'EXPIRATION',
+    },
+    'uuoghca3': {
+      'en': 'Select Gender',
+      'af': 'Kies Geslag',
+      'fr': 'Sélectionner le sexe',
+    },
+    'robsglh8': {
+      'en': 'male',
+      'af': 'manlik',
+      'fr': 'masculin',
+    },
+    '4jdjo3mz': {
+      'en': 'female',
+      'af': 'vroulik',
+      'fr': 'féminin',
+    },
+    '8kp7jjn0': {
+      'en': 'Address',
+      'af': 'Adres',
+      'fr': 'Adresse',
+    },
+    'h9i4oghs': {
+      'en': 'Street',
+      'af': 'Straat',
+      'fr': 'Rue',
+    },
+    '8w20u4cc': {
+      'en': 'City ',
+      'af': 'Stad',
+      'fr': 'Ville',
+    },
+    'tjtyt4y6': {
+      'en': 'Region',
+      'af': 'Streek',
+      'fr': 'Région',
+    },
+    'nun25x8z': {
+      'en': 'Zip Code / P.O Box',
+      'af': 'Poskode / Posbus',
+      'fr': 'Code postal / Boîte postale',
+    },
+    '5iamj8ag': {
+      'en': 'Back',
+      'af': 'Terug',
+      'fr': 'Retour',
+    },
+    'j52wfrs0': {
+      'en': 'Continue',
+      'af': 'Gaan voort',
+      'fr': 'Continuer',
+    },
+    'f4ltfc7k': {
+      'en': 'Role is Required',
+      'af': 'Rol word vereis',
+      'fr': 'Rôle requis',
+    },
+    '1wd2hxic': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'yudirfx4': {
+      'en': 'First Name is required',
+      'af': 'Voornaam word vereis',
+      'fr': 'Le prénom est requis.',
+    },
+    'v4ubedxk': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'vwf5jml2': {
+      'en': 'Middle Name is required',
+      'af': 'Middelnaam word vereis',
+      'fr': 'Le deuxième prénom est obligatoire.',
+    },
+    'ymmp31sw': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'ah02sqgt': {
+      'en': 'Last Name is required',
+      'af': 'Vannaam word vereis',
+      'fr': 'Le nom de famille est obligatoire.',
+    },
+    '7verovyp': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '14jnbgb3': {
+      'en': 'Date Of Birth is required',
+      'af': 'Geboortedatum word vereis',
+      'fr': 'La date de naissance est requise.',
+    },
+    'e8crm0ml': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '9m8agvou': {
+      'en': 'ID Card Number Is Required',
+      'af': 'ID-kaartnommer word vereis',
+      'fr': 'Le numéro de carte d\'identité est requis.',
+    },
+    'w9x9mh4r': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'jm4ua8gv': {
+      'en': 'ID CARD DATE OF ISSUE is required',
+      'af': 'ID-KAART DATUM VAN UITREIKING word vereis',
+      'fr': 'La date d\'émission de la carte d\'identité est requise.',
+    },
+    'ae1dj6ea': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '55pwda06': {
+      'en': 'ID CARD DATE OF EXPIRATION is required',
+      'af': 'ID-KAART VERVALDATUM word vereis',
+      'fr': 'La date d\'expiration de la carte d\'identité est requise.',
+    },
+    'qceij1v5': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '1up4nja3': {
+      'en': 'ID CARD PLACE OF ISSUE is required',
+      'af': 'ID-KAART PLEK VAN UITREIKING word vereis',
+      'fr': 'La carte d\'identité et le lieu de délivrance sont requis.',
+    },
+    'xdpydmxv': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'o3lbxuy1': {
+      'en': 'Select Gender is required',
+      'af': 'Kies Geslag is verpligtend',
+      'fr': 'Le choix du sexe est obligatoire.',
+    },
+    'j415urj0': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'pf5by5za': {
+      'en': '+237 is required',
+      'af': '+236 word vereis',
+      'fr': '+237 est requis',
+    },
+    'w7171hul': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'qr2m4zjl': {
+      'en': 'Phone Number  is required',
+      'af': 'Telefoonnommer word vereis',
+      'fr': 'Un numéro de téléphone est requis.',
+    },
+    'jwy78v6x': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'kwwiohz8': {
+      'en': 'Insurance Provider is required',
+      'af': 'Versekeringsverskaffer word vereis',
+      'fr': 'Un fournisseur d\'assurance est requis.',
+    },
+    'dhy8jooh': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'vci0fs8j': {
+      'en': 'Member ID/Policy Number is required',
+      'af': 'Lid-ID/Polisnommer word vereis',
+      'fr':
+          'Un numéro d\'identification de membre ou un numéro de police est requis.',
+    },
+    'z7pm7rkd': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'vbhxqrmn': {
+      'en': 'Group Number (Optional) is required',
+      'af': 'Groepnommer (Opsioneel) word vereis',
+      'fr': 'Le numéro de groupe (facultatif) est requis.',
+    },
+    '8xxl5xs7': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'py9ksj6k': {
+      'en': 'Zip Code / P.O Box is required',
+      'af': 'Poskode / Posbus word vereis',
+      'fr': 'Le code postal ou la boîte postale est requis.',
+    },
+    'y9no4rhh': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '86pzl0f4': {
+      'en': 'Patient Details',
+      'af': 'Pasiëntbesonderhede',
+      'fr': 'Détails du patient',
+    },
+    '18lx86br': {
+      'en':
+          'Please provide your health information to help us provide better care.',
+      'af':
+          'Verskaf asseblief u gesondheidsinligting om ons te help om beter sorg te bied.',
+      'fr':
+          'Veuillez nous fournir vos informations de santé afin de nous aider à vous prodiguer de meilleurs soins.',
+    },
+    'jef2x29i': {
+      'en': 'Insurance Information',
+      'af': 'Versekeringsinligting',
+      'fr': 'Informations sur l\'assurance',
+    },
+    '3jx9rcp0': {
+      'en': 'Insurance Provider',
+      'af': 'Versekeringsverskaffer',
+      'fr': 'Fournisseur d\'assurance',
+    },
+    'ji5seer8': {
+      'en': 'Member ID/Policy Number',
+      'af': 'Lid-ID/Polisnommer',
+      'fr': 'Numéro d\'identification de membre/Numéro de police',
+    },
+    '622j5548': {
+      'en': 'Group Number (Optional)',
+      'af': 'Groepnommer (Opsioneel)',
+      'fr': 'Numéro de groupe (facultatif)',
+    },
+    'c4pzhp1v': {
+      'en': 'Voluntary Offerings',
+      'af': 'Vrywillige Offerandes',
+      'fr': 'Offrandes volontaires',
+    },
+    'q0rq16vm': {
+      'en': 'Will You Like To Be Registerted As  A Blood Donor ?',
+      'af': 'Wil jy as \'n bloedskenker geregistreer word?',
+      'fr': 'Souhaiteriez-vous vous inscrire comme donneur de sang ?',
+    },
+    'ra3hcqwj': {
+      'en': 'Blood Donor ??',
+      'af': 'Bloedskenker??',
+      'fr': 'Donneur de sang ??',
+    },
+    'nzu3vgpn': {
+      'en': 'yes',
+      'af': 'ja',
+      'fr': 'Oui',
+    },
+    'y59whbhr': {
+      'en': 'no',
+      'af': 'nee',
+      'fr': 'Non',
+    },
+    'v3xeokoc': {
+      'en': 'Emergency Contact Information',
+      'af': 'Noodkontakbesonderhede',
+      'fr': 'Informations de contact en cas d\'urgence',
+    },
+    'iu54k9wp': {
+      'en': 'Emergency Names',
+      'af': 'Noodname',
+      'fr': 'Noms d\'urgence',
+    },
+    'ixmdk4v0': {
+      'en': 'Select...',
+      'af': 'Kies...',
+      'fr': 'Sélectionner...',
+    },
+    'e9zhe8ae': {
+      'en': 'Search...',
+      'af': 'Soek...',
+      'fr': 'Recherche...',
+    },
+    '3joafxp5': {
+      'en': 'Wife',
+      'af': 'vrou',
+      'fr': 'Épouse',
+    },
+    'xzm08gch': {
+      'en': 'Husband',
+      'af': 'Man',
+      'fr': 'Mari',
+    },
+    '7be3q2t3': {
+      'en': 'Father',
+      'af': 'Vader',
+      'fr': 'Père',
+    },
+    'b2m9k6jx': {
+      'en': 'Mother',
+      'af': 'Moeder',
+      'fr': 'Mère',
+    },
+    '89o0cy9b': {
+      'en': 'Brother',
+      'af': 'Broer',
+      'fr': 'Frère',
+    },
+    'ychyjchn': {
+      'en': 'Sister',
+      'af': 'Suster',
+      'fr': 'Sœur',
+    },
+    'j6kdzxe4': {
+      'en': 'Children',
+      'af': 'Kinders',
+      'fr': 'Enfants',
+    },
+    '7fpjqdl6': {
+      'en': 'GrandParents',
+      'af': 'Grootouers',
+      'fr': 'Grands-parents',
+    },
+    'xsxnwb39': {
+      'en': 'Friend',
+      'af': 'Vriend',
+      'fr': 'Ami',
+    },
+    'rxl9olkf': {
+      'en': 'Relationship',
+      'af': 'Verhouding',
+      'fr': 'Relation',
+    },
+    'dzhaz1en': {
+      'en': 'Back',
+      'af': 'Terug',
+      'fr': 'Retour',
+    },
+    'hz8nvct4': {
+      'en': 'Continue',
+      'af': 'Gaan voort',
+      'fr': 'Continuer',
+    },
+    'on9kqv3c': {
+      'en': 'Insurance Provider is required',
+      'af': 'Versekeringsverskaffer word vereis',
+      'fr': 'Un fournisseur d\'assurance est requis.',
+    },
+    'l54bvylv': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'ccz2ei3e': {
+      'en': 'Member ID/Policy Number is required',
+      'af': 'Lid-ID/Polisnommer word vereis',
+      'fr':
+          'Un numéro d\'identification de membre ou un numéro de police est requis.',
+    },
+    '1y5umkmc': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'f7oibtiy': {
+      'en': 'Group Number (Optional) ',
+      'af': 'Groepnommer (Opsioneel) word vereis',
+      'fr': 'Le numéro de groupe (facultatif).',
+    },
+    '9yoxn845': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'xmzk2rek': {
+      'en': 'Existing Medical Conditions is required',
+      'af': 'Bestaande mediese toestande word vereis',
+      'fr': 'Les conditions médicales existantes sont requises',
+    },
+    'jkibar1d': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '7f6rcx0x': {
+      'en': 'Current Medications is required',
+      'af': 'Huidige medikasie word benodig',
+      'fr': 'Les médicaments en cours sont requis',
+    },
+    '284jx51i': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'h5s1mg8t': {
+      'en': 'Allergies is required',
+      'af': 'Allergieë is nodig',
+      'fr': 'Les allergies sont requises',
+    },
+    '48kjkgxy': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'fc105bqi': {
+      'en': 'Emergency Names is required',
+      'af': 'Noodname word vereis',
+      'fr': 'Les noms d\'urgence sont requis',
+    },
+    'f8xttwrh': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'vzasinve': {
+      'en': 'Relationship is required',
+      'af': 'Verhouding word vereis',
+      'fr': 'Un lien de parenté est nécessaire',
+    },
+    '2a5tyttf': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'zm2271j0': {
+      'en': 'Patient Account Verification',
+      'af': 'Pasiëntrekeningverifikasie',
+      'fr': 'Vérification du compte patient',
+    },
+    '6qak9x24': {
+      'en':
+          'Please review your information below to ensure everything is correct before creating your account.',
+      'af':
+          'Gaan asseblief u inligting hieronder na om te verseker dat alles korrek is voordat u u rekening skep.',
+      'fr':
+          'Veuillez vérifier vos informations ci-dessous pour vous assurer qu\'elles sont correctes avant de créer votre compte.',
+    },
+    '4u3g5387': {
+      'en': 'Personal Information',
+      'af': 'Persoonlike Inligting',
+      'fr': 'Informations personnelles',
+    },
+    'y6mua67j': {
+      'en': 'UseRole:',
+      'af': 'GebruikRol:',
+      'fr': 'Rôle d\'utilisation :',
+    },
+    'z8nntaen': {
+      'en': 'Prefrerred Language:',
+      'af': 'Voorkeurtaal:',
+      'fr': 'Langue préférée :',
+    },
+    '45vs4uk5': {
+      'en': 'First Name:',
+      'af': 'Voornaam:',
+      'fr': 'Prénom:',
+    },
+    '92o3wlk8': {
+      'en': 'Middle Name:',
+      'af': 'Middelnaam:',
+      'fr': 'Deuxième prénom:',
+    },
+    'wx2dpar5': {
+      'en': 'Last Name:',
+      'af': 'Van:',
+      'fr': 'Nom de famille:',
+    },
+    '8l3s60tx': {
+      'en': 'Date Of Birth:',
+      'af': 'Geboortedatum:',
+      'fr': 'Date de naissance:',
+    },
+    'm3720lto': {
+      'en': 'ID Card Number:',
+      'af': 'ID-kaartnommer:',
+      'fr': 'Numéro de carte d\'identité :',
+    },
+    '0z8p7pjf': {
+      'en': 'ID Card Issue Date:',
+      'af': 'ID-kaart uitreikingsdatum:',
+      'fr': 'Date d\'émission de la carte d\'identité :',
+    },
+    '8jm12l6h': {
+      'en': 'ID Card Expiration Date:',
+      'af': 'ID-kaart vervaldatum:',
+      'fr': 'Date d\'expiration de la carte d\'identité :',
+    },
+    '3kp0zg76': {
+      'en': 'Gender:',
+      'af': 'Geslag:',
+      'fr': 'Genre:',
+    },
+    'qugepbty': {
+      'en': 'Address',
+      'af': 'Adres',
+      'fr': 'Adresse',
+    },
+    'f0q5fkyl': {
+      'en': 'Street / Rue:',
+      'af': 'Straat / Rue:',
+      'fr': 'Rue :',
+    },
+    'fv7cgnsv': {
+      'en': 'City / Ville:',
+      'af': 'Stad / Dorp:',
+      'fr': 'Ville :',
+    },
+    '7jdp24f6': {
+      'en': 'Region:',
+      'af': 'Streek:',
+      'fr': 'Région:',
+    },
+    'ad7t326n': {
+      'en': 'Zip Code / P.O Box:',
+      'af': 'Poskode / Posbus:',
+      'fr': 'Code postal / Boîte postale :',
+    },
+    'ef6nu3mx': {
+      'en': 'Insurance Information',
+      'af': 'Versekeringsinligting',
+      'fr': 'Informations sur l\'assurance',
+    },
+    '3nrw1zh1': {
+      'en': 'Insurance Provider:',
+      'af': 'Versekeringsverskaffer:',
+      'fr': 'Fournisseur d\'assurance :',
+    },
+    '3mhb6ugz': {
+      'en': 'PolicyNumber:',
+      'af': 'Polisnommer:',
+      'fr': 'Numéro d\'assurance :',
+    },
+    's4y8388i': {
+      'en': 'Group Number:',
+      'af': 'Groepnommer:',
+      'fr': 'Numéro de groupe :',
+    },
+    'wuwipw63': {
+      'en': 'Emergency Contact',
+      'af': 'Noodkontak',
+      'fr': 'Contact d\'urgence',
+    },
+    's795mzlg': {
+      'en': 'Emergency Names:',
+      'af': 'Noodname:',
+      'fr': 'Noms en cas d\'urgence :',
+    },
+    'eh9jza8a': {
+      'en': 'Relationship:',
+      'af': 'Verhouding:',
+      'fr': 'Relation:',
+    },
+    'e2i4gf9q': {
+      'en': 'Emegency Phone:',
+      'af': 'Noodfoon:',
+      'fr': 'Téléphone d\'urgence :',
+    },
+    'g4xr2m8t': {
+      'en': 'Credentials',
+      'af': 'Geloofsbriewe',
+      'fr': 'Informations d\'identification',
+    },
+    'dsvidu2k': {
+      'en': '',
+      'af': '',
+      'fr': '',
+    },
+    'o3rlsjno': {
+      'en': '+237',
+      'af': '+237',
+      'fr': '+237',
+    },
+    'q2pwylin': {
+      'en': 'Phone Number ',
+      'af': 'Telefoonnommer',
+      'fr': 'Numéro de téléphone',
+    },
+    'xr44r2wd': {
+      'en': 'Password',
+      'af': 'Wagwoord',
+      'fr': 'Mot de passe',
+    },
+    'maeex3ck': {
+      'en': 'Confirm Password',
+      'af': 'Bevestig wagwoord',
+      'fr': 'Confirmez le mot de passe',
+    },
+    'naohttrx': {
+      'en':
+          'Password must be at least 8 characters with one number and special character',
+      'af':
+          'Wagwoord moet ten minste 8 karakters wees met een nommer en spesiale karakter',
+      'fr':
+          'Le mot de passe doit comporter au moins 8 caractères, dont un chiffre et un caractère spécial.',
+    },
+    'vjr53ua0': {
+      'en':
+          'By creating an account, you agree to our Terms of Service and Privacy Policy.',
+      'af':
+          'Deur \'n rekening te skep, stem jy in tot ons Diensbepalings en Privaatheidsbeleid.',
+      'fr':
+          'En créant un compte, vous acceptez nos Conditions d\'utilisation et notre Politique de confidentialité.',
+    },
+    '0odz9sqo': {
+      'en': 'Back',
+      'af': 'Terug',
+      'fr': 'Retour',
+    },
+    'y94b5wyc': {
+      'en': 'Create  Account',
+      'af': 'Rekening opdateer',
+      'fr': 'Mettre à jour le compte',
+    },
+    '1ddiiacw': {
+      'en': 'Phone Number is required',
+      'af': 'Telefoonnommer word vereis',
+      'fr': 'Un numéro de téléphone est requis.',
+    },
+    'i29i1yo3': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    'g4cjhwor': {
+      'en': 'Password is required',
+      'af': 'Wagwoord word vereis',
+      'fr': 'Un mot de passe est requis.',
+    },
+    'y6zs19j0': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
+    },
+    '4i2h6qbw': {
+      'en': 'Confirm Password is required',
+      'af': 'Bevestig wagwoord word vereis',
+      'fr': 'Confirmer le mot de passe est requis',
+    },
+    'ejfmbkhm': {
+      'en': 'Please choose an option from the dropdown',
+      'af': 'Kies asseblief \'n opsie uit die aftreklys',
+      'fr': 'Veuillez choisir une option dans le menu déroulant.',
     },
   },
   // Miscellaneous

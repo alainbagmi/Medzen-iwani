@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🎉 Testing OUR Custom Bundle</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .content {
+            padding: 40px;
+        }
+        .test {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        .test.success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+        }
+        .test.error {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+        }
+        .test h3 {
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+        .code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+            line-height: 1.6;
+        }
+        .highlight {
+            background: #fef3c7;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 25px 0;
+            border: 3px solid #f59e0b;
+        }
+        .highlight h2 {
+            color: #92400e;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 CUSTOM BUNDLE TEST</h1>
+            <p style="font-size: 1.2em;">Testing our self-built Chime SDK for MedZen</p>
+        </div>
+        <div class="content" id="results"></div>
+    </div>
+
+    <!-- Load OUR custom-built SDK bundle -->
+    <script src="./web/assets/amazon-chime-sdk-medzen.min.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addTest(title, content, success = null) {
+            const div = document.createElement('div');
+            div.className = `test ${success === true ? 'success' : success === false ? 'error' : ''}`;
+            div.innerHTML = `
+                <h3>${success === true ? '✅' : success === false ? '❌' : '🔍'} ${title}</h3>
+                <div>${content}</div>
+            `;
+            results.appendChild(div);
+        }
+
+        function showSuccess(title, content) {
+            const div = document.createElement('div');
+            div.className = 'highlight';
+            div.innerHTML = `<h2>${title}</h2>${content}`;
+            results.appendChild(div);
+        }
+
+        addTest('Loading Custom Bundle', 'Please wait...', null);
+
+        setTimeout(() => {
+            console.log('=== CUSTOM BUNDLE TEST ===');
+            console.log('typeof ChimeSDK:', typeof ChimeSDK);
+            console.log('typeof window.ChimeSDK:', typeof window.ChimeSDK);
+            console.log('ChimeSDK:', window.ChimeSDK);
+
+            const SDK = window.ChimeSDK || ChimeSDK;
+
+            if (SDK && typeof SDK === 'object' && Object.keys(SDK).length > 0) {
+                addTest('Bundle Loaded', '✨ Custom-built SDK loaded successfully!', true);
+
+                const classes = Object.keys(SDK);
+                addTest(`SDK Classes`, `${classes.length} classes available`, true);
+
+                // Show first 30 classes
+                const classList = classes.slice(0, 30).join(', ');
+                addTest('Sample Classes', classList + '...', true);
+
+                // Test critical classes
+                const critical = [
+                    'ConsoleLogger',
+                    'DefaultDeviceController',
+                    'DefaultMeetingSession',
+                    'MeetingSessionConfiguration',
+                    'LogLevel'
+                ];
+
+                let allFound = true;
+                let criticalHTML = '<ul style="margin: 10px 0; padding-left: 20px;">';
+                for (const cls of critical) {
+                    const found = SDK[cls] !== undefined;
+                    criticalHTML += `<li>${found ? '✅' : '❌'} ${cls}</li>`;
+                    if (!found) allFound = false;
+                }
+                criticalHTML += '</ul>';
+
+                addTest('Critical Classes', criticalHTML, allFound);
+
+                if (allFound) {
+                    // Try to instantiate
+                    try {
+                        const logger = new SDK.ConsoleLogger('MedZenTest', SDK.LogLevel.INFO);
+                        logger.info('🎉 MedZen Custom Chime SDK is working!');
+                        logger.warn('This is a test warning');
+                        logger.debug('This is a test debug message');
+
+                        addTest('Instantiation Test', 'Successfully created and used ConsoleLogger!', true);
+
+                        showSuccess('🎉 SUCCESS! Your Custom Bundle Works!', `
+                            <p style="font-size: 1.1em; margin-bottom: 20px;">
+                                <strong>The custom-built Chime SDK bundle is fully functional!</strong>
+                            </p>
+
+                            <h3>Next Steps:</h3>
+                            <ol style="margin: 15px 0; padding-left: 25px; line-height: 1.8;">
+                                <li><strong>Upload to S3:</strong> Upload <code>web/assets/amazon-chime-sdk-medzen.min.js</code></li>
+                                <li><strong>Update Widget:</strong> Change SDK URL in <code>chime_meeting_enhanced.dart</code></li>
+                                <li><strong>Test:</strong> Verify video calls work with the new bundle</li>
+                            </ol>
+
+                            <h3>Use in Your Widget:</h3>
+                            <div class="code">&lt;!-- Load from your S3 bucket --&gt;
+&lt;script src="https://your-bucket.s3.amazonaws.com/amazon-chime-sdk-medzen.min.js"&gt;&lt;/script&gt;
+
+&lt;!-- Or from Firebase Storage --&gt;
+&lt;script src="https://firebasestorage.googleapis.com/.../amazon-chime-sdk-medzen.min.js"&gt;&lt;/script&gt;
+
+&lt;!-- Or serve locally --&gt;
+&lt;script src="./assets/amazon-chime-sdk-medzen.min.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+    const SDK = window.ChimeSDK;
+    const logger = new SDK.ConsoleLogger('MedZen');
+    const deviceController = new SDK.DefaultDeviceController(logger);
+    // ... rest of your code
+&lt;/script&gt;</div>
+
+                            <p style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
+                                <strong>⚠️ Important:</strong> Make sure to update the URL in both
+                                <code>chime_meeting_enhanced.dart</code> and <code>chime_meeting_webview.dart</code>
+                            </p>
+                        `);
+
+                    } catch (err) {
+                        addTest('Instantiation Failed', `Error: ${err.message}<br><pre>${err.stack}</pre>`, false);
+                    }
+                } else {
+                    addTest('Missing Classes', 'Some critical SDK classes are missing', false);
+                }
+
+            } else {
+                addTest('Bundle Load Failed', `SDK is: ${typeof SDK} (${SDK})`, false);
+                addTest('Debug Info', `Check browser console for errors`, false);
+            }
+        }, 800);
+    </script>
+</body>
+</html>

@@ -287,4 +287,17 @@ class MedicalProviderProfilesRow extends SupabaseDataRow {
       getField<String>('professional_role_legacy');
   set professionalRoleLegacy(String? value) =>
       setField<String>('professional_role_legacy', value);
+
+  double? get latitude => getField<double>('latitude');
+  set latitude(double? value) => setField<double>('latitude', value);
+
+  double? get longitude => getField<double>('longitude');
+  set longitude(double? value) => setField<double>('longitude', value);
+
+  String? get geog => getField<String>('geog');
+  set geog(String? value) => setField<String>('geog', value);
+
+  DateTime? get locationUpdatedAt => getField<DateTime>('location_updated_at');
+  set locationUpdatedAt(DateTime? value) =>
+      setField<DateTime>('location_updated_at', value);
 }

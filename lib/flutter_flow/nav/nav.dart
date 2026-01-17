@@ -145,6 +145,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: FeaturesWidget.routeName,
               path: FeaturesWidget.routePath,
+              requireAuth: true,
               builder: (context, params) => FeaturesWidget(),
             ),
             FFRoute(
@@ -533,6 +534,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: AboutUsPageWidget.routeName,
               path: AboutUsPageWidget.routePath,
+              requireAuth: true,
               builder: (context, params) => AboutUsPageWidget(),
             ),
             FFRoute(

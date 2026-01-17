@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Localhost SDK Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            line-height: 1.6;
+        }
+        h1 { color: #4ec9b0; }
+        .test-result {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .pass { background: #28a745; color: white; }
+        .fail { background: #dc3545; color: white; }
+        .info { background: #17a2b8; color: white; }
+        pre {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .console-output {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Chime SDK Load Test (via localhost)</h1>
+    <p><strong>Protocol:</strong> <span id="protocol"></span></p>
+    <p><strong>Origin:</strong> <span id="origin"></span></p>
+
+    <div id="results"></div>
+    <div id="console" class="console-output"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        const consoleOutput = document.getElementById('console');
+
+        document.getElementById('protocol').textContent = window.location.protocol;
+        document.getElementById('origin').textContent = window.location.origin;
+
+        function log(message, type = 'info') {
+            const line = document.createElement('div');
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+            console.log(message);
+        }
+
+        function addResult(message, pass) {
+            const div = document.createElement('div');
+            div.className = `test-result ${pass ? 'pass' : 'fail'}`;
+            div.textContent = (pass ? '✅ ' : '❌ ') + message;
+            results.appendChild(div);
+        }
+
+        log('Starting test...');
+        log('Loading Chime SDK from CDN...');
+
+        const script = document.createElement('script');
+        script.src = 'https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-3.19.0.min.js';
+        script.crossOrigin = 'anonymous';
+
+        script.onload = function() {
+            log('✅ Script onload fired');
+
+            setTimeout(() => {
+                // Test 1: Check if ChimeSDK exists
+                const exists = typeof window.ChimeSDK !== 'undefined';
+                addResult('window.ChimeSDK exists', exists);
+                log(`typeof window.ChimeSDK: ${typeof window.ChimeSDK}`);
+
+                if (exists) {
+                    // Test 2: Count classes
+                    const classes = Object.keys(window.ChimeSDK);
+                    addResult(`Found ${classes.length} SDK classes`, classes.length > 0);
+                    log(`SDK classes: ${classes.length}`);
+
+                    // Test 3: Check critical classes
+                    const critical = [
+                        'ConsoleLogger',
+                        'DefaultDeviceController',
+                        'DefaultMeetingSession',
+                        'MeetingSessionConfiguration'
+                    ];
+
+                    critical.forEach(cls => {
+                        const found = window.ChimeSDK[cls] !== undefined;
+                        addResult(`Class ${cls} available`, found);
+                        log(`${cls}: ${found ? 'found' : 'MISSING'}`);
+                    });
+
+                    // Test 4: Try instantiating logger
+                    try {
+                        const logger = new window.ChimeSDK.ConsoleLogger('Test', 1);
+                        addResult('Instantiated ConsoleLogger', true);
+                        log('✅ Logger created successfully');
+
+                        // Test 5: Call logger method
+                        logger.info('Test message from instantiated logger');
+                        addResult('Called logger.info()', true);
+                        log('✅ Logger method called successfully');
+
+                    } catch (err) {
+                        addResult('Failed to instantiate: ' + err.message, false);
+                        log('❌ Error: ' + err.message);
+                        log('Stack: ' + err.stack);
+                    }
+
+                } else {
+                    log('❌ window.ChimeSDK is undefined!');
+                    log('Checking for alternative exports...');
+
+                    // Check all window properties
+                    const allProps = Object.keys(window);
+                    const sdkRelated = allProps.filter(p =>
+                        p.toLowerCase().includes('chime') ||
+                        p.toLowerCase().includes('sdk') ||
+                        p.includes('AWS')
+                    );
+
+                    log(`Total window properties: ${allProps.length}`);
+                    log(`SDK-related properties: ${sdkRelated.join(', ') || 'none'}`);
+                }
+            }, 200);
+        };
+
+        script.onerror = function(err) {
+            addResult('Script failed to load', false);
+            log('❌ Network error loading script');
+            log('Error: ' + JSON.stringify(err));
+        };
+
+        document.head.appendChild(script);
+        log('Script tag added to DOM');
+    </script>
+</body>
+</html>

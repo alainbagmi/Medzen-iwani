@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import {
+  getAvailableBedrockModels,
+  validateBedrockModel,
+} from "../_shared/bedrock-models.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,6 +142,15 @@ serve(async (req) => {
       modelConfig = conversation.ai_assistants.model_config || {};
       console.log(`Using existing conversation model: ${selectedModel}`);
     } else {
+      // Load available models from database for validation
+      let availableModels = null;
+      try {
+        availableModels = await getAvailableBedrockModels(supabaseUrl, supabaseServiceKey);
+        console.log(`Found ${availableModels.size} available models in database`);
+      } catch (error) {
+        console.warn(`Error loading models from database: ${error.message}`);
+      }
+
       // New conversation: determine assistant type from user role
       // userId from request body is the Firebase UID
       const { data: userRecord, error: userError } = await supabase
@@ -163,7 +176,7 @@ serve(async (req) => {
           // Check if facility admin
           const { data: adminProfile } = await supabase
             .from('facility_admin_profiles')
-            .select('id')
+            .select('id, primary_facility_id')
             .eq('user_id', userRecord.id)
             .single();
 
@@ -203,6 +216,107 @@ serve(async (req) => {
       } else {
         console.error('Error fetching user record:', userError);
       }
+    }
+
+    // Fetch facility statistics for facility admin users
+    let facilityStats: any = null;
+    if (assistantType === 'operations' && userRecord) {
+      try {
+        // Get facility admin profile with primary facility
+        const { data: facilityAdminProfile } = await supabase
+          .from('facility_admin_profiles')
+          .select('id, primary_facility_id')
+          .eq('user_id', userRecord.id)
+          .single();
+
+        if (facilityAdminProfile && facilityAdminProfile.primary_facility_id) {
+          // Call the facility summary reporting function
+          const { data: summaryData, error: summaryError } = await supabase
+            .rpc('get_facility_summary', {
+              p_facility_id: facilityAdminProfile.primary_facility_id,
+              p_admin_user_id: userRecord.id
+            });
+
+          if (!summaryError && summaryData && summaryData[0]) {
+            const stats = summaryData[0];
+            // Only include stats if no error was returned by the function
+            if (!stats.error_message) {
+              facilityStats = {
+                patient_count: stats.patient_count,
+                staff_count: stats.staff_count,
+                active_users_count: stats.active_users_count,
+                operational_efficiency_score: stats.operational_efficiency_score,
+                patient_satisfaction_avg: stats.patient_satisfaction_avg
+              };
+              console.log(`Fetched facility statistics for facility admin:`, facilityStats);
+            } else {
+              console.warn(`Function returned error for facility stats: ${stats.error_message}`);
+            }
+          } else if (summaryError) {
+            console.warn(`Error fetching facility statistics: ${summaryError.message}`);
+          }
+        }
+      } catch (error) {
+        console.warn(`Exception while fetching facility statistics: ${error.message}`);
+        // Continue without facility stats - not critical to the request
+      }
+    }
+
+    // Fetch platform statistics for system admin users
+    let platformStats: any = null;
+    if (assistantType === 'platform' && userRecord) {
+      try {
+        // Call the platform summary reporting function
+        const { data: summaryData, error: summaryError } = await supabase
+          .rpc('get_platform_summary', {
+            p_admin_user_id: userRecord.id
+          });
+
+        if (!summaryError && summaryData && summaryData[0]) {
+          const stats = summaryData[0];
+          // Only include stats if no error was returned by the function
+          if (!stats.error_message) {
+            platformStats = {
+              total_users: stats.total_users,
+              active_users: stats.active_users,
+              total_facilities: stats.total_facilities,
+              active_facilities: stats.active_facilities,
+              total_providers: stats.total_providers,
+              active_providers: stats.active_providers,
+              total_appointments: stats.total_appointments,
+              completed_appointments: stats.completed_appointments,
+              total_ai_conversations: stats.total_ai_conversations,
+              total_video_calls: stats.total_video_calls,
+              total_clinical_notes: stats.total_clinical_notes,
+              ehrbase_sync_pending: stats.ehrbase_sync_pending
+            };
+            console.log(`Fetched platform statistics for system admin:`, platformStats);
+          } else {
+            console.warn(`Function returned error for platform stats: ${stats.error_message}`);
+          }
+        } else if (summaryError) {
+          console.warn(`Error fetching platform statistics: ${summaryError.message}`);
+        }
+      } catch (error) {
+        console.warn(`Exception while fetching platform statistics: ${error.message}`);
+        // Continue without platform stats - not critical to the request
+      }
+    }
+
+    // Validate that the selected model is available
+    try {
+      await validateBedrockModel(selectedModel, supabaseUrl, supabaseServiceKey);
+      console.log(`Model validation passed for: ${selectedModel}`);
+    } catch (error) {
+      console.error(`Model validation failed for ${selectedModel}:`, error.message);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: error.message,
+          details: "The AI model configured for your account is no longer available. Please contact support."
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Get AWS Lambda endpoint from environment
@@ -257,6 +371,8 @@ serve(async (req) => {
               modelConfig: modelConfig,
               conversationHistory: prunedHistory,
               preferredLanguage: preferredLanguage || "en",
+              ...(facilityStats && { facilityStats }), // Include facility statistics if available
+              ...(platformStats && { platformStats }), // Include platform statistics if available
             }),
           });
 

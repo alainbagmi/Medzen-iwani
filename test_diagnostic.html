@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🔬 Diagnostic Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #000; color: #0f0; }
+        .output { background: #111; padding: 10px; margin: 5px 0; border-left: 3px solid #0f0; }
+        .error { border-left-color: #f00; color: #f00; }
+        .success { border-left-color: #0f0; color: #0f0; }
+        .warning { border-left-color: #ff0; color: #ff0; }
+    </style>
+</head>
+<body>
+    <h1>🔬 ChimeSDK Deep Diagnostic</h1>
+    <div id="output"></div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        function log(msg, type = 'output') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            output.appendChild(div);
+            console.log(msg);
+        }
+
+        log('=== BEFORE SCRIPT LOAD ===', 'warning');
+        log('window.ChimeSDK: ' + window.ChimeSDK);
+        log('typeof window.ChimeSDK: ' + typeof window.ChimeSDK);
+        log('"ChimeSDK" in window: ' + ('ChimeSDK' in window));
+
+        const script = document.createElement('script');
+        script.src = 'https://d2n29hdfurdqmu.cloudfront.net/chime-sdk-3.19.0.min.js';
+
+        script.onload = function() {
+            log('\n=== IMMEDIATELY AFTER LOAD ===', 'success');
+            log('window.ChimeSDK: ' + window.ChimeSDK);
+            log('typeof window.ChimeSDK: ' + typeof window.ChimeSDK);
+            log('"ChimeSDK" in window: ' + ('ChimeSDK' in window));
+            log('window.hasOwnProperty("ChimeSDK"): ' + window.hasOwnProperty('ChimeSDK'));
+
+            // Check descriptor
+            const descriptor = Object.getOwnPropertyDescriptor(window, 'ChimeSDK');
+            log('\nProperty descriptor: ' + JSON.stringify(descriptor, null, 2));
+
+            // Try direct access
+            log('\nDirect access: ' + window['ChimeSDK']);
+            log('Via this: ' + this.ChimeSDK);
+            log('Via self: ' + self.ChimeSDK);
+            log('Via globalThis: ' + globalThis.ChimeSDK);
+
+            // Check if it's actually a function/object
+            log('\nValue check:');
+            log('window.ChimeSDK === undefined: ' + (window.ChimeSDK === undefined));
+            log('window.ChimeSDK === null: ' + (window.ChimeSDK === null));
+            log('Boolean(window.ChimeSDK): ' + Boolean(window.ChimeSDK));
+
+            // Try to log the actual object
+            try {
+                log('\nActual value: ' + JSON.stringify(window.ChimeSDK));
+            } catch (e) {
+                log('Cannot stringify: ' + e.message, 'error');
+
+                // If it's an object, try to get keys
+                if (window.ChimeSDK && typeof window.ChimeSDK === 'object') {
+                    log('It IS an object! Keys: ' + Object.keys(window.ChimeSDK).slice(0, 10));
+                }
+            }
+
+            setTimeout(() => {
+                log('\n=== AFTER 500ms DELAY ===', 'warning');
+                log('window.ChimeSDK: ' + window.ChimeSDK);
+                log('typeof window.ChimeSDK: ' + typeof window.ChimeSDK);
+
+                if (window.ChimeSDK) {
+                    log('\n✅ SDK IS AVAILABLE!', 'success');
+                    log('Keys: ' + Object.keys(window.ChimeSDK).slice(0, 20).join(', '));
+                } else {
+                    log('\n❌ SDK IS NOT AVAILABLE', 'error');
+
+                    // Last resort - check all properties
+                    const allProps = Object.getOwnPropertyNames(window);
+                    const chimeProps = allProps.filter(p => p.toLowerCase().includes('chime'));
+                    log('Properties with "chime": ' + chimeProps.join(', '));
+                }
+            }, 500);
+        };
+
+        script.onerror = function(err) {
+            log('Script load error!', 'error');
+        };
+
+        document.head.appendChild(script);
+        log('\nScript tag added...');
+    </script>
+</body>
+</html>

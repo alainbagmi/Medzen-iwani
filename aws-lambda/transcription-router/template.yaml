@@ -1,0 +1,256 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: MedZen Medical Transcription Router Lambda
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - development
+      - staging
+      - production
+
+  OpenAIApiKey:
+    Type: String
+    NoEcho: true
+    Description: OpenAI API Key for Whisper transcription
+
+  SupabaseUrl:
+    Type: String
+    Description: Supabase project URL
+
+  SupabaseServiceKey:
+    Type: String
+    NoEcho: true
+    Description: Supabase service role key
+
+  OutputBucketName:
+    Type: String
+    Default: medzen-transcriptions
+    Description: S3 bucket for transcription outputs
+
+Globals:
+  Function:
+    Timeout: 900  # 15 minutes for long audio files
+    MemorySize: 1024
+    Runtime: python3.11
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        OUTPUT_BUCKET: !Ref OutputBucketName
+        OPENAI_API_KEY: !Ref OpenAIApiKey
+        SUPABASE_URL: !Ref SupabaseUrl
+        SUPABASE_SERVICE_KEY: !Ref SupabaseServiceKey
+
+Resources:
+  # S3 Bucket for transcription outputs
+  TranscriptionOutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${OutputBucketName}-${AWS::Region}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldTranscriptions
+            Status: Enabled
+            ExpirationInDays: 90
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Project
+          Value: MedZen
+
+  # IAM Role for Lambda
+  TranscriptionRouterRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "medzen-transcription-router-role-${Environment}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: TranscriptionRouterPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # S3 access for audio files and transcription outputs
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${OutputBucketName}-${AWS::Region}"
+                  - !Sub "arn:aws:s3:::${OutputBucketName}-${AWS::Region}/*"
+                  - arn:aws:s3:::medzen-chime-recordings-*
+                  - arn:aws:s3:::medzen-chime-recordings-*/*
+
+              # AWS Transcribe access
+              - Effect: Allow
+                Action:
+                  - transcribe:StartTranscriptionJob
+                  - transcribe:StartMedicalTranscriptionJob
+                  - transcribe:GetTranscriptionJob
+                  - transcribe:GetMedicalTranscriptionJob
+                  - transcribe:ListTranscriptionJobs
+                  - transcribe:ListMedicalTranscriptionJobs
+                  - transcribe:DeleteTranscriptionJob
+                  - transcribe:DeleteMedicalTranscriptionJob
+                Resource: "*"
+
+              # AWS Bedrock access for entity extraction
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource:
+                  - "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-5-sonnet-*"
+                  - "arn:aws:bedrock:*::foundation-model/anthropic.claude-3-7-sonnet-*"
+
+              # Comprehend Medical for English entity extraction
+              - Effect: Allow
+                Action:
+                  - comprehendmedical:DetectEntitiesV2
+                  - comprehendmedical:InferICD10CM
+                  - comprehendmedical:InferRxNorm
+                  - comprehendmedical:DetectPHI
+                Resource: "*"
+
+  # Main Lambda Function
+  TranscriptionRouterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "medzen-transcription-router-${Environment}"
+      Handler: index.lambda_handler
+      CodeUri: .
+      Role: !GetAtt TranscriptionRouterRole.Arn
+      Description: Routes medical transcription to AWS Transcribe or OpenAI Whisper based on language
+      Events:
+        # API Gateway trigger
+        TranscribeApi:
+          Type: Api
+          Properties:
+            Path: /transcribe
+            Method: POST
+            RestApiId: !Ref TranscriptionApi
+
+        # S3 trigger for automatic transcription of recordings
+        RecordingUploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref TranscriptionTriggerBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: recordings/
+                  - Name: suffix
+                    Value: .mp4
+      Tags:
+        Environment: !Ref Environment
+        Project: MedZen
+
+  # Bucket for triggering transcription (receives recording uploads)
+  TranscriptionTriggerBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "medzen-chime-recordings-${AWS::Region}"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt TranscriptionRouterFunction.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: .mp4
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Permission for S3 to invoke Lambda
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref TranscriptionRouterFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub "arn:aws:s3:::medzen-chime-recordings-${AWS::Region}"
+
+  # API Gateway
+  TranscriptionApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Cors:
+        AllowOrigin: "'*'"
+        AllowHeaders: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Firebase-Token'"
+        AllowMethods: "'POST,OPTIONS'"
+      Auth:
+        DefaultAuthorizer: NONE
+
+  # CloudWatch Log Group
+  TranscriptionRouterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/medzen-transcription-router-${Environment}"
+      RetentionInDays: 30
+
+  # CloudWatch Alarm for errors
+  TranscriptionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "medzen-transcription-router-errors-${Environment}"
+      AlarmDescription: Alarm when transcription router has errors
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref TranscriptionRouterFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+Outputs:
+  TranscriptionRouterFunctionArn:
+    Description: Transcription Router Lambda ARN
+    Value: !GetAtt TranscriptionRouterFunction.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-TranscriptionRouterArn"
+
+  TranscriptionApiEndpoint:
+    Description: API Gateway endpoint for transcription
+    Value: !Sub "https://${TranscriptionApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/transcribe"
+    Export:
+      Name: !Sub "${AWS::StackName}-TranscriptionApiEndpoint"
+
+  TranscriptionOutputBucketName:
+    Description: S3 bucket for transcription outputs
+    Value: !Ref TranscriptionOutputBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-OutputBucket"
+
+  TranscriptionTriggerBucketName:
+    Description: S3 bucket for recording uploads that trigger transcription
+    Value: !Ref TranscriptionTriggerBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-TriggerBucket"

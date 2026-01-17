@@ -57,52 +57,70 @@ class _AppointmentsWidgetState extends State<AppointmentsWidget>
 
     // On page load action.
     SchedulerBinding.instance.addPostFrameCallback((_) async {
-      if (valueOrDefault(currentUserDocument?.role, '') == 'patient') {
-        _model.patientappointments = await AppointmentOverviewTable().queryRows(
-          queryFn: (q) => q.eqOrNull(
-            'patient_id',
-            valueOrDefault(currentUserDocument?.supabaseUuid, ''),
-          ),
-        );
-        _model.appointments =
-            _model.patientappointments!.toList().cast<AppointmentOverviewRow>();
-        safeSetState(() {});
-      } else if (valueOrDefault(currentUserDocument?.role, '') ==
-          'medical_provider') {
-        _model.providerappointments =
-            await AppointmentOverviewTable().queryRows(
-          queryFn: (q) => q.eqOrNull(
-            'provider_id',
-            valueOrDefault(currentUserDocument?.supabaseUuid, ''),
-          ),
-        );
-        _model.appointments = _model.providerappointments!
-            .toList()
-            .cast<AppointmentOverviewRow>();
-        safeSetState(() {});
-      } else if (valueOrDefault(currentUserDocument?.role, '') ==
-          'facility_admin') {
-        _model.facilityappointments =
-            await AppointmentOverviewTable().queryRows(
-          queryFn: (q) => q.eqOrNull(
-            'facility_id',
-            valueOrDefault<String>(
-              widget!.facilityid,
-              '123null',
+      try {
+        debugPrint('AppointmentsWidget: Starting to load appointments');
+        debugPrint('AppointmentsWidget: Current user role: ${valueOrDefault(currentUserDocument?.role, 'NOT_SET')}');
+        debugPrint('AppointmentsWidget: Current user UUID: ${valueOrDefault(currentUserDocument?.supabaseUuid, 'NOT_SET')}');
+
+        if (valueOrDefault(currentUserDocument?.role, '') == 'patient') {
+          debugPrint('AppointmentsWidget: Loading patient appointments');
+          _model.patientappointments = await AppointmentOverviewTable().queryRows(
+            queryFn: (q) => q.eqOrNull(
+              'patient_id',
+              valueOrDefault(currentUserDocument?.supabaseUuid, ''),
             ),
-          ),
-        );
-        _model.appointments = _model.facilityappointments!
-            .toList()
-            .cast<AppointmentOverviewRow>();
-        safeSetState(() {});
-      } else {
-        _model.allappointments = await AppointmentOverviewTable().queryRows(
-          queryFn: (q) => q,
-        );
-        _model.appointments =
-            _model.allappointments!.toList().cast<AppointmentOverviewRow>();
-        safeSetState(() {});
+          );
+          debugPrint('AppointmentsWidget: Patient appointments loaded: ${_model.patientappointments?.length ?? 0} records');
+          _model.appointments =
+              _model.patientappointments!.toList().cast<AppointmentOverviewRow>();
+          safeSetState(() {});
+        } else if (valueOrDefault(currentUserDocument?.role, '') ==
+            'medical_provider') {
+          debugPrint('AppointmentsWidget: Loading provider appointments');
+          _model.providerappointments =
+              await AppointmentOverviewTable().queryRows(
+            queryFn: (q) => q.eqOrNull(
+              'provider_id',
+              valueOrDefault(currentUserDocument?.supabaseUuid, ''),
+            ),
+          );
+          debugPrint('AppointmentsWidget: Provider appointments loaded: ${_model.providerappointments?.length ?? 0} records');
+          _model.appointments = _model.providerappointments!
+              .toList()
+              .cast<AppointmentOverviewRow>();
+          safeSetState(() {});
+        } else if (valueOrDefault(currentUserDocument?.role, '') ==
+            'facility_admin') {
+          debugPrint('AppointmentsWidget: Loading facility admin appointments');
+          _model.facilityappointments =
+              await AppointmentOverviewTable().queryRows(
+            queryFn: (q) => q.eqOrNull(
+              'facility_id',
+              valueOrDefault<String>(
+                widget!.facilityid,
+                '123null',
+              ),
+            ),
+          );
+          debugPrint('AppointmentsWidget: Facility appointments loaded: ${_model.facilityappointments?.length ?? 0} records');
+          _model.appointments = _model.facilityappointments!
+              .toList()
+              .cast<AppointmentOverviewRow>();
+          safeSetState(() {});
+        } else {
+          debugPrint('AppointmentsWidget: No matching role, loading all appointments');
+          _model.allappointments = await AppointmentOverviewTable().queryRows(
+            queryFn: (q) => q,
+          );
+          debugPrint('AppointmentsWidget: All appointments loaded: ${_model.allappointments?.length ?? 0} records');
+          _model.appointments =
+              _model.allappointments!.toList().cast<AppointmentOverviewRow>();
+          safeSetState(() {});
+        }
+        debugPrint('AppointmentsWidget: Final appointments count: ${_model.appointments.length}');
+      } catch (e, stackTrace) {
+        debugPrint('AppointmentsWidget ERROR: Failed to load appointments: $e');
+        debugPrint('AppointmentsWidget ERROR Stacktrace: $stackTrace');
       }
     });
 
@@ -814,31 +832,39 @@ class _AppointmentsWidgetState extends State<AppointmentsWidget>
                                                                                 'medical_provider') {
                                                                               await actions.joinRoom(
                                                                                 context,
-                                                                                _model.appointments.firstOrNull!.appointmentId!,
-                                                                                _model.appointments.firstOrNull!.providerId!,
-                                                                                _model.appointments.firstOrNull!.patientId!,
-                                                                                _model.appointments.firstOrNull!.appointmentId!,
+                                                                                upcomingappointmentsItem.appointmentId!,
+                                                                                upcomingappointmentsItem.providerId!,
+                                                                                upcomingappointmentsItem.patientId!,
+                                                                                upcomingappointmentsItem.appointmentId!,
                                                                                 true,
                                                                                 currentUserDisplayName,
-                                                                                _model.appointments.firstOrNull!.providerImageUrl!,
+                                                                                upcomingappointmentsItem.providerImageUrl!,
                                                                                 valueOrDefault<String>(
-                                                                                  _model.appointments.firstOrNull?.providerFullname,
+                                                                                  upcomingappointmentsItem.providerFullname,
                                                                                   'NA',
                                                                                 ),
                                                                                 'medical_provider',
+                                                                                valueOrDefault<String>(
+                                                                                  upcomingappointmentsItem.patientFullname,
+                                                                                  'Patient',
+                                                                                ),
                                                                               );
                                                                             } else {
                                                                               await actions.joinRoom(
                                                                                 context,
-                                                                                _model.appointments.firstOrNull!.appointmentId!,
-                                                                                _model.appointments.firstOrNull!.providerId!,
-                                                                                _model.appointments.firstOrNull!.patientId!,
-                                                                                _model.appointments.firstOrNull!.appointmentId!,
+                                                                                upcomingappointmentsItem.appointmentId!,
+                                                                                upcomingappointmentsItem.providerId!,
+                                                                                upcomingappointmentsItem.patientId!,
+                                                                                upcomingappointmentsItem.appointmentId!,
                                                                                 false,
                                                                                 currentUserDisplayName,
-                                                                                _model.appointments.firstOrNull!.patientImageUrl!,
-                                                                                _model.appointments.firstOrNull!.providerFullname!,
+                                                                                upcomingappointmentsItem.patientImageUrl!,
+                                                                                upcomingappointmentsItem.providerFullname!,
                                                                                 'medical_provider',
+                                                                                valueOrDefault<String>(
+                                                                                  upcomingappointmentsItem.patientFullname,
+                                                                                  'Patient',
+                                                                                ),
                                                                               );
                                                                             }
                                                                           },

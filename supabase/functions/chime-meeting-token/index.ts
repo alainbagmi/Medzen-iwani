@@ -438,6 +438,8 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({
+            meetingId: lambdaResponse.meeting.MeetingId,
+            attendeeToken: lambdaResponse.attendee.AttendeeId,
             meeting: lambdaResponse.meeting,
             attendee: lambdaResponse.attendee,
             recordingEnabled: enableRecording,

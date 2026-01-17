@@ -1,0 +1,97 @@
+{
+  "Comment": "IAM role for MedZen SOAP Note Generation Step Functions Workflow",
+  "RoleName": "medzen-soap-workflow-execution-role",
+  "AssumeRolePolicyDocument": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "states.amazonaws.com"
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  },
+  "ManagedPolicyArn": [
+    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+  ],
+  "InlinePolicies": [
+    {
+      "PolicyName": "BedrockInvokeModel",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "InvokeBedrockModel",
+            "Effect": "Allow",
+            "Action": [
+              "bedrock:InvokeModel"
+            ],
+            "Resource": [
+              "arn:aws:bedrock:us-east-1:ACCOUNT_ID:foundation-model/anthropic.claude-opus-4-5-20251101-v1:0"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "PolicyName": "LambdaInvocation",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "InvokeLambdaFunctions",
+            "Effect": "Allow",
+            "Action": [
+              "lambda:InvokeFunction"
+            ],
+            "Resource": [
+              "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-fetch-transcript",
+              "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-enrich-metadata",
+              "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-parse-bedrock-response",
+              "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-update-supabase-soap",
+              "arn:aws:lambda:us-east-1:ACCOUNT_ID:function:medzen-send-notification"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "PolicyName": "SQSRetryQueue",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "SendMessageToQueue",
+            "Effect": "Allow",
+            "Action": [
+              "sqs:SendMessage"
+            ],
+            "Resource": [
+              "arn:aws:sqs:us-east-1:ACCOUNT_ID:medzen-soap-retry-queue"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "PolicyName": "SNSNotifications",
+      "PolicyDocument": {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "PublishNotifications",
+            "Effect": "Allow",
+            "Action": [
+              "sns:Publish"
+            ],
+            "Resource": [
+              "arn:aws:sns:us-east-1:ACCOUNT_ID:medzen-soap-notifications"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

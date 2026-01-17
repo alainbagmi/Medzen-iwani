@@ -105,4 +105,13 @@ class FacilitiesRow extends SupabaseDataRow {
   List<String> get departments => getListField<String>('Departments');
   set departments(List<String>? value) =>
       setListField<String>('Departments', value);
+
+  double? get latitude => getField<double>('latitude');
+  set latitude(double? value) => setField<double>('latitude', value);
+
+  double? get longitude => getField<double>('longitude');
+  set longitude(double? value) => setField<double>('longitude', value);
+
+  String? get geog => getField<String>('geog');
+  set geog(String? value) => setField<String>('geog', value);
 }

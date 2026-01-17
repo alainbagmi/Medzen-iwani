@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>✅ FINAL WORKING TEST</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 40px;
+        }
+        .test-item {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        .test-item.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        .test-item.error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+        .test-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .code-box {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .success-box {
+            background: #28a745;
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 WORKING CHIME SDK</h1>
+            <p>Found the correct CDN path!</p>
+        </div>
+        <div class="content" id="results"></div>
+    </div>
+
+    <!-- THE CORRECT SDK URL -->
+    <script src="https://unpkg.com/amazon-chime-sdk-js@3.29.0/dist/amazon-chime-sdk.min.js"></script>
+
+    <script>
+        const results = document.getElementById('results');
+
+        function addTest(title, content, success = null) {
+            const div = document.createElement('div');
+            div.className = `test-item ${success === true ? 'success' : success === false ? 'error' : ''}`;
+            div.innerHTML = `
+                <h3>${success === true ? '✅' : success === false ? '❌' : '🔍'} ${title}</h3>
+                <div>${content}</div>
+            `;
+            results.appendChild(div);
+        }
+
+        function addCode(title, code) {
+            const div = document.createElement('div');
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <div class="code-box">${code}</div>
+            `;
+            results.appendChild(div);
+        }
+
+        function showSuccess(message) {
+            const div = document.createElement('div');
+            div.className = 'success-box';
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        addTest('Loading SDK', 'Please wait...', null);
+
+        setTimeout(() => {
+            console.log('=== CHIME SDK TEST ===');
+            console.log('typeof window.ChimeSDK:', typeof window.ChimeSDK);
+            console.log('window.ChimeSDK:', window.ChimeSDK);
+
+            if (window.ChimeSDK && typeof window.ChimeSDK === 'object') {
+                addTest('SDK Loaded', 'Successfully loaded from unpkg.com', true);
+
+                const classes = Object.keys(window.ChimeSDK);
+                addTest(`Found ${classes.length} Classes`, classes.slice(0, 20).join(', ') + '...', true);
+
+                // Test critical classes
+                const criticalClasses = {
+                    'ConsoleLogger': window.ChimeSDK.ConsoleLogger,
+                    'DefaultDeviceController': window.ChimeSDK.DefaultDeviceController,
+                    'DefaultMeetingSession': window.ChimeSDK.DefaultMeetingSession,
+                    'MeetingSessionConfiguration': window.ChimeSDK.MeetingSessionConfiguration
+                };
+
+                let allFound = true;
+                let statusHTML = '<ul style="margin: 10px 0; padding-left: 20px;">';
+                for (const [name, value] of Object.entries(criticalClasses)) {
+                    const found = value !== undefined;
+                    statusHTML += `<li>${found ? '✅' : '❌'} ${name}</li>`;
+                    if (!found) allFound = false;
+                }
+                statusHTML += '</ul>';
+
+                addTest('Critical Classes Check', statusHTML, allFound);
+
+                if (allFound) {
+                    // Try to instantiate
+                    try {
+                        const logger = new window.ChimeSDK.ConsoleLogger('TestLogger', window.ChimeSDK.LogLevel.INFO);
+                        logger.info('🎉 Chime SDK is working perfectly!');
+                        logger.warn('Test warning message');
+                        logger.debug('Test debug message');
+
+                        addTest('Instantiation Test', 'Successfully created ConsoleLogger and called methods!', true);
+
+                        showSuccess('🎉 CHIME SDK IS FULLY FUNCTIONAL! 🎉');
+
+                        addCode('✨ Use This in Your Widget', `&lt;!-- Load the SDK --&gt;
+&lt;script src="https://unpkg.com/amazon-chime-sdk-js@3.29.0/dist/amazon-chime-sdk.min.js"&gt;&lt;/script&gt;
+
+&lt;script&gt;
+    // Access via window.ChimeSDK
+    const logger = new window.ChimeSDK.ConsoleLogger('MyApp');
+    const deviceController = new window.ChimeSDK.DefaultDeviceController(logger);
+    const configuration = new window.ChimeSDK.MeetingSessionConfiguration(meeting, attendee);
+    const meetingSession = new window.ChimeSDK.DefaultMeetingSession(
+        configuration,
+        logger,
+        deviceController
+    );
+&lt;/script&gt;`);
+
+                        // Add Flutter integration code
+                        addCode('🎯 Flutter WebView Integration', `final html = r'''
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;script src="https://unpkg.com/amazon-chime-sdk-js@3.29.0/dist/amazon-chime-sdk.min.js"&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id="video-container"&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        async function startMeeting(meetingData) {
+            const logger = new window.ChimeSDK.ConsoleLogger('MedZen');
+            const deviceController = new window.ChimeSDK.DefaultDeviceController(logger);
+
+            const configuration = new window.ChimeSDK.MeetingSessionConfiguration(
+                meetingData.Meeting,
+                meetingData.Attendee
+            );
+
+            const meetingSession = new window.ChimeSDK.DefaultMeetingSession(
+                configuration,
+                logger,
+                deviceController
+            );
+
+            await meetingSession.audioVideo.start();
+            logger.info('✅ Meeting started successfully!');
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+''';`);
+
+                    } catch (err) {
+                        addTest('Instantiation Failed', `Error: ${err.message}<br><pre>${err.stack}</pre>`, false);
+                    }
+                } else {
+                    addTest('Missing Classes', 'Some critical classes are missing', false);
+                }
+
+            } else {
+                addTest('SDK Load Failed', `window.ChimeSDK is: ${typeof window.ChimeSDK} (${window.ChimeSDK})`, false);
+
+                // Debug info
+                const allProps = Object.keys(window);
+                const chimeProps = allProps.filter(p => p.toLowerCase().includes('chime'));
+                addTest('Debug: Window Properties with "chime"', chimeProps.join(', ') || 'None', false);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

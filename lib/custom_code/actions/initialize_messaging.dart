@@ -234,55 +234,7 @@ Future<bool> _syncTokenToSupabase(String token, String firebaseUid) async {
 
     debugPrint('FCM: Syncing token for device $deviceId');
 
-    // CRITICAL: Clear this FCM token from ALL other users first
-    // This prevents the same token being associated with multiple users
-    // (which causes notifications to go to the wrong person)
-    try {
-      // Find all OTHER users who have this same FCM token
-      final usersWithSameToken = await SupaFlow.client
-          .from('users')
-          .select('id, firebase_uid, fcm_token, device_type')
-          .eq('fcm_token', token)
-          .neq('firebase_uid', firebaseUid);
-
-      if (usersWithSameToken != null && usersWithSameToken.isNotEmpty) {
-        debugPrint(
-            'FCM: Found ${usersWithSameToken.length} other user(s) with same token - clearing');
-
-        for (final otherUser in usersWithSameToken) {
-          final otherUserId = otherUser['id'] as String?;
-          final otherFirebaseUid = otherUser['firebase_uid'] as String?;
-
-          if (otherFirebaseUid != null) {
-            debugPrint('FCM: Clearing token from user $otherUserId');
-
-            // Clear the token from the other user
-            await SupaFlow.client.from('users').update({
-              'fcm_token': null,
-              'active_device_id': null,
-              'active_session_token': null,
-              'updated_at': DateTime.now().toUtc().toIso8601String(),
-            }).eq('firebase_uid', otherFirebaseUid);
-
-            // Also invalidate their active sessions
-            try {
-              await SupaFlow.client
-                  .from('active_sessions')
-                  .update({'is_active': false})
-                  .eq('firebase_uid', otherFirebaseUid);
-            } catch (e) {
-              debugPrint('FCM: Could not invalidate other user sessions: $e');
-            }
-          }
-        }
-        debugPrint('FCM: Cleared token from ${usersWithSameToken.length} other users');
-      }
-    } catch (clearError) {
-      debugPrint('FCM: Error clearing token from other users: $clearError');
-      // Continue with sync even if clearing fails
-    }
-
-    // Second, check if SAME user is logged in on another device
+    // First, check if user is logged in on another device
     try {
       final existingUser = await SupaFlow.client
           .from('users')

@@ -48,7 +48,7 @@ SELECT
   sn.submitted_at,
   -- Aggregated data
   (
-    SELECT JSON_OBJECT(
+    SELECT jsonb_build_object(
       'narrative', shp.hpi_narrative,
       'symptom_onset', shp.symptom_onset,
       'duration', shp.duration,
@@ -58,7 +58,7 @@ SELECT
       'severity_scale_0_10', shp.severity_scale,
       'timing', shp.timing_pattern,
       'context', shp.context,
-      'modifying_factors', JSON_OBJECT(
+      'modifying_factors', jsonb_build_object(
         'aggravating', COALESCE(shp.aggravating_factors, ARRAY[]::TEXT[]),
         'relieving', COALESCE(shp.relieving_factors, ARRAY[]::TEXT[])
       ),
@@ -70,9 +70,9 @@ SELECT
   ) AS subjective_hpi,
   -- ROS
   (
-    SELECT JSON_OBJECT_AGG(
+    SELECT jsonb_object_agg(
       srs.system_name,
-      JSON_OBJECT(
+      jsonb_build_object(
         'has_symptoms', srs.has_symptoms,
         'positives', COALESCE(srs.symptoms_positive, ARRAY[]::TEXT[]),
         'negatives', COALESCE(srs.symptoms_negative, ARRAY[]::TEXT[]),
@@ -87,8 +87,8 @@ SELECT
   ) AS subjective_ros,
   -- Medications
   (
-    SELECT JSON_AGG(
-      JSON_OBJECT(
+    SELECT jsonb_agg(
+      jsonb_build_object(
         'id', sm.id,
         'source', sm.source,
         'name', sm.medication_name,
@@ -114,8 +114,8 @@ SELECT
   ) AS subjective_medications,
   -- Allergies
   (
-    SELECT JSON_AGG(
-      JSON_OBJECT(
+    SELECT jsonb_agg(
+      jsonb_build_object(
         'id', sa.id,
         'allergen', sa.allergen,
         'allergen_type', sa.allergen_type,
@@ -130,8 +130,8 @@ SELECT
   ) AS subjective_allergies,
   -- History items (PMH, PSH, FH, SH)
   (
-    SELECT JSON_AGG(
-      JSON_OBJECT(
+    SELECT jsonb_agg(
+      jsonb_build_object(
         'id', shi.id,
         'history_type', shi.history_type,
         'condition_name', shi.condition_name,
@@ -154,7 +154,7 @@ SELECT
   ) AS subjective_history_items,
   -- Vital signs
   (
-    SELECT JSON_OBJECT(
+    SELECT jsonb_build_object(
       'measured', TRUE,
       'source', COALESCE(MAX(svs.source), 'unknown'),
       'bp_mmHg', CONCAT_WS('/', MAX(svs.blood_pressure_systolic), MAX(svs.blood_pressure_diastolic)),
@@ -165,8 +165,8 @@ SELECT
       'weight_kg', MAX(svs.weight_kg),
       'height_cm', MAX(svs.height_cm),
       'bmi', MAX(svs.bmi),
-      'measurements', JSON_AGG(
-        JSON_OBJECT(
+      'measurements', jsonb_agg(
+        jsonb_build_object(
           'id', svs.id,
           'measurement_time', svs.measurement_time,
           'source', svs.source,
@@ -187,9 +187,9 @@ SELECT
   ) AS objective_vitals,
   -- Physical exam
   (
-    SELECT JSON_OBJECT_AGG(
+    SELECT jsonb_object_agg(
       spe.system_name,
-      JSON_OBJECT(
+      jsonb_build_object(
         'id', spe.id,
         'is_abnormal', spe.is_abnormal,
         'findings', COALESCE(spe.findings, ARRAY[]::TEXT[]),
@@ -204,8 +204,8 @@ SELECT
   ) AS objective_physical_exam,
   -- Assessment items
   (
-    SELECT JSON_AGG(
-      JSON_OBJECT(
+    SELECT jsonb_agg(
+      jsonb_build_object(
         'id', sai.id,
         'problem_number', sai.problem_number,
         'diagnosis_description', sai.diagnosis_description,
@@ -230,33 +230,35 @@ SELECT
   ) AS assessment_problem_list,
   -- Plan items
   (
-    SELECT JSON_OBJECT_AGG(
-      spi.plan_type,
-      JSON_AGG(
-        JSON_OBJECT(
-          'id', spi.id,
-          'plan_type', spi.plan_type,
-          'description', spi.description,
-          'indication', spi.indication,
-          'urgency', spi.urgency,
-          'status', spi.status,
-          'test_name', spi.test_name,
-          'follow_up_timeframe', spi.follow_up_timeframe,
-          'follow_up_type', spi.follow_up_type,
-          'education_topic', spi.education_topic,
-          'is_return_precaution', spi.is_return_precaution,
-          'red_flag_symptom', spi.red_flag_symptom
-        )
-      )
-    )
-    FROM public.soap_plan_items spi
-    WHERE spi.soap_note_id = sn.id
-    GROUP BY spi.plan_type
+    SELECT jsonb_object_agg(plan_type, plan_items_json)
+    FROM (
+      SELECT
+        spi.plan_type,
+        jsonb_agg(
+          jsonb_build_object(
+            'id', spi.id,
+            'plan_type', spi.plan_type,
+            'description', spi.description,
+            'indication', spi.indication,
+            'urgency', spi.urgency,
+            'status', spi.status,
+            'test_name', spi.test_name,
+            'follow_up_timeframe', spi.follow_up_timeframe,
+            'follow_up_type', spi.follow_up_type,
+            'education_topic', spi.education_topic,
+            'is_return_precaution', spi.is_return_precaution,
+            'red_flag_symptom', spi.red_flag_symptom
+          )
+        ) as plan_items_json
+      FROM public.soap_plan_items spi
+      WHERE spi.soap_note_id = sn.id
+      GROUP BY spi.plan_type
+    ) t
   ) AS plan_by_type,
   -- Safety alerts
   (
-    SELECT JSON_AGG(
-      JSON_OBJECT(
+    SELECT jsonb_agg(
+      jsonb_build_object(
         'id', ssa.id,
         'alert_type', ssa.alert_type,
         'severity', ssa.severity,
@@ -278,7 +280,7 @@ SELECT
   ) AS safety_alerts,
   -- Coding & billing
   (
-    SELECT JSON_OBJECT(
+    SELECT jsonb_build_object(
       'cpt_code', scb.cpt_code,
       'cpt_description', scb.cpt_description,
       'cpt_confidence', scb.cpt_confidence,

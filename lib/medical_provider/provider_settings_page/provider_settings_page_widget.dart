@@ -47,8 +47,6 @@ class _ProviderSettingsPageWidgetState
 
     _model.licenseNumberFocusNode ??= FocusNode();
 
-    _model.phoneNumberFocusNode ??= FocusNode();
-
     _model.consultationFeeFocusNode ??= FocusNode();
 
     _model.insuranceproviderFocusNode ??= FocusNode();
@@ -121,63 +119,66 @@ class _ProviderSettingsPageWidgetState
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
+    return FutureBuilder<ApiCallResponse>(
+      future: SupagraphqlGroup.userDetailsCall.call(
+        userId: FFAppState().AuthuserID,
+      ),
+      builder: (context, snapshot) {
+        // Customize what your widget looks like when it's loading.
+        if (!snapshot.hasData) {
+          return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: Icon(
-                    Icons.chevron_left,
-                    size: 35.0,
+            body: Center(
+              child: SizedBox(
+                width: 50.0,
+                height: 50.0,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
                   ),
-                  btnaction: () async {
-                    context.safePop();
-                  },
                 ),
               ),
             ),
-            centerTitle: true,
-            elevation: 0.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: FutureBuilder<ApiCallResponse>(
-            future: SupagraphqlGroup.userDetailsCall.call(
-              userId: FFAppState().AuthuserID,
-            ),
-            builder: (context, snapshot) {
-              // Customize what your widget looks like when it's loading.
-              if (!snapshot.hasData) {
-                return Center(
-                  child: SizedBox(
-                    width: 50.0,
-                    height: 50.0,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        FlutterFlowTheme.of(context).primary,
+          );
+        }
+        final providerSettingsPageUserDetailsResponse = snapshot.data!;
+
+        return GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(80.0),
+              child: AppBar(
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                automaticallyImplyLeading: false,
+                actions: [],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: wrapWithModel(
+                    model: _model.topBarModel,
+                    updateCallback: () => safeSetState(() {}),
+                    child: TopBarWidget(
+                      btnicon: Icon(
+                        Icons.chevron_left,
+                        size: 35.0,
                       ),
+                      btnaction: () async {
+                        context.safePop();
+                      },
                     ),
                   ),
-                );
-              }
-              final mainRowUserDetailsResponse = snapshot.data!;
-
-              return Row(
+                ),
+                centerTitle: true,
+                elevation: 0.0,
+              ),
+            ),
+            body: SafeArea(
+              top: true,
+              child: Row(
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   if (responsiveVisibility(
@@ -324,7 +325,7 @@ class _ProviderSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userDetails(
-                                                                        mainRowUserDetailsResponse
+                                                                        providerSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.avatar_url''',
@@ -569,7 +570,7 @@ class _ProviderSettingsPageWidgetState
                                                                     SupagraphqlGroup
                                                                         .userDetailsCall
                                                                         .userDetails(
-                                                                      mainRowUserDetailsResponse
+                                                                      providerSettingsPageUserDetailsResponse
                                                                           .jsonBody,
                                                                     ),
                                                                     r'''$.full_name''',
@@ -664,7 +665,7 @@ class _ProviderSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .medicalproviderprofiles(
-                                                                    mainRowUserDetailsResponse
+                                                                    providerSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.primary_specialization''',
@@ -765,7 +766,7 @@ class _ProviderSettingsPageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .medicalproviderprofiles(
-                                                                  mainRowUserDetailsResponse
+                                                                  providerSettingsPageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.medical_license_number''',
@@ -855,55 +856,23 @@ class _ProviderSettingsPageWidgetState
                                                                     0.0,
                                                                     0.0,
                                                                     0.0),
-                                                        child: TextFormField(
-                                                          controller: _model
-                                                                  .phoneNumberTextController ??=
-                                                              TextEditingController(
-                                                            text:
-                                                                valueOrDefault<
-                                                                    String>(
-                                                              getJsonField(
-                                                                SupagraphqlGroup
-                                                                    .userDetailsCall
-                                                                    .userDetails(
-                                                                  mainRowUserDetailsResponse
-                                                                      .jsonBody,
-                                                                ),
-                                                                r'''$.phone_number''',
-                                                              )?.toString(),
-                                                              'null',
-                                                            ),
+                                                        child: Text(
+                                                          valueOrDefault<
+                                                              String>(
+                                                            getJsonField(
+                                                              SupagraphqlGroup
+                                                                  .userDetailsCall
+                                                                  .userDetails(
+                                                                providerSettingsPageUserDetailsResponse
+                                                                    .jsonBody,
+                                                              ),
+                                                              r'''$.phone_number''',
+                                                            )?.toString(),
+                                                            'null',
                                                           ),
-                                                          focusNode: _model
-                                                              .phoneNumberFocusNode,
-                                                          onChanged: (_) =>
-                                                              EasyDebounce
-                                                                  .debounce(
-                                                            '_model.phoneNumberTextController',
-                                                            Duration(
-                                                                milliseconds:
-                                                                    2000),
-                                                            () async {
-                                                              FFAppState()
-                                                                      .editPhoneNumber =
-                                                                  _model
-                                                                      .phoneNumberTextController
-                                                                      .text;
-                                                              safeSetState(
-                                                                  () {});
-                                                            },
-                                                          ),
-                                                          obscureText: false,
-                                                          decoration:
-                                                              InputDecoration(),
-                                                          style: TextStyle(),
                                                           textAlign:
                                                               TextAlign.start,
-                                                          maxLines: null,
-                                                          validator: _model
-                                                              .phoneNumberTextControllerValidator
-                                                              .asValidator(
-                                                                  context),
+                                                          style: TextStyle(),
                                                         ),
                                                       ),
                                                     ),
@@ -967,7 +936,7 @@ class _ProviderSettingsPageWidgetState
                                                                 SupagraphqlGroup
                                                                     .userDetailsCall
                                                                     .medicalproviderprofiles(
-                                                                  mainRowUserDetailsResponse
+                                                                  providerSettingsPageUserDetailsResponse
                                                                       .jsonBody,
                                                                 ),
                                                                 r'''$.consultation_fee''',
@@ -1138,7 +1107,7 @@ class _ProviderSettingsPageWidgetState
                                                               SupagraphqlGroup
                                                                   .userDetailsCall
                                                                   .userProfile(
-                                                                mainRowUserDetailsResponse
+                                                                providerSettingsPageUserDetailsResponse
                                                                     .jsonBody,
                                                               ),
                                                               r'''$.insurance_provider''',
@@ -1228,7 +1197,7 @@ class _ProviderSettingsPageWidgetState
                                                               SupagraphqlGroup
                                                                   .userDetailsCall
                                                                   .userProfile(
-                                                                mainRowUserDetailsResponse
+                                                                providerSettingsPageUserDetailsResponse
                                                                     .jsonBody,
                                                               ),
                                                               r'''$.insurance_number''',
@@ -1410,7 +1379,7 @@ class _ProviderSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    providerSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_name''',
@@ -1511,7 +1480,7 @@ class _ProviderSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    providerSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_relationship''',
@@ -1757,7 +1726,7 @@ class _ProviderSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    providerSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.emergency_contact_phone''',
@@ -5795,16 +5764,6 @@ class _ProviderSettingsPageWidgetState
                                             FFAppState().AuthuserID,
                                           ),
                                         );
-                                        await UsersTable().update(
-                                          data: {
-                                            'phone_number': _model
-                                                .phoneNumberTextController.text,
-                                          },
-                                          matchingRows: (rows) => rows.eqOrNull(
-                                            'id',
-                                            FFAppState().AuthuserID,
-                                          ),
-                                        );
                                         await MedicalProviderProfilesTable()
                                             .update(
                                           data: {
@@ -5979,11 +5938,11 @@ class _ProviderSettingsPageWidgetState
                     ),
                   ),
                 ],
-              );
-            },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

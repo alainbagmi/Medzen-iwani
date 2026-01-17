@@ -43,8 +43,6 @@ class _FacilityAdminSettingsPageWidgetState
     super.initState();
     _model = createModel(context, () => FacilityAdminSettingsPageModel());
 
-    _model.phonenumberFocusNode ??= FocusNode();
-
     _model.insuranceproviderFocusNode ??= FocusNode();
 
     _model.policynumberFocusNode ??= FocusNode();
@@ -73,65 +71,68 @@ class _FacilityAdminSettingsPageWidgetState
   Widget build(BuildContext context) {
     context.watch<FFAppState>();
 
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        appBar: PreferredSize(
-          preferredSize: Size.fromHeight(80.0),
-          child: AppBar(
+    return FutureBuilder<ApiCallResponse>(
+      future: SupagraphqlGroup.userDetailsCall.call(
+        userId: FFAppState().AuthuserID,
+      ),
+      builder: (context, snapshot) {
+        // Customize what your widget looks like when it's loading.
+        if (!snapshot.hasData) {
+          return Scaffold(
             backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-            automaticallyImplyLeading: false,
-            actions: [],
-            flexibleSpace: FlexibleSpaceBar(
-              background: wrapWithModel(
-                model: _model.topBarModel,
-                updateCallback: () => safeSetState(() {}),
-                child: TopBarWidget(
-                  btnicon: Icon(
-                    Icons.chevron_left,
-                    size: 35.0,
+            body: Center(
+              child: SizedBox(
+                width: 50.0,
+                height: 50.0,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    FlutterFlowTheme.of(context).primary,
                   ),
-                  btnaction: () async {
-                    context.safePop();
-                  },
                 ),
               ),
             ),
-            centerTitle: true,
-            elevation: 0.0,
-          ),
-        ),
-        body: SafeArea(
-          top: true,
-          child: Stack(
-            children: [
-              FutureBuilder<ApiCallResponse>(
-                future: SupagraphqlGroup.userDetailsCall.call(
-                  userId: FFAppState().AuthuserID,
-                ),
-                builder: (context, snapshot) {
-                  // Customize what your widget looks like when it's loading.
-                  if (!snapshot.hasData) {
-                    return Center(
-                      child: SizedBox(
-                        width: 50.0,
-                        height: 50.0,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            FlutterFlowTheme.of(context).primary,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  final mainRowUserDetailsResponse = snapshot.data!;
+          );
+        }
+        final facilityAdminSettingsPageUserDetailsResponse = snapshot.data!;
 
-                  return Row(
+        return GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
+          child: Scaffold(
+            key: scaffoldKey,
+            backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+            appBar: PreferredSize(
+              preferredSize: Size.fromHeight(80.0),
+              child: AppBar(
+                backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
+                automaticallyImplyLeading: false,
+                actions: [],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: wrapWithModel(
+                    model: _model.topBarModel,
+                    updateCallback: () => safeSetState(() {}),
+                    child: TopBarWidget(
+                      btnicon: Icon(
+                        Icons.chevron_left,
+                        size: 35.0,
+                      ),
+                      btnaction: () async {
+                        context.safePop();
+                      },
+                    ),
+                  ),
+                ),
+                centerTitle: true,
+                elevation: 0.0,
+              ),
+            ),
+            body: SafeArea(
+              top: true,
+              child: Stack(
+                children: [
+                  Row(
                     mainAxisSize: MainAxisSize.max,
                     children: [
                       if (responsiveVisibility(
@@ -273,7 +274,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userDetails(
-                                                                        mainRowUserDetailsResponse
+                                                                        facilityAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.avatar_url''',
@@ -472,7 +473,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                               SupagraphqlGroup
                                                                   .userDetailsCall
                                                                   .fullname(
-                                                                mainRowUserDetailsResponse
+                                                                facilityAdminSettingsPageUserDetailsResponse
                                                                     .jsonBody,
                                                               ),
                                                               'null',
@@ -519,7 +520,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                               SupagraphqlGroup
                                                                   .userDetailsCall
                                                                   .userDetails(
-                                                                mainRowUserDetailsResponse
+                                                                facilityAdminSettingsPageUserDetailsResponse
                                                                     .jsonBody,
                                                               ),
                                                               r'''$.date_of_birth''',
@@ -556,113 +557,15 @@ class _FacilityAdminSettingsPageWidgetState
                                                         ),
                                                       ],
                                                     ),
-                                                    TextFormField(
-                                                      controller: _model
-                                                              .phonenumberTextController ??=
-                                                          TextEditingController(
-                                                        text: valueOrDefault<
-                                                            String>(
-                                                          SupagraphqlGroup
-                                                              .userDetailsCall
-                                                              .number(
-                                                            mainRowUserDetailsResponse
-                                                                .jsonBody,
-                                                          ),
-                                                          'null',
+                                                    Text(
+                                                      valueOrDefault<String>(
+                                                        SupagraphqlGroup
+                                                            .userDetailsCall
+                                                            .number(
+                                                          facilityAdminSettingsPageUserDetailsResponse
+                                                              .jsonBody,
                                                         ),
-                                                      ),
-                                                      focusNode: _model
-                                                          .phonenumberFocusNode,
-                                                      onFieldSubmitted:
-                                                          (_) async {
-                                                        FFAppState()
-                                                                .editPhoneNumber =
-                                                            _model
-                                                                .phonenumberTextController
-                                                                .text;
-                                                        safeSetState(() {});
-                                                      },
-                                                      obscureText: false,
-                                                      decoration:
-                                                          InputDecoration(
-                                                        enabledBorder:
-                                                            UnderlineInputBorder(
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .alternate,
-                                                            width: 1.0,
-                                                          ),
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                          ),
-                                                        ),
-                                                        focusedBorder:
-                                                            UnderlineInputBorder(
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: FlutterFlowTheme
-                                                                    .of(context)
-                                                                .primary,
-                                                            width: 1.0,
-                                                          ),
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                          ),
-                                                        ),
-                                                        errorBorder:
-                                                            UnderlineInputBorder(
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Color(
-                                                                0x00000000),
-                                                            width: 1.0,
-                                                          ),
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                          ),
-                                                        ),
-                                                        focusedErrorBorder:
-                                                            UnderlineInputBorder(
-                                                          borderSide:
-                                                              BorderSide(
-                                                            color: Color(
-                                                                0x00000000),
-                                                            width: 1.0,
-                                                          ),
-                                                          borderRadius:
-                                                              const BorderRadius
-                                                                  .only(
-                                                            topLeft:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                            topRight:
-                                                                Radius.circular(
-                                                                    4.0),
-                                                          ),
-                                                        ),
+                                                        'null',
                                                       ),
                                                       style:
                                                           FlutterFlowTheme.of(
@@ -692,11 +595,6 @@ class _FacilityAdminSettingsPageWidgetState
                                                                     .bodyMedium
                                                                     .fontStyle,
                                                               ),
-                                                      keyboardType:
-                                                          TextInputType.phone,
-                                                      validator: _model
-                                                          .phonenumberTextControllerValidator
-                                                          .asValidator(context),
                                                     ),
                                                   ].divide(
                                                       SizedBox(height: 16.0)),
@@ -835,7 +733,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    facilityAdminSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_provider''',
@@ -921,7 +819,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                                   SupagraphqlGroup
                                                                       .userDetailsCall
                                                                       .userProfile(
-                                                                    mainRowUserDetailsResponse
+                                                                    facilityAdminSettingsPageUserDetailsResponse
                                                                         .jsonBody,
                                                                   ),
                                                                   r'''$.insurance_number''',
@@ -1105,7 +1003,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        mainRowUserDetailsResponse
+                                                                        facilityAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.emergency_contact_name''',
@@ -1202,7 +1100,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        mainRowUserDetailsResponse
+                                                                        facilityAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.emergency_contact_relationship''',
@@ -1438,7 +1336,7 @@ class _FacilityAdminSettingsPageWidgetState
                                                                       SupagraphqlGroup
                                                                           .userDetailsCall
                                                                           .userProfile(
-                                                                        mainRowUserDetailsResponse
+                                                                        facilityAdminSettingsPageUserDetailsResponse
                                                                             .jsonBody,
                                                                       ),
                                                                       r'''$.emergency_contact_phone''',
@@ -3132,18 +3030,6 @@ class _FacilityAdminSettingsPageWidgetState
                                               FFAppState().AuthuserID,
                                             ),
                                           );
-                                          await UsersTable().update(
-                                            data: {
-                                              'phone_number': _model
-                                                  .phonenumberTextController
-                                                  .text,
-                                            },
-                                            matchingRows: (rows) =>
-                                                rows.eqOrNull(
-                                              'id',
-                                              FFAppState().AuthuserID,
-                                            ),
-                                          );
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
                                             SnackBar(
@@ -3307,13 +3193,13 @@ class _FacilityAdminSettingsPageWidgetState
                         ),
                       ),
                     ],
-                  );
-                },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

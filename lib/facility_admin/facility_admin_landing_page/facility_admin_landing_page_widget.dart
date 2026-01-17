@@ -3160,20 +3160,6 @@ class _FacilityAdminLandingPageWidgetState
                           ),
                         ),
                       ),
-                      if (responsiveVisibility(
-                        context: context,
-                        tablet: false,
-                        tabletLandscape: false,
-                        desktop: false,
-                      ))
-                        Container(
-                          width: double.infinity,
-                          height: 45.86,
-                          decoration: BoxDecoration(
-                            color: FlutterFlowTheme.of(context)
-                                .secondaryBackground,
-                          ),
-                        ),
                     ]
                         .divide(SizedBox(height: 10.0))
                         .around(SizedBox(height: 10.0)),

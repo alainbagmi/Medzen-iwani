@@ -1,4 +1,23 @@
 {
-  "SupaBaseURL": "na",
-"Supabasekey": "na"
+  "SupaBaseURL": "https://noaeltglphdlkbflipit.supabase.co",
+"Supabasekey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWVsdGdscGhkbGtiZmxpcGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0NDc2MzksImV4cCI6MjA3NTAyMzYzOX0.t8doxWhvLDsu27jad_T1IvACBl5HpfFmo8IillYBppk",
+"PaymentApi": "https://sandbox.fapshi.com",
+"PaypentAPIKey": "FAK_TEST_fc851ff4c632fc9a7edd",
+"PaymentUser": "4f557597-09c9-4b4a-9108-4d668bcbe5fe",
+"PUBaseUrl": "https://gateway.payunit.net/api/gateway",
+"PUMode": "test",
+"PUApiKey": "sand_iZlZrPPTA15frbjk5QRXbcJu9mvfpk",
+"PUAuth": "Basic MDgxZGRjYTktNDI1Ny00ZWJhLWI4N2EtMTI3MjRjMDg0YmQyOjk4OGQ0MzViLWQyYWItNGZiMS1iMjM4LTU5YjExNDdiOWE2Mw==",
+"SupaBaseAPIBaseUrl": "https://noaeltglphdlkbflipit.supabase.co",
+"SupabaseRestAPIBaseUrl": "https://noaeltglphdlkbflipit.supabase.co/rest/v1/",
+"AwsSmsApiUrl": "https://ttg7fzyyw2.execute-api.eu-west-1.amazonaws.com/Dev/MedZen_Send_SMS",
+"AwsSmsApiKey": "BZRrBu59L16tDuWRRmYs3svEIOEASnp4PN3bAsG0",
+"AWSOtpsendurl": "https://8myh230g8l.execute-api.eu-west-1.amazonaws.com/Prod/Medzen-Send-Otp",
+"AWSOtpsendApiKey": "BZRrBu59L16tDuWRRmYs3svEIOEASnp4PN3bAsG0",
+"AWSOtpVerifyurl": "https://hcghhwt3k5.execute-api.eu-west-1.amazonaws.com/Prod/Medzen-Verify-Otp",
+"AWSOtpVerifyApiKey": "BZRrBu59L16tDuWRRmYs3svEIOEASnp4PN3bAsG0",
+"AWSResetPwdurl": "https://vm1miv22nh.execute-api.eu-west-1.amazonaws.com/Prod/Medzen-Reset-Pwd",
+"AWSResetPwdKey": "BZRrBu59L16tDuWRRmYs3svEIOEASnp4PN3bAsG0",
+"FirebaseCreateUserURL": "https://xrsvj0z8c6.execute-api.eu-west-1.amazonaws.com/prod/Medzen_UserCreate",
+"FirebaseCreateUserApi": "BZRrBu59L16tDuWRRmYs3svEIOEASnp4PN3bAsG0"
 }

@@ -60,27 +60,25 @@
 	<true/>
 
 	<key>NSCameraUsageDescription</key>
-    <string>MedZen Health requires camera access for video consultations with healthcare providers.</string>
+    <string>allow usage </string>
 	<key>NSPhotoLibraryUsageDescription</key>
-    <string>MedZen Health needs access to your photos to upload profile pictures and medical documents.</string>
+    <string>allow usage </string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-    <string>MedZen Health uses Bluetooth for connecting to health monitoring devices.</string>
+    <string>allow usage </string>
 	<key>NSFaceIDUsageDescription</key>
-    <string>MedZen Health uses Face ID for secure authentication.</string>
+    <string>allow usage </string>
 	<key>NSCalendarsUsageDescription</key>
-    <string>MedZen Health needs calendar access to schedule and manage your appointments.</string>
+    <string>allow usage </string>
 	<key>NSContactsUsageDescription</key>
-    <string>MedZen Health uses contacts to help you share your medical records with trusted contacts.</string>
+    <string>allow usage </string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-    <string>MedZen Health needs your location to find nearby healthcare facilities and providers.</string>
+    <string>allow usage </string>
 	<key>NSMicrophoneUsageDescription</key>
-    <string>MedZen Health requires microphone access for video consultations with healthcare providers.</string>
+    <string>allow usage </string>
 	<key>PermissionGroupNotification</key>
-    <string>MedZen Health sends notifications for appointment reminders and important health updates.</string>
+    <string>allow usage </string>
     <key>UIBackgroundModes</key>
     <array>
-        <string>audio</string>
-        <string>voip</string>
         <string>fetch</string>
         <string>remote-notification</string>
     </array>
@@ -107,9 +105,5 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
 </dict>
 </plist>

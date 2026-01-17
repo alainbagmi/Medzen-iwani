@@ -3,6 +3,7 @@ import '/backend/api_requests/api_calls.dart';
 import '/backend/supabase/supabase.dart';
 import '/chat_a_i/start_chat/start_chat_widget.dart';
 import '/components/main_bottom_nav/main_bottom_nav_widget.dart';
+import '/components/patient_creation/patient_creation_widget.dart';
 import '/components/side_nav/side_nav_widget.dart';
 import '/components/support/support_widget.dart';
 import '/components/top_bar/top_bar_widget.dart';

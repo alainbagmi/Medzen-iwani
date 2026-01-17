@@ -98,11 +98,9 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             size: 30.0,
                           ),
                           onPressed: () async {
-                            if (scaffoldKey.currentState?.isDrawerOpen ==
-                                    true ||
-                                scaffoldKey.currentState?.isEndDrawerOpen ==
-                                    true) {
-                              Navigator.of(context).pop();
+                            if (scaffoldKey.currentState!.isDrawerOpen ||
+                                scaffoldKey.currentState!.isEndDrawerOpen) {
+                              Navigator.pop(context);
                             }
                           },
                         ),
@@ -124,12 +122,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                               padding: EdgeInsets.all(10.0),
                               child: FFButtonWidget(
                                 onPressed: () async {
-                                  Navigator.of(context).pop(); // Close drawer
-                                  await Future.delayed(
-                                      const Duration(milliseconds: 250));
-                                  if (context.mounted) {
-                                    context.pushNamed(FeaturesWidget.routeName);
-                                  }
+                                  context.pushNamed(FeaturesWidget.routeName);
                                 },
                                 text: FFLocalizations.of(context).getText(
                                   'jydphx9u' /* Features */,
@@ -190,13 +183,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             padding: EdgeInsets.all(10.0),
                             child: FFButtonWidget(
                               onPressed: () async {
-                                Navigator.of(context).pop(); // Close drawer
-                                await Future.delayed(
-                                    const Duration(milliseconds: 250));
-                                if (context.mounted) {
-                                  context
-                                      .pushNamed(PublicationsWidget.routeName);
-                                }
+                                context.pushNamed(PublicationsWidget.routeName);
                               },
                               text: FFLocalizations.of(context).getText(
                                 '89hacu0l' /* Publications */,
@@ -254,13 +241,7 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                             padding: EdgeInsets.all(10.0),
                             child: FFButtonWidget(
                               onPressed: () async {
-                                Navigator.of(context).pop(); // Close drawer
-                                await Future.delayed(
-                                    const Duration(milliseconds: 250));
-                                if (context.mounted) {
-                                  context
-                                      .pushNamed(AboutUsPageWidget.routeName);
-                                }
+                                context.pushNamed(AboutUsPageWidget.routeName);
                               },
                               text: FFLocalizations.of(context).getText(
                                 '2a5wwtx5' /* About Us */,
@@ -479,8 +460,8 @@ class _HomePageWidgetState extends State<HomePageWidget> {
                                                 size: 40.0,
                                               ),
                                               onPressed: () async {
-                                                scaffoldKey.currentState
-                                                    ?.openEndDrawer();
+                                                scaffoldKey.currentState!
+                                                    .openEndDrawer();
                                               },
                                             ),
                                           ),

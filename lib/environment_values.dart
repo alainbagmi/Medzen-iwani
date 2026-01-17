@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'flutter_flow/flutter_flow_util.dart';
 
 class FFDevEnvironmentValues {
-  static const String currentEnvironment = 'Production';
+  static const String currentEnvironment = 'Development';
   static const String environmentValuesPath =
       'assets/environment_values/environment.json';
 
@@ -40,6 +40,8 @@ class FFDevEnvironmentValues {
       _AWSOtpVerifyApiKey = data['AWSOtpVerifyApiKey'];
       _AWSResetPwdurl = data['AWSResetPwdurl'];
       _AWSResetPwdKey = data['AWSResetPwdKey'];
+      _FirebaseCreateUserURL = data['FirebaseCreateUserURL'];
+      _FirebaseCreateUserApi = data['FirebaseCreateUserApi'];
     } catch (e) {
       print('Error loading environment values: $e');
     }
@@ -101,4 +103,10 @@ class FFDevEnvironmentValues {
 
   String _AWSResetPwdKey = '';
   String get AWSResetPwdKey => _AWSResetPwdKey;
+
+  String _FirebaseCreateUserURL = '';
+  String get FirebaseCreateUserURL => _FirebaseCreateUserURL;
+
+  String _FirebaseCreateUserApi = '';
+  String get FirebaseCreateUserApi => _FirebaseCreateUserApi;
 }

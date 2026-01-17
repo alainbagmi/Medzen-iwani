@@ -1,0 +1,90 @@
+Phrase	IPA	SoundsLike	DisplayAs
+BP			blood pressure
+HR			heart rate
+RR			respiratory rate
+Temp			temperature
+SpO2			oxygen saturation
+IV			intravenous
+IM			intramuscular
+SC			subcutaneous
+PO			by mouth
+PR			per rectum
+SL			sublingual
+NPO			nothing by mouth
+BID			twice daily
+TID			three times daily
+QID			four times daily
+QHS			at bedtime
+PRN			as needed
+STAT			immediately
+AC			before meals
+PC			after meals
+HS			at bedtime
+CBC			complete blood count
+FBC			full blood count
+RBC			red blood cell
+WBC			white blood cell
+Hgb			hemoglobin
+Hct			hematocrit
+PLT			platelet
+ESR			erythrocyte sedimentation rate
+CRP			C-reactive protein
+BUN			blood urea nitrogen
+Cr			creatinine
+Na			sodium
+K			potassium
+Cl			chloride
+Ca			calcium
+Mg			magnesium
+LFT			liver function test
+RFT			renal function test
+ALT			alanine aminotransferase
+AST			aspartate aminotransferase
+ALP			alkaline phosphatase
+GGT			gamma-glutamyl transferase
+ECG			electrocardiogram
+EKG			electrocardiogram
+EEG			electroencephalogram
+MRI			magnetic resonance imaging
+CT			computed tomography
+CXR			chest x-ray
+AXR			abdominal x-ray
+U/S			ultrasound
+USS			ultrasound scan
+ICU			intensive care unit
+CCU			cardiac care unit
+ER			emergency room
+ED			emergency department
+OR			operating room
+OT			operating theatre
+PACU			post-anesthesia care unit
+OPD			outpatient department
+IPD			inpatient department
+A&E			accident and emergency
+DNR			do not resuscitate
+CPR			cardiopulmonary resuscitation
+BLS			basic life support
+ACLS			advanced cardiac life support
+UTI			urinary tract infection
+RTI			respiratory tract infection
+STI			sexually transmitted infection
+HIV			human immunodeficiency virus
+AIDS			acquired immunodeficiency syndrome
+TB			tuberculosis
+COPD			chronic obstructive pulmonary disease
+CHF			congestive heart failure
+MI			myocardial infarction
+CVA			cerebrovascular accident
+TIA			transient ischemic attack
+DM			diabetes mellitus
+HTN			hypertension
+IHD			ischemic heart disease
+PVD			peripheral vascular disease
+CKD			chronic kidney disease
+AKI			acute kidney injury
+GERD			gastroesophageal reflux disease
+IBS			irritable bowel syndrome
+IBD			inflammatory bowel disease
+PUD			peptic ulcer disease
+DVT			deep vein thrombosis
+PE			pulmonary embolism

@@ -20,5 +20,3 @@ export 'get_nearby_blood_donors.dart' show getNearbyBloodDonors;
 export 'get_nearby_facilities.dart' show getNearbyFacilities;
 export 'update_user_location.dart' show updateUserLocation;
 export 'calculate_distance_km.dart' show calculateDistanceKm;
-export 'web_media_permissions_stub.dart' show webMediaPermissionsStub;
-export 'request_web_media_permissions.dart' show requestWebMediaPermissions;

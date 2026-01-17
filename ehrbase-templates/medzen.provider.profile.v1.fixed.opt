@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template xmlns="openEHR/v1/Template" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <language>
+        <terminology_id>
+            <value>ISO_639-1</value>
+        </terminology_id>
+        <code_string>en</code_string>
+    </language>
+    <description>
+        <original_author id="name">MedZen Development Team</original_author>
+        <original_author id="organisation">MedZen Health</original_author>
+        <original_author id="date">2025-11-02</original_author>
+        <lifecycle_state>initial</lifecycle_state>
+        <details>
+            <language>
+                <terminology_id>
+                    <value>ISO_639-1</value>
+                </terminology_id>
+                <code_string>en</code_string>
+            </language>
+            <purpose>Provider professional profile and credentials template for healthcare providers in the MedZen telemedicine platform</purpose>
+            <keywords>provider, credentials, professional, license, specialty</keywords>
+            <use>Use to record comprehensive professional information about healthcare providers including credentials, specialties, and practice information</use>
+        </details>
+    </description>
+    <template_id>
+        <value>medzen.provider.profile.v1</value>
+    </template_id>
+    <concept>Provider Professional Profile</concept>
+
+    <definition>
+        <rm_type_name>COMPOSITION</rm_type_name>
+        <node_id>at0000</node_id>
+        <term_definitions code="at0000">
+            <items id="text">Provider Professional Profile</items>
+            <items id="description">Comprehensive professional profile for healthcare providers</items>
+        </term_definitions>
+
+        <attributes xsi:type="C_SINGLE_ATTRIBUTE">
+            <rm_attribute_name>category</rm_attribute_name>
+            <existence>
+                <lower_included>true</lower_included>
+                <upper_included>true</upper_included>
+                <lower_unbounded>false</lower_unbounded>
+                <upper_unbounded>false</upper_unbounded>
+                <lower>1</lower>
+                <upper>1</upper>
+            </existence>
+            <children xsi:type="C_CODE_PHRASE">
+                <rm_type_name>DV_CODED_TEXT</rm_type_name>
+                <node_id/>
+                <code_list>persistent</code_list>
+                <terminology_id>
+                    <value>openehr</value>
+                </terminology_id>
+            </children>
+        </attributes>
+
+        <attributes xsi:type="C_MULTIPLE_ATTRIBUTE">
+            <rm_attribute_name>content</rm_attribute_name>
+            <existence>
+                <lower_included>true</lower_included>
+                <upper_included>true</upper_included>
+                <lower_unbounded>false</lower_unbounded>
+                <upper_unbounded>false</upper_unbounded>
+                <lower>0</lower>
+                <upper>1</upper>
+            </existence>
+            <cardinality>
+                <is_ordered>false</is_ordered>
+                <is_unique>false</is_unique>
+                <interval>
+                    <lower_included>true</lower_included>
+                    <lower_unbounded>false</lower_unbounded>
+                    <upper_unbounded>true</upper_unbounded>
+                    <lower>0</lower>
+                </interval>
+            </cardinality>
+
+            <!-- Provider Demographics -->
+            <children xsi:type="ADMIN_ENTRY">
+                <rm_type_name>ADMIN_ENTRY</rm_type_name>
+                <node_id>at0001</node_id>
+                <term_definitions code="at0001">
+                    <items id="text">Provider Demographics</items>
+                    <items id="description">Basic demographic information about the provider</items>
+                </term_definitions>
+            </children>
+
+            <!-- Professional Credentials -->
+            <children xsi:type="ADMIN_ENTRY">
+                <rm_type_name>ADMIN_ENTRY</rm_type_name>
+                <node_id>at0002</node_id>
+                <term_definitions code="at0002">
+                    <items id="text">Professional Credentials</items>
+                    <items id="description">Medical licenses, certifications, and registration information</items>
+                </term_definitions>
+            </children>
+
+            <!-- Education and Training -->
+            <children xsi:type="ADMIN_ENTRY">
+                <rm_type_name>ADMIN_ENTRY</rm_type_name>
+                <node_id>at0003</node_id>
+                <term_definitions code="at0003">
+                    <items id="text">Education and Training</items>
+                    <items id="description">Medical education, residency, and continuing education</items>
+                </term_definitions>
+            </children>
+
+            <!-- Specialties -->
+            <children xsi:type="ADMIN_ENTRY">
+                <rm_type_name>ADMIN_ENTRY</rm_type_name>
+                <node_id>at0004</node_id>
+                <term_definitions code="at0004">
+                    <items id="text">Medical Specialties</items>
+                    <items id="description">Primary and sub-specialties, areas of expertise</items>
+                </term_definitions>
+            </children>
+
+            <!-- Practice Information -->
+            <children xsi:type="ADMIN_ENTRY">
+                <rm_type_name>ADMIN_ENTRY</rm_type_name>
+                <node_id>at0005</node_id>
+                <term_definitions code="at0005">
+                    <items id="text">Practice Information</items>
+                    <items id="description">Practice type, affiliated facilities, consultation types</items>
+                </term_definitions>
+            </children>
+
+            <!-- Verification Status -->
+            <children xsi:type="ADMIN_ENTRY">
+                <rm_type_name>ADMIN_ENTRY</rm_type_name>
+                <node_id>at0006</node_id>
+                <term_definitions code="at0006">
+                    <items id="text">Verification Status</items>
+                    <items id="description">Credential verification and account approval status</items>
+                </term_definitions>
+            </children>
+        </attributes>
+    </definition>
+</template>

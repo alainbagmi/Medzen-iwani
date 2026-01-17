@@ -19,7 +19,7 @@
         "experimental:mcp"
       ],
       "env": {
-        "SERVICE_ACCOUNT_KEY_PATH": "/Users/alainbagmi/Desktop/medzen-id68rn/medzen-bf20e-firebase-adminsdk-fbsvc-bcc983f132.json"
+        "SERVICE_ACCOUNT_KEY_PATH": "/Users/alainbagmi/Desktop/medzen-id68rn/medzen-bf20e-firebase-adminsdk-fbsvc-d1156c7430.json"
       }
     },
     "openEHR": {
