@@ -271,7 +271,9 @@ class _PostCallClinicalNotesDialogState
     setState(() => _isLoading = true);
 
     try {
-      // Update or create SOAP note in database
+      // PHASE 1: DATABASE SAVE (BLOCKING - PRIMARY OPERATION)
+      // This is the critical operation that must complete successfully
+      // The SOAP note is persisted to Supabase as the source of truth
       if (_soapNoteId != null) {
         // Update existing SOAP note
         await SupaFlow.client
@@ -302,8 +304,13 @@ class _PostCallClinicalNotesDialogState
         _soapNoteId = result['id'] as String?;
       }
 
-      // NEW: Update cumulative patient medical record (non-blocking, fire-and-forget)
+      // PHASE 2: ASYNC BACKGROUND OPERATIONS (NON-BLOCKING - SECONDARY)
+      // After database save completes successfully, fire async background operations:
+      // 1. Sync SOAP note to EHRbase (non-blocking)
+      // 2. Update cumulative patient medical record (non-blocking)
+      // These do not block the provider workflow - if they fail, they're logged but don't prevent closing
       if (_soapNoteId != null) {
+        _syncToEhrInBackground();
         _updatePatientMedicalRecordInBackground();
       }
 
@@ -324,6 +331,66 @@ class _PostCallClinicalNotesDialogState
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  /// Sync SOAP note to EHRbase in background (non-blocking)
+  /// Fires after SOAP note is saved successfully to database
+  /// Does not block the provider workflow
+  /// If EHR sync fails, the SOAP note is still safely stored in database
+  Future<void> _syncToEhrInBackground() async {
+    try {
+      // Get Firebase token with force refresh to ensure validity
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        debugPrint('⚠️ No user logged in, skipping EHR sync');
+        return;
+      }
+
+      final token = await currentUser.getIdToken(true);
+      final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
+      final supabaseKey = FFDevEnvironmentValues().Supabasekey;
+
+      if (token == null) {
+        debugPrint('⚠️ No Firebase token available, skipping EHR sync');
+        return;
+      }
+
+      // Fire-and-forget HTTP call (don't await, don't block provider)
+      // If sync-to-ehrbase fails, the SOAP note is already safely in database
+      unawaited(
+        http
+            .post(
+              Uri.parse('$supabaseUrl/functions/v1/sync-to-ehrbase'),
+              headers: {
+                'apikey': supabaseKey,
+                'Authorization': 'Bearer $supabaseKey',
+                'x-firebase-token': token,
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({
+                'soapNoteId': _soapNoteId,
+                'patientId': widget.patientId,
+                'appointmentId': widget.appointmentId,
+              }),
+            )
+            .then((response) {
+              if (response.statusCode == 200) {
+                debugPrint(
+                    '✅ SOAP note synced to EHRbase in background');
+              } else {
+                debugPrint(
+                    '⚠️ Warning: Failed to sync to EHRbase: ${response.body}');
+              }
+            })
+            .catchError((e) {
+              debugPrint('⚠️ Background EHR sync failed: $e');
+              // Don't throw - background task should never block provider
+            }),
+      );
+    } catch (e) {
+      debugPrint('⚠️ Non-blocking error syncing to EHRbase: $e');
+      // Silently fail - don't block provider workflow
     }
   }
 
@@ -674,7 +741,7 @@ class _PostCallClinicalNotesDialogState
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Save to EHR'),
+                        : const Text('Sign & Save Note'),
                   ),
                 ],
               ),
