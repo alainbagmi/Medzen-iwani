@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class SoapSectionsViewer extends StatefulWidget {
   const SoapSectionsViewer({
@@ -36,12 +37,14 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
   final Map<String, TextEditingController> _textControllers = {};
   String? _recordingSection; // Track which section is recording
   bool _isRecording = false; // Track recording state
+  final Map<String, String> _cachedStringValues = {}; // Cache string conversions
 
   @override
   void initState() {
     super.initState();
     _editableData = Map<String, dynamic>.from(widget.soapData);
     _tabController = TabController(length: 5, vsync: this);
+    _precomputeStringValues(); // Pre-cache all string conversions
   }
 
   @override
@@ -53,9 +56,65 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
     super.dispose();
   }
 
+  /// Pre-compute all string conversions to avoid expensive operations during build
+  void _precomputeStringValues() {
+    try {
+      // Associated Symptoms
+      _cachedStringValues['associated_symptoms'] =
+          (_editableData['subjective']?['hpi']?['associated_symptoms'] as List<dynamic>?)?.join(', ') ?? '';
+
+      // Review of Systems
+      _cachedStringValues['review_of_systems'] =
+          (_editableData['subjective']?['review_of_systems'] as List<dynamic>?)?.join(', ') ?? 'No positive findings';
+
+      // Past Medical History
+      _cachedStringValues['pmh'] =
+          (_editableData['subjective']?['history_items']?['pmh'] as List<dynamic>?)?.join(', ') ?? 'None documented';
+
+      // Surgical History
+      _cachedStringValues['psh'] =
+          (_editableData['subjective']?['history_items']?['psh'] as List<dynamic>?)?.join(', ') ?? 'None documented';
+
+      // Medications
+      _cachedStringValues['medications'] =
+          (_editableData['subjective']?['medications'] as List<dynamic>?)
+              ?.map((m) {
+                if (m is Map<String, dynamic>) {
+                  return '${m['name']} ${m['dose'] ?? ''}'.trim();
+                }
+                return m.toString();
+              }).join(', ') ?? 'No medications';
+
+      // Allergies
+      _cachedStringValues['allergies'] =
+          (_editableData['subjective']?['allergies'] as List<dynamic>?)
+              ?.map((a) {
+                if (a is Map<String, dynamic>) {
+                  return '${a['allergen']} - ${a['type']}'.trim();
+                }
+                return a.toString();
+              }).join(', ') ?? 'No allergies';
+
+      // CPT Codes
+      _cachedStringValues['cpt_codes'] =
+          (_editableData['coding_billing']?['cpt_codes'] as List<dynamic>?)?.join(', ') ?? '';
+    } catch (e) {
+      // Silently handle precompute errors
+    }
+  }
+
+  /// Get cached string value or compute it
+  String _getCachedStringValue(String key, String Function() compute) {
+    if (!_cachedStringValues.containsKey(key)) {
+      _cachedStringValues[key] = compute();
+    }
+    return _cachedStringValues[key]!;
+  }
+
   void _updateData(String path, dynamic value) {
     setState(() {
       _editableData[path] = value;
+      _cachedStringValues.clear(); // Invalidate cache when data changes
     });
     widget.onDataChanged?.call(_editableData);
   }
@@ -82,17 +141,30 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
         Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
         const SizedBox(height: 4),
         TextField(
+          enabled: widget.isEditable,
           controller: controller,
-          onChanged: (value) => _updateData(fieldPath, value),
+          onChanged: (value) {
+            _updateData(fieldPath, value);
+          },
+          onTap: () {
+            // Focus handler
+          },
           decoration: InputDecoration(
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(4),
             ),
             isDense: true,
             contentPadding: const EdgeInsets.all(8),
-            hintText: 'Edit',
+            hintText: 'Edit this field...',
+            hintStyle: const TextStyle(color: Colors.grey),
+            helperText: widget.isEditable ? 'Editable' : 'Read-only',
+            helperStyle: TextStyle(fontSize: 11, color: Colors.grey[500]),
+            filled: true,
+            fillColor: widget.isEditable ? Colors.white : Colors.grey[100],
           ),
           maxLines: maxLines,
+          keyboardType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
         ),
       ],
     );
@@ -156,25 +228,15 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
     });
 
     try {
-      debugPrint('🎤 Starting recording for section: $sectionKey');
-
       final transcribedText = await recordAndTranscribeAudio(
         context,
         maxDuration: const Duration(seconds: 30),
-        onRecordingStart: () {
-          debugPrint('Recording started');
-        },
-        onRecordingStop: () {
-          debugPrint('Recording stopped');
-        },
-        onTranscribing: (status) {
-          debugPrint('Transcribing audio... $status');
-        },
+        onRecordingStart: () {},
+        onRecordingStop: () {},
+        onTranscribing: (status) {},
       );
 
       if (transcribedText.isNotEmpty) {
-        debugPrint('✅ Transcription complete: $transcribedText');
-
         // Update the appropriate field with transcribed text
         final controller = _getOrCreateController(fieldPath, transcribedText);
         controller.text = transcribedText;
@@ -190,7 +252,6 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
           );
         }
       } else {
-        debugPrint('❌ No transcription result');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -202,7 +263,6 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
         }
       }
     } catch (e) {
-      debugPrint('❌ Error during recording: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -234,6 +294,9 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
           isScrollable: isMobile,
           labelColor: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
           unselectedLabelColor: (Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black).withAlpha(180),
+          onTap: (index) {
+            // Tab changed
+          },
           tabs: const [
             Tab(text: 'Subjective', icon: Icon(Icons.description)),
             Tab(text: 'Objective', icon: Icon(Icons.favorite)),
@@ -246,6 +309,8 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
         Expanded(
           child: TabBarView(
             controller: _tabController,
+            // FIX: Disable swipe physics on web to prevent pointer event blocking
+            physics: kIsWeb ? const NeverScrollableScrollPhysics() : null,
             children: [
               // SUBJECTIVE TAB
               _buildSubjectiveTab(),
@@ -347,18 +412,20 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
             _buildEditableTextField(
               'Associated Symptoms',
               'subjective.hpi.associated_symptoms',
-              (_editableData['subjective']?['hpi']?['associated_symptoms']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  '',
+              _getCachedStringValue('associated_symptoms', () =>
+                  (_editableData['subjective']?['hpi']?['associated_symptoms']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      ''),
             )
           else
             _buildReadOnlyField(
               'Associated Symptoms',
-              (_editableData['subjective']?['hpi']?['associated_symptoms']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  '',
+              _getCachedStringValue('associated_symptoms', () =>
+                  (_editableData['subjective']?['hpi']?['associated_symptoms']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      ''),
             ),
           const SizedBox(height: 16),
           Row(
@@ -377,19 +444,21 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
             _buildEditableTextField(
               'Positive Symptoms',
               'subjective.review_of_systems',
-              (_editableData['subjective']?['review_of_systems']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  'No positive findings',
+              _getCachedStringValue('review_of_systems', () =>
+                  (_editableData['subjective']?['review_of_systems']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      'No positive findings'),
               maxLines: 3,
             )
           else
             _buildReadOnlyField(
               'Positive Symptoms',
-              (_editableData['subjective']?['review_of_systems']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  'No positive findings',
+              _getCachedStringValue('review_of_systems', () =>
+                  (_editableData['subjective']?['review_of_systems']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      'No positive findings'),
             ),
           const SizedBox(height: 16),
           Row(
@@ -408,88 +477,96 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
             _buildEditableTextField(
               'Past Medical History',
               'subjective.history_items.pmh',
-              (_editableData['subjective']?['history_items']?['pmh']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  'None documented',
+              _getCachedStringValue('pmh', () =>
+                  (_editableData['subjective']?['history_items']?['pmh']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      'None documented'),
             )
           else
             _buildReadOnlyField(
               'Past Medical History',
-              (_editableData['subjective']?['history_items']?['pmh']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  'None documented',
+              _getCachedStringValue('pmh', () =>
+                  (_editableData['subjective']?['history_items']?['pmh']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      'None documented'),
             ),
           const SizedBox(height: 12),
           if (widget.isEditable)
             _buildEditableTextField(
               'Surgical History',
               'subjective.history_items.psh',
-              (_editableData['subjective']?['history_items']?['psh']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  'None documented',
+              _getCachedStringValue('psh', () =>
+                  (_editableData['subjective']?['history_items']?['psh']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      'None documented'),
             )
           else
             _buildReadOnlyField(
               'Surgical History',
-              (_editableData['subjective']?['history_items']?['psh']
-                      as List<dynamic>?)
-                  ?.join(', ') ??
-                  'None documented',
+              _getCachedStringValue('psh', () =>
+                  (_editableData['subjective']?['history_items']?['psh']
+                          as List<dynamic>?)
+                      ?.join(', ') ??
+                      'None documented'),
             ),
           const SizedBox(height: 12),
           if (widget.isEditable)
             _buildEditableTextField(
               'Medications',
               'subjective.medications_text',
-              (_editableData['subjective']?['medications'] as List<dynamic>?)
-                  ?.map((m) {
-                if (m is Map<String, dynamic>) {
-                  return '${m['name']} ${m['dose'] ?? ''}'.trim();
-                }
-                return m.toString();
-              }).join(', ') ??
-                  'No medications',
+              _getCachedStringValue('medications', () =>
+                  (_editableData['subjective']?['medications'] as List<dynamic>?)
+                      ?.map((m) {
+                    if (m is Map<String, dynamic>) {
+                      return '${m['name']} ${m['dose'] ?? ''}'.trim();
+                    }
+                    return m.toString();
+                  }).join(', ') ??
+                      'No medications'),
             )
           else
             _buildReadOnlyField(
               'Medications',
-              (_editableData['subjective']?['medications'] as List<dynamic>?)
-                  ?.map((m) {
-                if (m is Map<String, dynamic>) {
-                  return '${m['name']} ${m['dose'] ?? ''}'.trim();
-                }
-                return m.toString();
-              }).join(', ') ??
-                  'No medications',
+              _getCachedStringValue('medications', () =>
+                  (_editableData['subjective']?['medications'] as List<dynamic>?)
+                      ?.map((m) {
+                    if (m is Map<String, dynamic>) {
+                      return '${m['name']} ${m['dose'] ?? ''}'.trim();
+                    }
+                    return m.toString();
+                  }).join(', ') ??
+                      'No medications'),
             ),
           const SizedBox(height: 12),
           if (widget.isEditable)
             _buildEditableTextField(
               'Allergies',
               'subjective.allergies_text',
-              (_editableData['subjective']?['allergies'] as List<dynamic>?)
-                  ?.map((a) {
-                if (a is Map<String, dynamic>) {
-                  return '${a['allergen']} - ${a['type']}'.trim();
-                }
-                return a.toString();
-              }).join(', ') ??
-                  'No allergies',
+              _getCachedStringValue('allergies', () =>
+                  (_editableData['subjective']?['allergies'] as List<dynamic>?)
+                      ?.map((a) {
+                    if (a is Map<String, dynamic>) {
+                      return '${a['allergen']} - ${a['type']}'.trim();
+                    }
+                    return a.toString();
+                  }).join(', ') ??
+                      'No allergies'),
             )
           else
             _buildReadOnlyField(
               'Allergies',
-              (_editableData['subjective']?['allergies'] as List<dynamic>?)
-                  ?.map((a) {
-                if (a is Map<String, dynamic>) {
-                  return '${a['allergen']} - ${a['type']}'.trim();
-                }
-                return a.toString();
-              }).join(', ') ??
-                  'No allergies',
+              _getCachedStringValue('allergies', () =>
+                  (_editableData['subjective']?['allergies'] as List<dynamic>?)
+                      ?.map((a) {
+                    if (a is Map<String, dynamic>) {
+                      return '${a['allergen']} - ${a['type']}'.trim();
+                    }
+                    return a.toString();
+                  }).join(', ') ??
+                      'No allergies'),
             ),
         ],
       ),
@@ -809,12 +886,14 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
             _buildEditableTextField(
               'CPT Codes',
               'coding_billing.cpt_codes',
-              (_editableData['coding_billing']?['cpt_codes'] as List<dynamic>?)?.join(', ') ?? '',
+              _getCachedStringValue('cpt_codes', () =>
+                  (_editableData['coding_billing']?['cpt_codes'] as List<dynamic>?)?.join(', ') ?? ''),
             )
           else
             _buildReadOnlyField(
               'CPT Codes',
-              (_editableData['coding_billing']?['cpt_codes'] as List<dynamic>?)?.join(', ') ?? '',
+              _getCachedStringValue('cpt_codes', () =>
+                  (_editableData['coding_billing']?['cpt_codes'] as List<dynamic>?)?.join(', ') ?? ''),
             ),
           const SizedBox(height: 12),
           if (widget.isEditable)
