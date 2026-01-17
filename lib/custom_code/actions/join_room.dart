@@ -30,10 +30,12 @@ bool _isInVideoCall = false;
 // Inline session timeout control - self-contained for FlutterFlow compatibility
 // Note: ActivityDetector widget handles the actual timeout logic
 void _pauseSessionTimeoutLocal() {
+  pauseSessionTimeout();
   debugPrint('SessionTimeout: Paused for video call');
 }
 
 void _resumeSessionTimeoutLocal() {
+  resumeSessionTimeout();
   debugPrint('SessionTimeout: Resumed after video call');
 }
 

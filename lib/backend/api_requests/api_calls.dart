@@ -2182,7 +2182,7 @@ class HelpMePayCall {
     return ApiManager.instance.makeApiCall(
       callName: 'Help Me Pay',
       apiUrl:
-          'https://api.twilio.com/2010-04-01/Accounts/AC44bb6252a49d2eb034e609f54cbbd4a1/Messages.json',
+          'https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json',
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
@@ -2190,7 +2190,7 @@ class HelpMePayCall {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       params: {
-        'MessagingServiceSid': "MG4e5cf1ea7c715fc843e9a62da3f94ef1",
+        'MessagingServiceSid': "YOUR_TWILIO_MESSAGING_SERVICE_SID",
         'Body': sms,
         'To': phone,
         'ShortenUrls': true,
@@ -2322,7 +2322,7 @@ class TwillioSendSmsCall {
     return ApiManager.instance.makeApiCall(
       callName: 'Twillio Send sms',
       apiUrl:
-          'https://api.twilio.com/2010-04-01/Accounts/AC44bb6252a49d2eb034e609f54cbbd4a1/Messages.json',
+          'https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json',
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
@@ -2332,7 +2332,7 @@ class TwillioSendSmsCall {
       params: {
         'To': phone,
         'Body': message,
-        'MessagingServiceSid': "MG4e5cf1ea7c715fc843e9a62da3f94ef1",
+        'MessagingServiceSid': "YOUR_TWILIO_MESSAGING_SERVICE_SID",
       },
       bodyType: BodyType.X_WWW_FORM_URL_ENCODED,
       returnBody: true,
