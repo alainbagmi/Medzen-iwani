@@ -82,24 +82,42 @@ class _PostCallClinicalNotesDialogState
       int retries = 0;
       final maxRetries = 3;
 
-      // First, try to fetch by sessionId (which might be an appointmentId in the data passed)
-      while (retries < maxRetries) {
-        session = await SupaFlow.client
-            .from('video_call_sessions')
-            .select('id, transcript, speaker_segments, status')
-            .eq('id', widget.sessionId)
-            .maybeSingle();
+      // Validate sessionId before attempting query (prevent UUID validation errors)
+      final isValidSessionId = widget.sessionId != null &&
+          widget.sessionId!.isNotEmpty &&
+          widget.sessionId!.length == 36 && // UUID v4 format
+          widget.sessionId!.contains('-');
 
-        if (session != null) {
-          debugPrint('✅ Session found by ID on attempt ${retries + 1}');
-          break;
-        }
+      // First, try to fetch by sessionId ONLY if it's a valid UUID format
+      if (isValidSessionId) {
+        while (retries < maxRetries) {
+          try {
+            session = await SupaFlow.client
+                .from('video_call_sessions')
+                .select('id, transcript, speaker_segments, status')
+                .eq('id', widget.sessionId!)
+                .maybeSingle();
 
-        retries++;
-        if (retries < maxRetries) {
-          debugPrint('⏳ Session not found by ID, retrying... (attempt $retries/$maxRetries)');
-          await Future.delayed(Duration(milliseconds: 500 * retries)); // Exponential backoff
+            if (session != null) {
+              debugPrint('✅ Session found by ID on attempt ${retries + 1}');
+              break;
+            }
+
+            retries++;
+            if (retries < maxRetries) {
+              debugPrint('⏳ Session not found by ID, retrying... (attempt $retries/$maxRetries)');
+              await Future.delayed(Duration(milliseconds: 500 * retries)); // Exponential backoff
+            }
+          } catch (e) {
+            debugPrint('⚠️ Error querying by sessionId: $e');
+            retries++;
+            if (retries < maxRetries) {
+              await Future.delayed(Duration(milliseconds: 500 * retries));
+            }
+          }
         }
+      } else {
+        debugPrint('⏳ Session ID invalid or empty: "${widget.sessionId}". Skipping ID lookup and using appointmentId instead.');
       }
 
       // If not found by sessionId, try by appointmentId (ROOT CAUSE FIX)

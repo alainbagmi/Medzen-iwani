@@ -45,7 +45,7 @@ final fcmTokenUserStream = authenticatedUserStream
         {
           'userDocPath': userTokenInfo.userPath,
           'fcmToken': userTokenInfo.fcmToken,
-          'deviceType': Platform.isIOS ? 'iOS' : 'Android',
+          'deviceType': kIsWeb ? 'web' : (Platform.isIOS ? 'iOS' : 'Android'),
         },
       ),
     );

@@ -185,7 +185,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             // Critical: Allow camera, microphone, and display-capture for video calls
             ..allow =
                 'camera; microphone; display-capture; autoplay; fullscreen; encrypted-media'
-            ..setAttribute('allowfullscreen', 'true');
+            ..setAttribute('allowfullscreen', 'true')
+            // Critical: Allow scripts and cross-origin requests for Chime SDK CDN
+            ..setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation');
 
           // Set the HTML content via srcdoc
           final htmlContent = _getEnhancedChimeHTML();
@@ -257,7 +259,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       // On web, we assume permissions will be handled - proceed with WebView
       cameraGranted = true;
       micGranted = true;
-    } else if (Platform.isAndroid || Platform.isIOS) {
+    } else if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       debugPrint('📱 Mobile platform detected - requesting native permissions');
       debugPrint('   Platform: ${Platform.isAndroid ? "Android" : "iOS"}');
 
@@ -303,7 +305,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
         // CRITICAL: Wait for Android to propagate permission changes
         // Android requires time to register permission grants with the system
-        if (Platform.isAndroid && (cameraGranted || micGranted)) {
+        if (!kIsWeb && Platform.isAndroid && (cameraGranted || micGranted)) {
           debugPrint(
               '📹 Waiting for Android permission propagation (500ms)...');
           await Future.delayed(const Duration(milliseconds: 500));
@@ -329,7 +331,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
       // On Android, even if permissions are granted, we need to verify
       // the hardware is accessible (emulator may not have camera configured)
-      if (Platform.isAndroid) {
+      if (!kIsWeb && Platform.isAndroid) {
         debugPrint(
             '📹 Android: Permissions granted, hardware access will be checked in WebView');
         debugPrint(
@@ -2668,6 +2670,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     <!-- Load Chime SDK from CloudFront CDN (custom-built working bundle v3.29.0) -->
     <script src="https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js"
+            crossorigin="anonymous"
+            async
+            defer
             onload="handleSDKLoadSuccess()"
             onerror="handleSDKLoadError()"></script>
 
