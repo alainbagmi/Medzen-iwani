@@ -1,7 +1,16 @@
+ext {
+    kotlin_version = '1.8.0'
+}
+
 allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+    configurations.all {
+        resolutionStrategy {
+            force 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0'
+        }
     }
 }
 

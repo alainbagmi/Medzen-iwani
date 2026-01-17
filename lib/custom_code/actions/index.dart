@@ -6,7 +6,8 @@ export 'get_assistant_by_type.dart' show getAssistantByType;
 export 'create_a_i_conversation.dart' show createAIConversation;
 export 'build_conversation_history.dart' show buildConversationHistory;
 export 'initialize_messaging.dart' show initializeMessaging;
-export 'initialize_session_tracking.dart' show initializeSessionTracking;
+export 'initialize_session_tracking.dart'
+    show initializeSessionTracking, pauseSessionTimeout, resumeSessionTimeout;
 export 'control_medical_transcription.dart' show controlMedicalTranscription;
 export 'get_transcript_status.dart' show getTranscriptStatus;
 export 'get_clinical_notes.dart' show getClinicalNotes;
@@ -20,3 +21,4 @@ export 'get_nearby_blood_donors.dart' show getNearbyBloodDonors;
 export 'get_nearby_facilities.dart' show getNearbyFacilities;
 export 'update_user_location.dart' show updateUserLocation;
 export 'calculate_distance_km.dart' show calculateDistanceKm;
+export 'record_and_transcribe_audio.dart' show recordAndTranscribeAudio;

@@ -29,7 +29,7 @@ Future<dynamic> sendBedrockMessage(
       return {'success': false, 'error': 'User not authenticated'};
     }
 
-    final idToken = await firebaseUser.getIdToken();
+    final idToken = await firebaseUser.getIdToken(true);
     if (idToken == null || idToken.isEmpty) {
       return {'success': false, 'error': 'Failed to get auth token'};
     }
@@ -53,6 +53,7 @@ Future<dynamic> sendBedrockMessage(
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $supabaseAnonKey',
         'apikey': supabaseAnonKey,
+        'x-firebase-token': idToken,
       },
       body: jsonEncode({
         'message': message,

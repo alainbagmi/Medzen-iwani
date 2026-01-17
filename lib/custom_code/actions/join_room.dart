@@ -743,8 +743,8 @@ Future joinRoom(
                 initialCameraEnabled: initialCameraEnabled,
                 onCallEnded: () async {
                   debugPrint('🔍 onCallEnded callback triggered');
-                  // Resume session timeout when call ends
-                  _setVideoCallState(false);
+                  // NOTE: Do NOT resume session timeout yet - the post-call dialog may take time
+                  // Session timeout will be resumed AFTER the dialog closes (line 811)
                   if (routeContext.mounted) {
                     debugPrint('🔍 routeContext mounted - showing post-call dialog');
 
@@ -772,9 +772,8 @@ Future joinRoom(
                               },
                               onDiscarded: () {
                                 debugPrint('🔍 Post-call clinical notes discarded');
-                                if (dialogContext.mounted) {
-                                  Navigator.of(dialogContext).pop();
-                                }
+                                // Note: _discardNote() in the dialog already calls Navigator.pop()
+                                // so we don't need to pop here to avoid double-pop
                               },
                             );
                           },

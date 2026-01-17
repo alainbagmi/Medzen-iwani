@@ -517,87 +517,91 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         : messageContent;
 
     // Show a professional notification banner at the top
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: GestureDetector(
-          onTap: () {
-            // Open chat when tapping the notification
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            _webViewController?.evaluateJavascript(source: 'toggleChat(true);');
-            setState(() {
-              _showChat = true;
-              _unreadMessageCount = 0;
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                // Chat icon with green indicator
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF25D366), // WhatsApp green
-                    borderRadius: BorderRadius.circular(20),
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: GestureDetector(
+            onTap: () {
+              // Open chat when tapping the notification
+              if (mounted) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                _webViewController?.evaluateJavascript(source: 'toggleChat(true);');
+                setState(() {
+                  _showChat = true;
+                  _unreadMessageCount = 0;
+                });
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  // Chat icon with green indicator
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF25D366), // WhatsApp green
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        senderName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.white,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          senderName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        displayMessage,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withOpacity(0.9),
+                        const SizedBox(height: 2),
+                        Text(
+                          displayMessage,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.white.withOpacity(0.9),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                // Tap to open chat hint
-                Text(
-                  'Tap to open',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                  // Tap to open chat hint
+                  Text(
+                    'Tap to open',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
+          backgroundColor: const Color(0xFF1C2833), // Dark theme
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Color(0xFF25D366), width: 1),
+          ),
+          elevation: 8,
+          dismissDirection: DismissDirection.horizontal,
         ),
-        backgroundColor: const Color(0xFF1C2833), // Dark theme
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFF25D366), width: 1),
-        ),
-        elevation: 8,
-        dismissDirection: DismissDirection.horizontal,
-      ),
-    );
+      );
+    }
 
     // Also trigger device haptic feedback
     _triggerHapticFeedback();

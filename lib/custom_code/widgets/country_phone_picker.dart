@@ -164,13 +164,15 @@ class _CountryPhonePickerState extends State<CountryPhonePicker> {
                             ? Icon(Icons.check, color: Colors.green)
                             : null,
                         onTap: () {
-                          setState(() {
-                            _selectedCountry = country;
-                          });
-                          _searchController.clear();
-                          _filteredCountries = _countries;
-                          Navigator.pop(context);
-                          _onPhoneChanged();
+                          if (mounted) {
+                            setState(() {
+                              _selectedCountry = country;
+                            });
+                            _searchController.clear();
+                            _filteredCountries = _countries;
+                            Navigator.pop(context);
+                            _onPhoneChanged();
+                          }
                         },
                       );
                     },

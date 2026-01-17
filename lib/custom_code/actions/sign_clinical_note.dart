@@ -30,7 +30,7 @@ Future<dynamic> signClinicalNote(
       return {'success': false, 'error': 'providerId is required'};
     }
 
-    print('signClinicalNote: Signing note $noteId by provider $providerId');
+    debugPrint('signClinicalNote: Signing note $noteId by provider $providerId');
 
     // Generate signature timestamp (ISO 8601 UTC)
     final timestamp = DateTime.now().toUtc().toIso8601String();
@@ -39,7 +39,7 @@ Future<dynamic> signClinicalNote(
     final signatureData = '$noteId:$providerId:$timestamp';
     final signatureHash = sha256.convert(utf8.encode(signatureData)).toString();
 
-    print('signClinicalNote: Generated signature hash');
+    debugPrint('signClinicalNote: Generated signature hash');
 
     // Build update payload
     final Map<String, dynamic> updatePayload = {
@@ -80,7 +80,7 @@ Future<dynamic> signClinicalNote(
       };
     }
 
-    print('signClinicalNote: Note signed successfully');
+    debugPrint('signClinicalNote: Note signed successfully');
 
     // Queue for EHRbase/OpenEHR sync
     try {
@@ -94,9 +94,9 @@ Future<dynamic> signClinicalNote(
         'data_snapshot': jsonEncode(response),
         'created_at': timestamp,
       });
-      print('signClinicalNote: Queued for EHR sync');
+      debugPrint('signClinicalNote: Queued for EHR sync');
     } catch (syncError) {
-      print('signClinicalNote: Warning - Failed to queue EHR sync: $syncError');
+      debugPrint('signClinicalNote: Warning - Failed to queue EHR sync: $syncError');
     }
 
     return {
@@ -106,8 +106,8 @@ Future<dynamic> signClinicalNote(
       'signedAt': timestamp,
     };
   } catch (e, stackTrace) {
-    print('signClinicalNote error: $e');
-    print('Stack trace: $stackTrace');
+    debugPrint('signClinicalNote error: $e');
+    debugPrint('Stack trace: $stackTrace');
     return {
       'success': false,
       'error': e.toString(),

@@ -15,7 +15,7 @@ import 'index.dart'; // Imports other custom widgets
 // import '/custom_code/actions/index.dart'; // Not needed - widget is self-contained
 
 import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '/flutter_flow/nav/nav.dart' show appNavigatorKey;
 
 /// A widget that detects user activity and records it to the session manager.
@@ -42,6 +42,7 @@ class ActivityDetector extends StatefulWidget {
 class _ActivityDetectorState extends State<ActivityDetector>
     with WidgetsBindingObserver {
   bool _isInitialized = false;
+  late StreamSubscription<fb_auth.User?> _authSubscription;
 
   @override
   void initState() {
@@ -54,7 +55,7 @@ class _ActivityDetectorState extends State<ActivityDetector>
     });
 
     // Listen for auth state changes to initialize/dispose session tracking
-    FirebaseAuth.instance.authStateChanges().listen((user) {
+    _authSubscription = fb_auth.FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null && !_isInitialized) {
         _initializeIfLoggedIn();
       } else if (user == null && _isInitialized) {
@@ -65,7 +66,7 @@ class _ActivityDetectorState extends State<ActivityDetector>
   }
 
   void _initializeIfLoggedIn() {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user != null && !_isInitialized && mounted) {
       _SessionActivityManager.instance.initialize(context);
       _isInitialized = true;
@@ -75,6 +76,7 @@ class _ActivityDetectorState extends State<ActivityDetector>
 
   @override
   void dispose() {
+    _authSubscription.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (_isInitialized) {
       _SessionActivityManager.instance.dispose();
@@ -295,7 +297,7 @@ class _SessionActivityManager {
     _onSessionExpired?.call();
 
     try {
-      await FirebaseAuth.instance.signOut();
+      await fb_auth.FirebaseAuth.instance.signOut();
       debugPrint('SessionActivityManager: User signed out due to inactivity');
     } catch (e) {
       debugPrint('SessionActivityManager: Error signing out: $e');

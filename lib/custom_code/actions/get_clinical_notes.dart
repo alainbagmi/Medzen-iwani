@@ -18,7 +18,7 @@ Future<dynamic> getClinicalNotes(
   String? status,
 ) async {
   try {
-    print('getClinicalNotes: Fetching notes with filters');
+    debugPrint('getClinicalNotes: Fetching notes with filters');
 
     // Start building the query
     var query = SupaFlow.client.from('clinical_notes').select('*');
@@ -26,27 +26,27 @@ Future<dynamic> getClinicalNotes(
     // Apply optional filters
     if (appointmentId != null && appointmentId.isNotEmpty) {
       query = query.eq('appointment_id', appointmentId);
-      print('getClinicalNotes: Filtering by appointmentId=$appointmentId');
+      debugPrint('getClinicalNotes: Filtering by appointmentId=$appointmentId');
     }
 
     if (sessionId != null && sessionId.isNotEmpty) {
       query = query.eq('session_id', sessionId);
-      print('getClinicalNotes: Filtering by sessionId=$sessionId');
+      debugPrint('getClinicalNotes: Filtering by sessionId=$sessionId');
     }
 
     if (providerId != null && providerId.isNotEmpty) {
       query = query.eq('provider_id', providerId);
-      print('getClinicalNotes: Filtering by providerId=$providerId');
+      debugPrint('getClinicalNotes: Filtering by providerId=$providerId');
     }
 
     if (patientId != null && patientId.isNotEmpty) {
       query = query.eq('patient_id', patientId);
-      print('getClinicalNotes: Filtering by patientId=$patientId');
+      debugPrint('getClinicalNotes: Filtering by patientId=$patientId');
     }
 
     if (status != null && status.isNotEmpty) {
       query = query.eq('status', status);
-      print('getClinicalNotes: Filtering by status=$status');
+      debugPrint('getClinicalNotes: Filtering by status=$status');
     }
 
     // Apply ordering and limit
@@ -55,7 +55,7 @@ Future<dynamic> getClinicalNotes(
 
     final notes = List<Map<String, dynamic>>.from(response);
 
-    print('getClinicalNotes: Retrieved ${notes.length} notes');
+    debugPrint('getClinicalNotes: Retrieved ${notes.length} notes');
 
     return {
       'success': true,
@@ -63,8 +63,8 @@ Future<dynamic> getClinicalNotes(
       'count': notes.length,
     };
   } catch (e, stackTrace) {
-    print('getClinicalNotes error: $e');
-    print('Stack trace: $stackTrace');
+    debugPrint('getClinicalNotes error: $e');
+    debugPrint('Stack trace: $stackTrace');
     return {
       'success': false,
       'error': e.toString(),

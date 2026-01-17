@@ -49,6 +49,6 @@ Future streamResponse(
     });
   } catch (e) {
     // Handle any other errors
-    print('Error: $e');
+    debugPrint('Error: $e');
   }
 }
