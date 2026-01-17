@@ -19,6 +19,7 @@ import 'dart:io' show Platform;
 import 'dart:convert' show jsonEncode, jsonDecode;
 import 'dart:math' show min;
 import 'dart:async' show TimeoutException;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 // Import the Chime video call page (self-contained with embedded HTML/JS)
 import '/custom_code/widgets/index.dart';
@@ -117,8 +118,8 @@ Future joinRoom(
       );
     }
 
-    // Additional check for Android emulators
-    if (Platform.isAndroid) {
+    // Additional check for Android emulators (skip on web)
+    if (!kIsWeb && Platform.isAndroid) {
       debugPrint(
           '⚠️ Running on Android - If using emulator, ensure virtual camera is enabled');
       debugPrint(
