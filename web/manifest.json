@@ -1,0 +1,50 @@
+{
+    "name": "MedZen Health",
+    "short_name": "MedZen",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1976d2",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "description": "MedZen Health - Healthcare Platform for Providers and Patients",
+    "icons": [
+        {
+            "src": "/icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "categories": ["medical", "health", "productivity"],
+    "screenshots": [
+        {
+            "src": "/icons/Icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/icons/Icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}

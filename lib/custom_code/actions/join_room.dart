@@ -743,22 +743,78 @@ Future joinRoom(
                 initialMicEnabled: initialMicEnabled,
                 initialCameraEnabled: initialCameraEnabled,
                 onCallEnded: () async {
-                  debugPrint('🔍 onCallEnded callback triggered');
+                  final callEndStartTime = DateTime.now();
+                  debugPrint('🔍 onCallEnded callback triggered at ${callEndStartTime.toIso8601String()}');
                   // NOTE: Do NOT resume session timeout yet - the post-call dialog may take time
                   // Session timeout will be resumed AFTER the dialog closes (line 811)
                   if (routeContext.mounted) {
-                    debugPrint('🔍 routeContext mounted - showing post-call dialog');
+                    debugPrint('🔍 routeContext mounted - preparing to show post-call dialog');
+
+                    // Wait for Chime SDK to fully close the meeting before showing dialog
+                    // This prevents the dialog from appearing while the meeting is still active
+                    // Increased from 500ms → 1500ms → 2500ms to account for:
+                    // - JavaScript audioVideo.stop() async cleanup (100-300ms)
+                    // - WebRTC connection teardown (200-400ms)
+                    // - Browser event loop processing (200ms buffer)
+                    // - Network latency and OS scheduling (500-600ms)
+                    // - Additional safety margin for production scenarios (1500ms)
+                    // Total: 2500ms = 2.5 seconds (imperceptible to user)
+                    debugPrint('⏳ Waiting 2500ms for Chime SDK to fully close...');
+                    debugPrint('⏰ Timer start: ${DateTime.now().toIso8601String()}');
+                    await Future.delayed(const Duration(milliseconds: 2500));
+                    debugPrint('✅ Timer end: ${DateTime.now().toIso8601String()} (waited ${DateTime.now().difference(callEndStartTime).inMilliseconds}ms)');
+
+                    // CRITICAL: Mark the meeting as ended in the database
+                    // This updates video_call_sessions with status='ended', ended_at, and ended_by
+                    if (isProvider) {
+                      debugPrint('📞 Marking meeting as ended in database (action: end)');
+                      try {
+                        final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
+                        final supabaseAnonKey = FFDevEnvironmentValues().Supabasekey;
+                        final userToken = await FirebaseAuth.instance.currentUser?.getIdToken(true) ?? '';
+
+                        final uri = Uri.parse('$supabaseUrl/functions/v1/chime-meeting-token');
+                        final requestBody = {
+                          'action': 'end',
+                          'appointmentId': appointmentId,
+                          'meetingId': meetingId,
+                        };
+
+                        final response = await http.post(
+                          uri,
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': supabaseAnonKey,
+                            'Authorization': 'Bearer $supabaseAnonKey',
+                            'x-firebase-token': userToken,
+                          },
+                          body: jsonEncode(requestBody),
+                        ).timeout(const Duration(seconds: 10));
+
+                        if (response.statusCode == 200) {
+                          debugPrint('✅ Meeting marked as ended in database');
+                        } else {
+                          debugPrint('⚠️ Warning: Edge function returned status ${response.statusCode}: ${response.body}');
+                        }
+                      } catch (e) {
+                        debugPrint('⚠️ Warning: Failed to mark meeting as ended in database: $e');
+                        // Log to monitoring but don't block provider workflow
+                        // The dialog will still show so provider can complete post-call notes
+                      }
+                    }
 
                     // Show post-call dialog BEFORE popping the page
                     // This ensures routeContext is still valid (fixes context.mounted = false issue)
                     if (isProvider && routeContext.mounted) {
-                      debugPrint('✅ Showing post-call clinical notes dialog in routeContext');
+                      final dialogShowTime = DateTime.now();
+                      debugPrint('✅ Showing post-call clinical notes dialog in routeContext at ${dialogShowTime.toIso8601String()}');
+                      debugPrint('⏱️ Time elapsed since call end started: ${dialogShowTime.difference(callEndStartTime).inMilliseconds}ms');
                       try {
                         await showDialog(
                           context: routeContext,
                           barrierDismissible: false,
                           builder: (dialogContext) {
-                            debugPrint('🔍 PostCallClinicalNotesDialog builder executing');
+                            debugPrint('🔍 PostCallClinicalNotesDialog builder executing at ${DateTime.now().toIso8601String()}');
                             return PostCallClinicalNotesDialog(
                               sessionId: sessionId,
                               appointmentId: appointmentId,

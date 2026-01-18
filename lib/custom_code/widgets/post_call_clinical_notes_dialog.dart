@@ -60,7 +60,40 @@ class _PostCallClinicalNotesDialogState
   @override
   void initState() {
     super.initState();
-    _checkTranscriptAndGenerateNote();
+
+    // Initialize with empty SOAP structure to avoid UI freeze
+    setState(() {
+      _soapData = _createEmptySoapStructure();
+      _isGenerating = true;
+    });
+
+    // Schedule the async database queries to run AFTER the dialog is fully built
+    // This prevents the UI from freezing while queries execute
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('🔍 Starting post-frame async load of transcript and SOAP data...');
+
+      // Wrap init in timeout to prevent indefinite hanging
+      _checkTranscriptAndGenerateNote().timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint('⚠️ Session lookup timed out after 15 seconds');
+          if (mounted) {
+            setState(() {
+              _isGenerating = false;
+              _soapData = _createEmptySoapStructure();
+            });
+          }
+        },
+      ).catchError((e) {
+        debugPrint('Error in async load: $e');
+        if (mounted) {
+          setState(() {
+            _isGenerating = false;
+            _soapData = _createEmptySoapStructure();
+          });
+        }
+      });
+    });
   }
 
   @override
@@ -96,7 +129,11 @@ class _PostCallClinicalNotesDialogState
                 .from('video_call_sessions')
                 .select('id, transcript, speaker_segments, status')
                 .eq('id', widget.sessionId!)
-                .maybeSingle();
+                .maybeSingle()
+                .timeout(
+                  const Duration(seconds: 5),
+                  onTimeout: () => throw TimeoutException('Session query by ID timed out after 5 seconds'),
+                );
 
             if (session != null) {
               debugPrint('✅ Session found by ID on attempt ${retries + 1}');
@@ -124,31 +161,43 @@ class _PostCallClinicalNotesDialogState
       if (session == null) {
         debugPrint('⚠️ Session not found by ID after $maxRetries retries. Trying appointmentId lookup...');
 
-        // Fallback: Query by appointment_id instead (this is the actual root cause fix)
-        final sessionsByAppointment = await SupaFlow.client
-            .from('video_call_sessions')
-            .select('id, transcript, speaker_segments, status')
-            .eq('appointment_id', widget.appointmentId)
-            .eq('status', 'active')
-            .maybeSingle();
+        try {
+          // Fallback: Query by appointment_id instead (this is the actual root cause fix)
+          final sessionsByAppointment = await SupaFlow.client
+              .from('video_call_sessions')
+              .select('id, transcript, speaker_segments, status')
+              .eq('appointment_id', widget.appointmentId)
+              .eq('status', 'active')
+              .maybeSingle()
+              .timeout(
+                const Duration(seconds: 5),
+                onTimeout: () => throw TimeoutException('Session query by appointmentId timed out after 5 seconds'),
+              );
 
-        if (sessionsByAppointment != null) {
-          debugPrint('✅ Session found by appointmentId: ${sessionsByAppointment['id']}');
-          session = sessionsByAppointment;
-        } else {
-          debugPrint('⚠️ No active session found for appointment: ${widget.appointmentId}');
+          if (sessionsByAppointment != null) {
+            debugPrint('✅ Session found by appointmentId: ${sessionsByAppointment['id']}');
+            session = sessionsByAppointment;
+          } else {
+            debugPrint('⚠️ No active session found for appointment: ${widget.appointmentId}');
 
-          // Last resort: Check if there are any sessions (for diagnostic logging)
-          try {
-            final allSessions = await SupaFlow.client
-                .from('video_call_sessions')
-                .select('id, appointment_id, status')
-                .eq('appointment_id', widget.appointmentId)
-                .limit(5);
-            debugPrint('📋 Sessions for appointment ${widget.appointmentId}: $allSessions');
-          } catch (e) {
-            debugPrint('Debug query error: $e');
+            // Last resort: Check if there are any sessions (for diagnostic logging)
+            try {
+              final allSessions = await SupaFlow.client
+                  .from('video_call_sessions')
+                  .select('id, appointment_id, status')
+                  .eq('appointment_id', widget.appointmentId)
+                  .limit(5)
+                  .timeout(
+                    const Duration(seconds: 3),
+                    onTimeout: () => throw TimeoutException('Diagnostic query timed out'),
+                  );
+              debugPrint('📋 Sessions for appointment ${widget.appointmentId}: $allSessions');
+            } catch (e) {
+              debugPrint('Debug query error: $e');
+            }
           }
+        } catch (e) {
+          debugPrint('⚠️ Error querying by appointmentId: $e');
         }
       }
 
@@ -228,11 +277,33 @@ class _PostCallClinicalNotesDialogState
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
       final supabaseKey = FFDevEnvironmentValues().Supabasekey;
 
+      // Get Firebase token with force refresh for authentication
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        setState(() {
+          _isGenerating = false;
+          _errorMessage = 'User not authenticated. Please log in again.';
+          _soapData = _createEmptySoapStructure();
+        });
+        return;
+      }
+
+      final token = await currentUser.getIdToken(true);
+      if (token == null) {
+        setState(() {
+          _isGenerating = false;
+          _errorMessage = 'Could not refresh authentication token.';
+          _soapData = _createEmptySoapStructure();
+        });
+        return;
+      }
+
       final response = await http.post(
         Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
         headers: {
           'apikey': supabaseKey,
           'Authorization': 'Bearer $supabaseKey',
+          'x-firebase-token': token,
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
@@ -242,6 +313,9 @@ class _PostCallClinicalNotesDialogState
           'patientId': widget.patientId,
           'transcript': transcript,
         }),
+      ).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () => throw TimeoutException('SOAP generation timed out after 60 seconds'),
       );
 
       if (response.statusCode == 200) {
@@ -267,6 +341,14 @@ class _PostCallClinicalNotesDialogState
           _soapData = _createEmptySoapStructure();
         });
       }
+    } on TimeoutException {
+      debugPrint('❌ SOAP generation timed out after 60 seconds');
+      setState(() {
+        _isGenerating = false;
+        _errorMessage = 'SOAP generation timed out. Please try again or fill the form manually.';
+        // Create empty SOAP structure so UI still displays
+        _soapData = _createEmptySoapStructure();
+      });
     } catch (e) {
       debugPrint('Error generating SOAP note: $e');
       setState(() {
@@ -484,11 +566,31 @@ class _PostCallClinicalNotesDialogState
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
       final supabaseKey = FFDevEnvironmentValues().Supabasekey;
 
+      // Get Firebase token with force refresh for authentication
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User not authenticated. Please log in again.')),
+        );
+        setState(() => _isAiEnhancing = false);
+        return;
+      }
+
+      final token = await currentUser.getIdToken(true);
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not refresh authentication token.')),
+        );
+        setState(() => _isAiEnhancing = false);
+        return;
+      }
+
       final response = await http.post(
         Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
         headers: {
           'apikey': supabaseKey,
           'Authorization': 'Bearer $supabaseKey',
+          'x-firebase-token': token,
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
@@ -499,6 +601,9 @@ class _PostCallClinicalNotesDialogState
           'transcript': _callTranscript,
           'existingSoapNote': _soapData, // Pass existing data for enhancement context
         }),
+      ).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () => throw TimeoutException('AI enhancement timed out after 60 seconds'),
       );
 
       if (response.statusCode == 200) {
@@ -533,6 +638,17 @@ class _PostCallClinicalNotesDialogState
         }
         setState(() => _isAiEnhancing = false);
       }
+    } on TimeoutException {
+      debugPrint('❌ AI enhancement timed out after 60 seconds');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('AI enhancement timed out. Please try again later.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      setState(() => _isAiEnhancing = false);
     } catch (e) {
       debugPrint('Error enhancing SOAP note with AI: $e');
       if (mounted) {

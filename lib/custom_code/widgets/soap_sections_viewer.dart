@@ -200,6 +200,11 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
   }
 
   Widget _buildRecordingButton(String sectionKey, String fieldPath) {
+    // Audio recording is not supported on web platform
+    if (kIsWeb) {
+      return SizedBox.shrink();
+    }
+
     final isRecordingThis = _recordingSection == sectionKey;
     return IconButton(
       icon: Icon(

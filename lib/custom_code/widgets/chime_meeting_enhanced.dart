@@ -840,13 +840,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   }
 
   void _handleMessageFromWebView(String message) {
-    debugPrint('📱 Message from WebView: $message');
+    debugPrint('📱 Message from WebView: $message at ${DateTime.now().toIso8601String()}');
 
     try {
       if (message == 'SDK_READY') {
         _handleSdkReady();
       } else if (message.startsWith('MEETING_ENDED_BY_PROVIDER:')) {
         // Provider ended the call - call edge function to end for everyone
+        debugPrint('🛑 Received MEETING_ENDED_BY_PROVIDER signal from JavaScript - starting server end process');
         final meetingId =
             message.replaceFirst('MEETING_ENDED_BY_PROVIDER:', '');
         _endMeetingOnServer(meetingId);
@@ -964,7 +965,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   }
 
   Future<void> _handleMeetingEnd(String message) async {
-    debugPrint('📞 Meeting ended: $message');
+    debugPrint('📞 Meeting ended: $message at ${DateTime.now().toIso8601String()}');
 
     // Stop transcription first (for providers) - this aggregates the transcript
     if (_isTranscriptionEnabled && widget.isProvider == true) {
@@ -974,6 +975,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     }
 
     if (widget.onCallEnded != null) {
+      debugPrint('📞 Calling onCallEnded callback to show post-call dialog');
       widget.onCallEnded!();
     }
   }
@@ -5191,8 +5193,27 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
                     console.log('📞 ' + message);
 
-                    // Notify Flutter that meeting ended
-                    window.FlutterChannel?.postMessage('MEETING_ENDED_BY_HOST');
+                    // CRITICAL FIX: Suppress auto-detected meeting ends to prevent premature dialog
+                    // Root cause: audioVideoDidStop fires on network disconnects before provider explicitly ends
+                    // Solution: Only show dialog when provider EXPLICITLY clicks "End Call" (MEETING_ENDED_BY_PROVIDER)
+                    // This prevents false positives from:
+                    // - Brief network disconnects
+                    // - WebRTC connection drops
+                    // - Browser network instability (especially on web platform)
+
+                    console.log('⚠️ Suppressing auto-detected MEETING_ENDED_BY_HOST to prevent premature dialog');
+                    console.log('⚠️ Dialog will only appear when provider clicks "End Call" button');
+
+                    // For web platform: Don't auto-trigger dialog on network events
+                    // Only explicit provider action (End Call button) should show dialog
+                    // This is different from MEETING_ENDED_BY_PROVIDER which is intentional
+
+                    // Note: Patients will not see "call ended" message from audioVideoDidStop
+                    // They will instead be disconnected when provider explicitly ends call
+                    // which is correct behavior - patients shouldn't see premature end messages
+                    // during temporary network issues
+
+                    // No postMessage sent here - waiting for explicit provider action
                 },
 
                 // Called when connection drops
@@ -5598,9 +5619,11 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         // Provider ends the meeting for everyone
         async function endMeetingForAll() {
             try {
-                // Stop local audio/video first
+                // Stop local audio/video first and WAIT for cleanup to complete
                 if (audioVideo) {
-                    audioVideo.stop();
+                    console.log('🛑 Stopping Chime SDK audio/video (awaiting completion)...');
+                    await audioVideo.stop();
+                    console.log('✅ Chime SDK audio/video stopped completely');
                 }
 
                 // Ensure pre-acquired stream is released
@@ -5610,12 +5633,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     preAcquiredStream = null;
                 }
 
+                // Wait for WebRTC connections to fully close (additional buffer)
+                console.log('⏳ Waiting 200ms for WebRTC connections to fully close...');
+                await new Promise(resolve => setTimeout(resolve, 200));
+
                 // Update call state
                 callState = 'ended';
                 console.log('📞 Call state: ended by provider');
                 updateSendButtonState();
 
-                // Notify Flutter that the provider ended the call
+                // Notify Flutter that the provider ended the call (NOW it's safe - cleanup is done)
+                console.log('✅ All cleanup complete - notifying Flutter of meeting end');
                 window.FlutterChannel?.postMessage('MEETING_ENDED_BY_PROVIDER:' + currentMeetingId);
             } catch (error) {
                 console.error('Error ending meeting:', error);
