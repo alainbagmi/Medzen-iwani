@@ -1014,11 +1014,11 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     setState(() =>
         _participantCount = _attendees.isNotEmpty ? _attendees.length : 1);
 
-    // Auto-start transcription for providers after a short delay
-    // to ensure the meeting is fully established
+    // Auto-start transcription for providers after a delay
+    // to ensure meeting is established AND session record is created in database
     if (widget.isProvider) {
       debugPrint('🎙️ Provider joined - preparing transcription auto-start...');
-      Future.delayed(const Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 3), () {
         if (mounted && !_isTranscriptionEnabled && !_isTranscriptionStarting) {
           debugPrint('🎙️ Auto-starting transcription for provider...');
           _startTranscription();
@@ -1815,17 +1815,18 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
 
       // Fetch session ID with retry (database might not be ready immediately)
+      // Edge function might take time to create session, so we retry multiple times
       if (_sessionId == null) {
         debugPrint('🔄 Fetching session ID...');
-        for (int attempt = 1; attempt <= 3; attempt++) {
+        for (int attempt = 1; attempt <= 5; attempt++) {
           await _fetchSessionId();
           if (_sessionId != null) {
             debugPrint('   ✓ Session ID found on attempt $attempt');
             break;
           }
-          if (attempt < 3) {
+          if (attempt < 5) {
             debugPrint(
-                '   ⏳ Session not found, retrying in 1 second (attempt $attempt/3)...');
+                '   ⏳ Session not found, retrying in 1 second (attempt $attempt/5)...');
             await Future.delayed(const Duration(seconds: 1));
           }
         }
@@ -1839,6 +1840,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       if (_sessionId == null || _meetingId == null) {
         debugPrint(
             '❌ Missing session ID ($_sessionId) or meeting ID ($_meetingId) for transcription');
+        debugPrint('   Session ID: ${_sessionId ?? "NOT FOUND"}');
+        debugPrint('   Meeting ID: ${_meetingId ?? "NOT FOUND"}');
+        debugPrint('   Appointment ID: ${widget.appointmentId}');
         setState(() => _isTranscriptionStarting = false);
         return;
       }
