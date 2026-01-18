@@ -1014,16 +1014,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     setState(() =>
         _participantCount = _attendees.isNotEmpty ? _attendees.length : 1);
 
-    // Auto-start transcription for providers after a delay
-    // to ensure meeting is established AND session record is created in database
+    // Providers have a manual button to start transcription when ready
+    // This avoids automatic start and timing issues with session record creation
     if (widget.isProvider) {
-      debugPrint('🎙️ Provider joined - preparing transcription auto-start...');
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && !_isTranscriptionEnabled && !_isTranscriptionStarting) {
-          debugPrint('🎙️ Auto-starting transcription for provider...');
-          _startTranscription();
-        }
-      });
+      debugPrint('🎙️ Provider joined - transcription button available for manual start');
     } else {
       // Patients also subscribe to captions if available
       debugPrint(
