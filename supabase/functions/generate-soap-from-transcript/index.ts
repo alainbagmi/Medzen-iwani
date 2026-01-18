@@ -335,20 +335,37 @@ async function generateSOAPWithBedrock(request: SOAPGenerationRequest): Promise<
   });
 
   let response;
-  try {
-    console.log(`[Bedrock] Sending request to Bedrock...`);
-    // **CRITICAL FIX**: Add 45-second timeout to Bedrock call
-    response = await Promise.race([
-      bedrockClient.send(command),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Bedrock request timeout (45s) - try again or contact support')), 45000)
-      ),
-    ]);
-    console.log(`[Bedrock] Response received, status: ${response.$metadata?.httpStatusCode}`);
-  } catch (bedrockError) {
-    console.error('[Bedrock] Failed to invoke model:', bedrockError instanceof Error ? bedrockError.message : String(bedrockError));
-    console.error('[Bedrock] Error details:', bedrockError);
-    throw new Error(`Bedrock invocation failed: ${bedrockError instanceof Error ? bedrockError.message : String(bedrockError)}`);
+  const MAX_BEDROCK_RETRIES = 2;
+  let lastBedrockError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_BEDROCK_RETRIES; attempt++) {
+    try {
+      console.log(`[Bedrock] Sending request to Bedrock (attempt ${attempt + 1}/${MAX_BEDROCK_RETRIES + 1})...`);
+      // **CRITICAL FIX**: Add 45-second timeout to Bedrock call with retry logic
+      response = await Promise.race([
+        bedrockClient.send(command),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Bedrock request timeout (45s)')), 45000)
+        ),
+      ]);
+      console.log(`[Bedrock] Response received, status: ${response.$metadata?.httpStatusCode}`);
+      // Success - exit retry loop
+      break;
+    } catch (bedrockError) {
+      lastBedrockError = bedrockError instanceof Error ? bedrockError : new Error(String(bedrockError));
+      console.error(`[Bedrock] Attempt ${attempt + 1} failed:`, lastBedrockError.message);
+
+      // Only retry on timeout errors
+      if (lastBedrockError.message.includes('timeout') && attempt < MAX_BEDROCK_RETRIES) {
+        console.log(`[Bedrock] Retrying after 2-second delay...`);
+        await new Promise(r => setTimeout(r, 2000));
+        continue;
+      }
+
+      // Non-timeout error or last attempt - throw error
+      console.error('[Bedrock] Error details:', bedrockError);
+      throw new Error(`Bedrock invocation failed: ${lastBedrockError.message}`);
+    }
   }
 
   let responseBody;
