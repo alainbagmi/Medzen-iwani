@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -133,12 +134,15 @@ class _PostCallClinicalNotesDialogState
         debugPrint('⚠️ Session not found by ID after $maxRetries retries. Trying appointmentId lookup...');
 
         try {
-          // Fallback: Query by appointment_id instead (this is the actual root cause fix)
+          // Fallback: Query by appointment_id instead
+          // NOTE: Don't filter by status='active' because the call has already ended by this point
+          // The session status will be 'ended' when the SOAP dialog appears
           final sessionsByAppointment = await SupaFlow.client
               .from('video_call_sessions')
               .select('id, transcript, speaker_segments, status')
               .eq('appointment_id', widget.appointmentId)
-              .eq('status', 'active')
+              .order('created_at', ascending: false)
+              .limit(1)
               .maybeSingle()
               .timeout(
                 const Duration(seconds: 5),
@@ -188,6 +192,7 @@ class _PostCallClinicalNotesDialogState
       debugPrint('✅ Session status: ${session['status']}');
 
       final transcript = session['transcript'] as String?;
+      debugPrint('📝 Transcript extracted: ${transcript?.length ?? 0} characters');
 
       // Store transcript for AI enhancement later
       if (transcript != null && transcript.isNotEmpty) {
@@ -195,16 +200,23 @@ class _PostCallClinicalNotesDialogState
       }
 
       if (transcript == null || transcript.isEmpty) {
+        debugPrint('⚠️ Transcript is empty, creating empty form');
+        debugPrint('🔄 About to call setState with _isGenerating=false and empty SOAP data');
         setState(() {
+          debugPrint('   [setState callback] Setting _isGenerating = false');
           _isGenerating = false;
           // Create empty SOAP data structure when no transcript
           _soapData = _createEmptySoapStructure();
+          debugPrint('   [setState callback] _soapData created: ${_soapData != null}');
         });
+        debugPrint('✅ setState completed, returning from _checkTranscriptAndGenerateNote');
         return;
       }
 
       // Generate clinical note from transcript using AI
+      debugPrint('🚀 Calling _generateClinicalNote() with transcript');
       await _generateClinicalNote(transcript);
+      debugPrint('✅ _generateClinicalNote() completed successfully');
     } catch (e) {
       debugPrint('Error checking transcript: $e');
       setState(() {
@@ -246,12 +258,16 @@ class _PostCallClinicalNotesDialogState
   }
 
   Future<void> _generateClinicalNote(String transcript) async {
+    Timer? safeguardTimer;
     try {
+      debugPrint('🔍 _generateClinicalNote() started');
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
       final supabaseKey = FFDevEnvironmentValues().Supabasekey;
+      debugPrint('✅ Supabase config loaded');
 
       // Get Firebase token with force refresh for authentication
       final currentUser = FirebaseAuth.instance.currentUser;
+      debugPrint('👤 Current user: ${currentUser?.uid}');
       if (currentUser == null) {
         if (mounted) {
           setState(() {
@@ -263,7 +279,39 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
-      final token = await currentUser.getIdToken(true);
+      // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
+      // Firebase auth can be slow on web when Firestore has connection issues
+      String? token;
+      debugPrint('⏳ About to call getIdToken(true) with 10-sec timeout');
+      try {
+        token = await currentUser.getIdToken(true).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+        );
+        debugPrint('✅ Firebase token obtained (refreshed): ${token?.substring(0, 20)}...');
+      } catch (e) {
+        debugPrint('⚠️ Firebase token refresh failed: $e');
+        debugPrint('⏳ Fallback: Calling getIdToken(false) with 5-sec timeout');
+        // Fall back to non-refreshed token (may be stale but better than freezing)
+        try {
+          token = await currentUser.getIdToken(false).timeout(
+            const Duration(seconds: 5),
+          );
+          debugPrint('✅ Firebase token obtained (non-refreshed): ${token?.substring(0, 20)}...');
+        } catch (err) {
+          debugPrint('❌ Even non-refreshed token failed: $err');
+          // If even the non-refresh fails, create empty form
+          if (mounted) {
+            setState(() {
+              _isGenerating = false;
+              _errorMessage = 'Could not authenticate. Using empty template.';
+              _soapData = _createEmptySoapStructure();
+            });
+          }
+          return;
+        }
+      }
+
       if (token == null) {
         if (mounted) {
           setState(() {
@@ -275,17 +323,19 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
-      // **WEB FIX**: Add safeguard timer to ensure UI is responsive within 65 seconds
-      // This prevents indefinite UI freeze if exception handling fails
+      // **WEB FIX**: Add safeguard timer to ensure UI is responsive within 45 seconds
+      // This prevents indefinite UI freeze by forcing UI reset after maximum wait time
       bool responseReceived = false;
-      final safeguardTimer = Timer(const Duration(seconds: 65), () {
+      safeguardTimer = Timer(const Duration(seconds: 45), () {
         if (!responseReceived && mounted) {
-          debugPrint('⚠️ Safeguard timeout triggered - forcing _isGenerating = false');
-          setState(() {
-            _isGenerating = false;
-            _errorMessage = 'SOAP generation is taking longer than expected. Please try again.';
-            _soapData = _createEmptySoapStructure();
-          });
+          debugPrint('⚠️ Safeguard timeout triggered - forcing UI responsive state');
+          if (mounted) {
+            setState(() {
+              _isGenerating = false;
+              _errorMessage = 'SOAP generation is taking longer than expected. Using empty template.';
+              _soapData = _createEmptySoapStructure();
+            });
+          }
         }
       });
 
@@ -305,12 +355,12 @@ class _PostCallClinicalNotesDialogState
           'transcript': transcript,
         }),
       ).timeout(
-        const Duration(seconds: 60),
-        onTimeout: () => throw TimeoutException('SOAP generation timed out after 60 seconds'),
+        const Duration(seconds: 40),
+        onTimeout: () => throw TimeoutException('SOAP generation timed out after 40 seconds'),
       );
 
       responseReceived = true;
-      safeguardTimer.cancel();
+      safeguardTimer?.cancel();
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -330,6 +380,7 @@ class _PostCallClinicalNotesDialogState
         }
       } else {
         debugPrint('Generate SOAP note failed: ${response.body}');
+        safeguardTimer?.cancel();
         if (mounted) {
           setState(() {
             _isGenerating = false;
@@ -339,8 +390,9 @@ class _PostCallClinicalNotesDialogState
           });
         }
       }
-    } on TimeoutException {
-      debugPrint('❌ SOAP generation timed out after 60 seconds');
+    } on TimeoutException catch (e) {
+      debugPrint('❌ SOAP generation timed out: $e');
+      safeguardTimer?.cancel();
       if (mounted) {
         setState(() {
           _isGenerating = false;
@@ -351,6 +403,7 @@ class _PostCallClinicalNotesDialogState
       }
     } catch (e) {
       debugPrint('Error generating SOAP note: $e');
+      safeguardTimer?.cancel();
       if (mounted) {
         setState(() {
           _isGenerating = false;
@@ -447,7 +500,26 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
-      final token = await currentUser.getIdToken(true);
+      // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
+      String? token;
+      try {
+        token = await currentUser.getIdToken(true).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+        );
+      } catch (e) {
+        debugPrint('⚠️ Firebase token refresh failed in EHR sync: $e');
+        // Fall back to non-refreshed token
+        try {
+          token = await currentUser.getIdToken(false).timeout(
+            const Duration(seconds: 5),
+          );
+        } catch (_) {
+          debugPrint('⚠️ Even non-refreshed token failed, skipping EHR sync');
+          return;
+        }
+      }
+
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
       final supabaseKey = FFDevEnvironmentValues().Supabasekey;
 
@@ -506,7 +578,26 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
-      final token = await currentUser.getIdToken(true);
+      // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
+      String? token;
+      try {
+        token = await currentUser.getIdToken(true).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+        );
+      } catch (e) {
+        debugPrint('⚠️ Firebase token refresh failed in patient record update: $e');
+        // Fall back to non-refreshed token
+        try {
+          token = await currentUser.getIdToken(false).timeout(
+            const Duration(seconds: 5),
+          );
+        } catch (_) {
+          debugPrint('⚠️ Even non-refreshed token failed, skipping patient record update');
+          return;
+        }
+      }
+
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
       final supabaseKey = FFDevEnvironmentValues().Supabasekey;
 
@@ -564,6 +655,7 @@ class _PostCallClinicalNotesDialogState
       setState(() => _isAiEnhancing = true);
     }
 
+    Timer? safeguardTimer;
     try {
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
       final supabaseKey = FFDevEnvironmentValues().Supabasekey;
@@ -580,7 +672,31 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
-      final token = await currentUser.getIdToken(true);
+      // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
+      String? token;
+      try {
+        token = await currentUser.getIdToken(true).timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+        );
+      } catch (e) {
+        debugPrint('⚠️ Firebase token refresh failed in AI enhancement: $e');
+        // Fall back to non-refreshed token
+        try {
+          token = await currentUser.getIdToken(false).timeout(
+            const Duration(seconds: 5),
+          );
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not refresh authentication token.')),
+            );
+            setState(() => _isAiEnhancing = false);
+          }
+          return;
+        }
+      }
+
       if (token == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -593,15 +709,17 @@ class _PostCallClinicalNotesDialogState
 
       // **WEB FIX**: Add safeguard timer for AI enhancement as well
       bool responseReceived = false;
-      final safeguardTimer = Timer(const Duration(seconds: 65), () {
+      safeguardTimer = Timer(const Duration(seconds: 45), () {
         if (!responseReceived && mounted) {
-          debugPrint('⚠️ AI enhancement safeguard timeout triggered');
-          setState(() {
-            _isAiEnhancing = false;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('AI enhancement took too long. Please try again.')),
-            );
-          });
+          debugPrint('⚠️ AI enhancement safeguard timeout triggered - forcing responsive state');
+          if (mounted) {
+            setState(() {
+              _isAiEnhancing = false;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('AI enhancement took too long. Please try again.')),
+              );
+            });
+          }
         }
       });
 
@@ -622,12 +740,12 @@ class _PostCallClinicalNotesDialogState
           'existingSoapNote': _soapData, // Pass existing data for enhancement context
         }),
       ).timeout(
-        const Duration(seconds: 60),
-        onTimeout: () => throw TimeoutException('AI enhancement timed out after 60 seconds'),
+        const Duration(seconds: 40),
+        onTimeout: () => throw TimeoutException('AI enhancement timed out after 40 seconds'),
       );
 
       responseReceived = true;
-      safeguardTimer.cancel();
+      safeguardTimer?.cancel();
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -653,6 +771,7 @@ class _PostCallClinicalNotesDialogState
         }
       } else {
         debugPrint('AI enhancement failed: ${response.body}');
+        safeguardTimer?.cancel();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -663,8 +782,9 @@ class _PostCallClinicalNotesDialogState
         }
         setState(() => _isAiEnhancing = false);
       }
-    } on TimeoutException {
-      debugPrint('❌ AI enhancement timed out after 60 seconds');
+    } on TimeoutException catch (e) {
+      debugPrint('❌ AI enhancement timed out: $e');
+      safeguardTimer?.cancel();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -673,9 +793,12 @@ class _PostCallClinicalNotesDialogState
           ),
         );
       }
-      setState(() => _isAiEnhancing = false);
+      if (mounted) {
+        setState(() => _isAiEnhancing = false);
+      }
     } catch (e) {
       debugPrint('Error enhancing SOAP note with AI: $e');
+      safeguardTimer?.cancel();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -684,7 +807,9 @@ class _PostCallClinicalNotesDialogState
           ),
         );
       }
-      setState(() => _isAiEnhancing = false);
+      if (mounted) {
+        setState(() => _isAiEnhancing = false);
+      }
     }
   }
 
@@ -695,6 +820,7 @@ class _PostCallClinicalNotesDialogState
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('🎨 [build] method called. _isGenerating=$_isGenerating, _soapData=${_soapData != null}, _isAiEnhancing=$_isAiEnhancing');
     final isMobile = MediaQuery.of(context).size.width < 600;
     final dialogWidth = widget.width ?? (isMobile ? double.maxFinite : 800.0);
     final dialogHeight = widget.height ?? MediaQuery.of(context).size.height * 0.80;
@@ -838,11 +964,16 @@ class _PostCallClinicalNotesDialogState
                                 ),
                               if (_soapData != null)
                                 Expanded(
-                                  child: SoapSectionsViewer(
-                                    soapData: _soapData!,
-                                    isEditable: true,
-                                    onDataChanged: (updatedData) {
-                                      _soapData = updatedData;
+                                  child: Builder(
+                                    builder: (context) {
+                                      debugPrint('📋 [SoapSectionsViewer Builder] Building widget with ${_soapData!.keys.length} sections');
+                                      return SoapSectionsViewer(
+                                        soapData: _soapData!,
+                                        isEditable: true,
+                                        onDataChanged: (updatedData) {
+                                          _soapData = updatedData;
+                                        },
+                                      );
                                     },
                                   ),
                                 )

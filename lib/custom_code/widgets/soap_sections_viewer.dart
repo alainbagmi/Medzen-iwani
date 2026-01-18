@@ -328,8 +328,9 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            // FIX: Disable swipe physics on web to prevent pointer event blocking
-            physics: kIsWeb ? const NeverScrollableScrollPhysics() : null,
+            // FIX: Removed NeverScrollableScrollPhysics on web - it was blocking pointer events
+            // from reaching TextFields. Use default physics which allows proper event propagation.
+            physics: null,
             children: [
               // SUBJECTIVE TAB
               _buildSubjectiveTab(),

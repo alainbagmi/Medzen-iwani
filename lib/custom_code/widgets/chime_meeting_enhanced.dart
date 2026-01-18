@@ -3017,6 +3017,28 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             background: #D70015;
         }
 
+        /* Disabled state for all control buttons */
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            transform: scale(1) !important;
+            pointer-events: none;
+        }
+
+        .control-btn:disabled:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            transform: scale(1) !important;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* Disabled state for leave button */
+        .control-btn.leave:disabled {
+            opacity: 0.5;
+            background: rgba(255, 59, 48, 0.5) !important;
+        }
+
         /* SVG Icons inside buttons */
         .control-btn svg {
             width: 24px;
@@ -4155,6 +4177,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         let isMuted = false;
         let isVideoOff = false;
         let callState = 'inactive'; // Track call state: 'inactive', 'active', 'ended'
+        let callEnding = false; // Flag to prevent multiple clicks on end call button
         let displayedMessageIds = new Set(); // Track displayed messages to prevent duplicates
         let chatVisible = false; // Track chat visibility for badge
         let unreadCount = 0; // Track unread messages
@@ -5613,15 +5636,32 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         });
 
         document.getElementById('leave-btn').addEventListener('click', () => {
-            // Disable button IMMEDIATELY to prevent double-clicks
-            const leaveBtn = document.getElementById('leave-btn');
-            if (leaveBtn && !leaveBtn.disabled) {
-                leaveBtn.disabled = true;
-                // Also disable all other control buttons during call end
-                document.querySelectorAll('.control-btn').forEach(btn => btn.disabled = true);
-                // Trigger call end
-                handleLeaveOrEnd();
+            // CRITICAL: Check flag first to prevent any race conditions
+            if (callEnding) {
+                console.log('⚠️ Call is already ending - ignoring duplicate click');
+                return;
             }
+
+            // Set flag IMMEDIATELY to block all other clicks
+            callEnding = true;
+            console.log('🛑 callEnding flag set to true - blocking further clicks');
+
+            // Disable button and all controls IMMEDIATELY
+            const leaveBtn = document.getElementById('leave-btn');
+            if (leaveBtn) {
+                leaveBtn.disabled = true;
+                console.log('✋ End Call button disabled');
+            }
+            // Also disable all other control buttons during call end
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.disabled = true;
+                btn.style.pointerEvents = 'none';
+            });
+            console.log('✋ All control buttons disabled');
+
+            // Trigger call end
+            console.log('⚡ Triggering handleLeaveOrEnd()');
+            handleLeaveOrEnd();
         });
 
         // Function to handle leave (patient) or end (provider) the meeting
