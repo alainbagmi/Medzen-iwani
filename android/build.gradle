@@ -1,5 +1,5 @@
 ext {
-    kotlin_version = '1.8.0'
+    kotlin_version = '1.8.10'
 }
 
 allprojects {
@@ -9,7 +9,7 @@ allprojects {
     }
     configurations.all {
         resolutionStrategy {
-            force 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.0'
+            force 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.10'
         }
     }
 }

@@ -1,19 +1,46 @@
-# CLAUDE.md - MedZen Development Guide
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Healthcare platform: FlutterFlow + Firebase Auth + Supabase + EHRbase + AWS Chime SDK + AWS Bedrock
 
 ## Quick Commands
 
+### Development
 | Action | Command |
 |--------|---------|
 | Clean & run web | `flutter clean && flutter pub get && flutter run -d chrome` |
-| Run Android/iOS | `flutter run -d android` / `flutter run -d ios` |
+| Run Android | `flutter run -d android` |
+| Run iOS | `flutter run -d ios` |
+| Run with profiling | `flutter run -d chrome --profile` |
 | Analyze code | `dart analyze lib/ --fatal-infos --fatal-warnings` |
-| Test all systems | `./test_all_systems.sh` |
-| Deploy Supabase | `npx supabase functions deploy bedrock-ai-chat check-user chime-meeting-token chime-messaging send-push-notification sync-to-ehrbase generate-clinical-note start-medical-transcription chime-recording-callback chime-transcription-callback chime-entity-extraction cleanup-expired-recordings ingest-call-transcript finalize-call-draft storage-sign-url call-send-message upload-profile-picture cleanup-old-profile-pictures` |
+
+### Testing
+| Action | Command |
+|--------|---------|
+| Run all Flutter tests | `flutter test` |
+| Run comprehensive tests | `./test_all_systems.sh` |
+| Test video calls (web) | `./test_video_call_web_automated.sh` |
+| Test AI chat | `./test_role_based_ai_models_complete.sh` |
+| Test transcription | `./test_transcription_automated.sh` |
+| Test E2E AI chat | `./test_ai_chat_e2e.sh` |
+
+### Deployment & Cloud Functions
+| Action | Command |
+|--------|---------|
+| Deploy all Supabase functions | `npx supabase functions deploy bedrock-ai-chat check-user chime-meeting-token chime-messaging send-push-notification sync-to-ehrbase generate-clinical-note start-medical-transcription chime-recording-callback chime-transcription-callback chime-entity-extraction cleanup-expired-recordings ingest-call-transcript finalize-call-draft storage-sign-url call-send-message upload-profile-picture cleanup-old-profile-pictures` |
+| Deploy single function | `npx supabase functions deploy [function-name]` |
 | Firebase emulator | `cd firebase/functions && npm run serve` |
-| Supabase logs | `npx supabase functions logs [name] --tail --follow` |
-| Firebase logs | `firebase functions:log --limit 50` |
+| Firebase linting | `npm run lint` (from firebase/functions) |
+| Watch Supabase logs | `npx supabase functions logs [name] --tail --follow` |
+| View Firebase logs | `firebase functions:log --limit 50` |
+
+### Database
+| Action | Command |
+|--------|---------|
+| Reset local Supabase | `npx supabase db reset` |
+| Push migrations | `npx supabase db push` |
+| Check schema | `./check_schema.sh` |
 
 ## Critical IDs & Versions
 
@@ -40,17 +67,49 @@ Healthcare platform: FlutterFlow + Firebase Auth + Supabase + EHRbase + AWS Chim
 11. **PostGIS:** Use `updateUserLocation()`, `getNearby*()` (50km radius), `calculateDistanceKm()` (Haversine)
 12. **FlutterFlow Conflicts:** Accept generated version; re-apply custom logic in `lib/custom_code/`
 
-## Setup
+## FlutterFlow Integration Notes
 
+- **Structure:** Pages auto-generated in `lib/` root; custom code stays in `lib/custom_code/` (never modified by FlutterFlow)
+- **When pushing to FlutterFlow:** Changes must go through UI editor; direct file edits in `lib/flutter_flow/` will be overwritten
+- **Conflict resolution:** `git checkout --theirs lib/flutter_flow/ && git add lib/flutter_flow/` to accept generated version, then re-apply any custom logic in `lib/custom_code/`
+- **Custom actions available:** Located in `lib/custom_code/actions/` and accessible from FlutterFlow UI via custom action picker
+- **Custom widgets available:** Located in `lib/custom_code/widgets/` and accessible from FlutterFlow UI via custom widget picker
+- **Key files never regenerated:** `lib/main.dart`, `lib/app_state.dart`, `lib/index.dart`, `lib/auth/`
+
+## Environment Setup
+
+### Initial Setup
 ```bash
 git clone <repo> && cd medzen-iwani-t1nrnu && nvm use 20
 flutter pub get && cd firebase/functions && npm install && cd ../..
 npx supabase link --project-ref noaeltglphdlkbflipit
-# Copy environment.json from team (not in git for security)
+# Copy environment.json from team (NOT in git for security reasons)
 flutter devices && npx supabase status && node --version
 ```
 
-**Troubleshooting:** Supabase not linked? → `npx supabase link --project-ref noaeltglphdlkbflipit` | Pod issues? → `cd ios && pod deintegrate && pod install`
+### Required Environment File
+- **Location:** `assets/environment_values/environment.json`
+- **Status:** Gitignored (contains sensitive credentials)
+- **Action:** Request from team; never commit
+- **Contents:** Firebase API keys, Supabase anon key, EHRbase URL, etc.
+
+### Verify Setup
+```bash
+dart --version                    # >=2.17
+flutter --version                 # >=3.0.0 <4.0.0
+node --version                    # 20.x
+firebase --version
+npx supabase --version
+```
+
+### Troubleshooting Setup Issues
+| Issue | Fix |
+|-------|-----|
+| Supabase not linked | `npx supabase link --project-ref noaeltglphdlkbflipit` |
+| Pod resolution errors (iOS) | `cd ios && pod deintegrate && pod install && cd ..` |
+| Flutter pub issues | `flutter clean && flutter pub get` |
+| Dart analysis failing | Check `.dart_tool/` exists; if not, run `flutter pub get` again |
+| Firebase emulator won't start | Ensure Node 20: `nvm use 20 && cd firebase/functions && npm run serve` |
 
 ## Mobile Development
 
@@ -87,6 +146,50 @@ npx supabase db reset                # Reset migrations
 
 **Debug tools:** `flutter run -v` (verbose) | `flutter run -d chrome --profile` (profile) | Browser DevTools: `Ctrl+Shift+I`
 
+## Common Development Tasks
+
+### Adding a New Custom Action
+1. Create file in `lib/custom_code/actions/my_action.dart`
+2. Implement function and export in `lib/custom_code/actions/index.dart`
+3. Import in page: `import '/custom_code/actions/index.dart' as actions;`
+4. Call from FlutterFlow: Select "Custom Action" → choose your action
+5. For edge function calls: follow the Firebase token + retry pattern in existing actions
+
+### Adding a New Custom Widget
+1. Create file in `lib/custom_code/widgets/my_widget.dart`
+2. Extend `StatefulWidget` or `StatelessWidget`
+3. Export in `lib/custom_code/widgets/index.dart`
+4. In FlutterFlow: Add Custom Widget → select from list
+5. Configure properties via widget parameters
+
+### Calling Supabase Edge Functions from Dart
+```dart
+final token = await FirebaseAuth.instance.currentUser?.getIdToken(true);
+final response = await http.post(
+  Uri.parse('https://noaeltglphdlkbflipit.supabase.co/functions/v1/function-name'),
+  headers: {
+    'apikey': supabaseAnonKey,
+    'Authorization': 'Bearer $supabaseAnonKey',
+    'x-firebase-token': token,  // ← lowercase!
+    'Content-Type': 'application/json',
+  },
+  body: jsonEncode({'param': 'value'}),
+);
+```
+
+### Adding a Supabase Table
+1. Create migration: `supabase/migrations/20260118120000_add_my_table.sql`
+2. Run locally: `npx supabase db reset`
+3. Push: `npx supabase db push`
+4. Schema auto-syncs to `lib/backend/schema/` on next `flutter pub get`
+
+### Adding a New Edge Function
+1. Create folder: `supabase/functions/my-function/`
+2. Create `index.ts` with TypeScript handler
+3. Use `verifyFirebaseJWT()` for auth (from `_shared/`)
+4. Deploy: `npx supabase functions deploy my-function`
+5. Watch logs: `npx supabase functions logs my-function --tail`
+
 ## Git Workflow
 
 - **Branch:** `ALINO` (main PR target, not main) | `git checkout -b feature/name ALINO`
@@ -111,6 +214,53 @@ Flutter App
 
 **Roles:** Patient, Provider, Facility Admin, System Admin
 **AI Models (role-based):** health (Nova Lite), clinical (Opus), operations (Nova Pro), platform (Nova Pro)
+
+## Understanding the Codebase
+
+### Directory Structure Overview
+```
+lib/
+├── main.dart                    # App entry point (critical init order)
+├── app_state.dart               # Global state management (FFAppState)
+├── index.dart                   # Page/component exports
+├── auth/                        # Firebase auth (never regenerated)
+├── flutter_flow/                # ⚠️  FlutterFlow auto-generated (NEVER edit)
+├── custom_code/                 # Custom logic (your edits here)
+│   ├── actions/                 # Reusable business logic & edge function calls
+│   └── widgets/                 # Custom Flutter widgets
+├── backend/
+│   ├── supabase/                # Supabase client & initialization
+│   ├── firebase/                # Firebase config & auth utilities
+│   ├── schema/                  # Data models (generated from Supabase)
+│   ├── api_requests/            # HTTP client utilities
+│   └── push_notifications/      # FCM setup
+└── [feature folders]/           # FlutterFlow auto-generated pages by feature
+
+supabase/
+├── functions/                   # 30+ edge functions (TypeScript)
+│   ├── _shared/                 # Shared utilities (Firebase JWT verification, Supabase client)
+│   └── [function-name]/         # Each function in its own folder
+└── migrations/                  # Database schema changes (NEVER edit existing files)
+
+firebase/functions/
+├── index.js                     # Protected by pre-commit hook (Cloud Functions)
+└── node_modules/                # Dependencies
+```
+
+### Key Architectural Patterns
+
+**State Management:** FFAppState singleton (persisted via flutter_secure_storage)
+- Access: `FFAppState().propertyName` or `FFAppState().update(() { ... })`
+- Persists: user role, auth data, UI preferences
+
+**Backend Access Patterns:**
+1. **Supabase Queries:** Direct `SupaFlow.client.from('table').select()...`
+2. **Edge Functions:** HTTP POST with Firebase token in `x-firebase-token` header (lowercase!)
+3. **Firebase Functions:** Cloud Functions triggered by auth events or called directly
+
+**Real-time Updates:** Supabase subscriptions via `realtime()` (e.g., chime_messages during calls)
+
+**Error Handling:** Edge functions return `{ error: string, code: string, status: number }` format
 
 ## Key Files & Locations
 
@@ -321,6 +471,21 @@ npx supabase functions logs [name] --tail  # in another terminal
 
 **Deployment:** deploy_specialty_tables.sh, setup-automated-backups.sh, test-phase1-security.sh
 
+## MCP Servers (.mcp.json)
+
+Available MCP servers configured for Claude Code context-aware assistance:
+
+| Server | Purpose | Key Resources |
+|--------|---------|----------------|
+| **supabase** | Query/manage Supabase DB, edge functions, storage | Tables, edge functions, migrations |
+| **firebase-mcp** | Inspect Firebase functions, auth, Firestore | Cloud Functions, Auth rules |
+| **openEHR** | Access EHRbase clinical templates & data | Clinical records, templates |
+| **powersync** | Query PowerSync sync engine state | Sync queue, tables, conflicts |
+| **pfsense** | Manage firewall rules (networking) | Firewall rules, interfaces, NAT |
+| **flutterflow** | Inspect FlutterFlow project structure | Pages, components, versions |
+
+These provide Claude Code with real-time access to your infrastructure state for better troubleshooting.
+
 ## Performance Tips
 
 - **Profile:** `flutter run -d chrome --profile` → DevTools Performance
@@ -329,6 +494,7 @@ npx supabase functions logs [name] --tail  # in another terminal
 - **Chime SDK:** Loads from CloudFront; pre-cache or use service worker
 - **Realtime:** Avoid subscribing to large tables; use filters
 - **Queries:** Batch instead of N+1 loops
+- **Large widgets:** Use `const` constructors; profile ChimeMeetingEnhanced (~6.6k lines) separately
 
 ## External Resources
 

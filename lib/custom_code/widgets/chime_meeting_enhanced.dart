@@ -141,6 +141,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   Timer? _transcriptionIndicatorHideTimer; // Timer to auto-hide transcription indicator
   bool _showTranscriptionIndicator = true; // Whether to show transcription indicator
 
+  // === GUARD FLAG FOR MEETING END CALLBACK ===
+  bool _meetingEndCallbackExecuting = false; // Prevent duplicate call end processing
+
   @override
   void initState() {
     super.initState();
@@ -846,10 +849,23 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       if (message == 'SDK_READY') {
         _handleSdkReady();
       } else if (message.startsWith('MEETING_ENDED_BY_PROVIDER:')) {
-        // Provider ended the call - call edge function to end for everyone
-        debugPrint('🛑 Received MEETING_ENDED_BY_PROVIDER signal from JavaScript - starting server end process');
+        // Check guard flag to prevent duplicate processing of multiple signals
+        if (_meetingEndCallbackExecuting) {
+          debugPrint('⚠️ MEETING_ENDED_BY_PROVIDER already processing - ignoring duplicate signal');
+          return;
+        }
+        _meetingEndCallbackExecuting = true;
+
+        // Provider ended the call - close UI IMMEDIATELY for responsiveness
+        debugPrint('🛑 Received MEETING_ENDED_BY_PROVIDER signal from JavaScript');
         final meetingId =
             message.replaceFirst('MEETING_ENDED_BY_PROVIDER:', '');
+
+        // Show post-call dialog IMMEDIATELY (don't wait for server)
+        debugPrint('⚡ Closing call UI IMMEDIATELY (not waiting for server)');
+        _handleMeetingEnd('MEETING_ENDED_BY_PROVIDER');
+
+        // End meeting on server in the background (fire-and-forget)
         _endMeetingOnServer(meetingId);
       } else if (message == 'MEETING_ENDED_BY_HOST') {
         // Meeting was ended by the host (provider) - close UI for patient
@@ -892,16 +908,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   // Provider ends the meeting on the server
   Future<void> _endMeetingOnServer(String meetingId) async {
-    debugPrint('📞 Ending meeting on server: $meetingId');
-
+    // This runs in the background after UI is already closed
+    // No need to log the start since UI is already responsive
     try {
       // Get Firebase token for auth (true = force refresh)
       final firebaseToken =
           await FirebaseAuth.instance.currentUser?.getIdToken(true);
 
       if (firebaseToken == null) {
-        debugPrint('❌ No Firebase token available');
-        _handleMeetingEnd('MEETING_LEFT');
+        debugPrint('⚠️ No Firebase token available for server-side end');
         return;
       }
 
@@ -910,7 +925,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       final supabaseAnonKey = FFDevEnvironmentValues().Supabasekey;
 
       // Call edge function via HTTP (required for Firebase Auth)
-      // SupaFlow.client.functions.invoke() doesn't support Firebase tokens
+      // This runs in the background - UI already closed by now
       final response = await http.post(
         Uri.parse('$supabaseUrl/functions/v1/chime-meeting-token'),
         headers: {
@@ -926,18 +941,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       );
 
       if (response.statusCode == 200) {
-        debugPrint('✅ Meeting ended successfully on server');
-        debugPrint('📞 All participants will be disconnected');
+        debugPrint('✅ Server-side meeting end completed');
       } else {
         debugPrint('⚠️ Server end response: ${response.statusCode}');
-        debugPrint('⚠️ Response body: ${response.body}');
       }
     } catch (e) {
-      debugPrint('❌ Error ending meeting on server: $e');
+      debugPrint('⚠️ Background server-side end error: $e');
     }
-
-    // Always trigger the callback to close the UI
-    _handleMeetingEnd('MEETING_ENDED_BY_PROVIDER');
+    // Note: Not calling _handleMeetingEnd() here - already called immediately
+    // This function just ensures server cleanup happens (participant disconnects, etc)
   }
 
   void _handleSdkReady() {
@@ -978,6 +990,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       debugPrint('📞 Calling onCallEnded callback to show post-call dialog');
       widget.onCallEnded!();
     }
+
+    // Reset guard flag after meeting end process completes
+    _meetingEndCallbackExecuting = false;
+    debugPrint('✅ Meeting end process completed - guard flag reset');
   }
 
   void _handleMeetingJoined() {
@@ -2672,7 +2688,6 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     <!-- Load Chime SDK from CloudFront CDN (custom-built working bundle v3.29.0) -->
     <script src="https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js"
-            crossorigin="anonymous"
             async
             defer
             onload="handleSDKLoadSuccess()"
@@ -5600,7 +5615,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         });
 
         document.getElementById('leave-btn').addEventListener('click', () => {
-            handleLeaveOrEnd();
+            // Disable button IMMEDIATELY to prevent double-clicks
+            const leaveBtn = document.getElementById('leave-btn');
+            if (leaveBtn && !leaveBtn.disabled) {
+                leaveBtn.disabled = true;
+                // Also disable all other control buttons during call end
+                document.querySelectorAll('.control-btn').forEach(btn => btn.disabled = true);
+                // Trigger call end
+                handleLeaveOrEnd();
+            }
         });
 
         // Function to handle leave (patient) or end (provider) the meeting
@@ -5633,18 +5656,18 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     preAcquiredStream = null;
                 }
 
-                // Wait for WebRTC connections to fully close (additional buffer)
-                console.log('⏳ Waiting 200ms for WebRTC connections to fully close...');
-                await new Promise(resolve => setTimeout(resolve, 200));
-
                 // Update call state
                 callState = 'ended';
                 console.log('📞 Call state: ended by provider');
                 updateSendButtonState();
 
-                // Notify Flutter that the provider ended the call (NOW it's safe - cleanup is done)
-                console.log('✅ All cleanup complete - notifying Flutter of meeting end');
+                // Notify Flutter IMMEDIATELY - don't wait for full WebRTC cleanup
+                // Flutter will close UI instantly while this cleans up in background
+                console.log('⚡ Notifying Flutter immediately (not waiting for full cleanup)');
                 window.FlutterChannel?.postMessage('MEETING_ENDED_BY_PROVIDER:' + currentMeetingId);
+
+                // Let WebRTC connections close naturally in background (no longer blocking)
+                console.log('✅ Message sent to Flutter - cleanup continuing in background');
             } catch (error) {
                 console.error('Error ending meeting:', error);
                 // Still leave even if API call fails

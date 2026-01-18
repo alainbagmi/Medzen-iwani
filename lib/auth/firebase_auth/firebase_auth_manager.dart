@@ -230,28 +230,21 @@ class FirebaseAuthManager extends AuthManager
       return;
     }
     final completer = Completer<bool>();
-    // If you'd like auto-verification, without the user having to enter the SMS
-    // code manually. Follow these instructions:
-    // * For Android: https://firebase.google.com/docs/auth/android/phone-auth?authuser=0#enable-app-verification (SafetyNet set up)
-    // * For iOS: https://firebase.google.com/docs/auth/ios/phone-auth?authuser=0#start-receiving-silent-notifications
-    // * Finally modify verificationCompleted below as instructed.
+    // Phone auth with Firebase App Check for Android (Play Integrity Provider)
+    // Auto-verification is handled by App Check + Play Integrity
     await FirebaseAuth.instance.verifyPhoneNumber(
       phoneNumber: phoneNumber,
-      timeout:
-          Duration(seconds: 0), // Skips Android's default auto-verification
+      // Set a reasonable timeout for auto-verification (60 seconds)
+      // With App Check enabled, this should work properly on Android
+      timeout: const Duration(seconds: 60),
       verificationCompleted: (phoneAuthCredential) async {
+        // Auto-verification completed - sign in directly without user entering code
         await FirebaseAuth.instance.signInWithCredential(phoneAuthCredential);
         phoneAuthManager.update(() {
           phoneAuthManager.triggerOnCodeSent = false;
           phoneAuthManager.phoneAuthError = null;
         });
-        // If you've implemented auto-verification, navigate to home page or
-        // onboarding page here manually. Uncomment the lines below and replace
-        // DestinationPage() with the desired widget.
-        // await Navigator.push(
-        //   context,
-        //   MaterialPageRoute(builder: (_) => DestinationPage()),
-        // );
+        completer.complete(true);
       },
       verificationFailed: (e) {
         phoneAuthManager.update(() {
@@ -261,6 +254,7 @@ class FirebaseAuthManager extends AuthManager
         completer.complete(false);
       },
       codeSent: (verificationId, _) {
+        // Fallback: User needs to enter SMS code manually
         phoneAuthManager.update(() {
           phoneAuthManager.phoneAuthVerificationCode = verificationId;
           phoneAuthManager.triggerOnCodeSent = true;
@@ -268,7 +262,9 @@ class FirebaseAuthManager extends AuthManager
         });
         completer.complete(true);
       },
-      codeAutoRetrievalTimeout: (_) {},
+      codeAutoRetrievalTimeout: (_) {
+        // Timeout triggered - user must enter code manually
+      },
     );
 
     return completer.future;

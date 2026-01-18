@@ -48,6 +48,18 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
   }
 
   @override
+  void didUpdateWidget(SoapSectionsViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-initialize _editableData if the parent's soapData changed
+    // This keeps child state in sync with parent state
+    if (oldWidget.soapData != widget.soapData) {
+      _editableData = Map<String, dynamic>.from(widget.soapData);
+      _cachedStringValues.clear(); // Invalidate cache when prop changes
+      _precomputeStringValues();
+    }
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     for (var controller in _textControllers.values) {
@@ -112,19 +124,21 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
   }
 
   void _updateData(String path, dynamic value) {
-    setState(() {
-      _editableData[path] = value;
-      _cachedStringValues.clear(); // Invalidate cache when data changes
-    });
+    // Update local state without rebuilding - let parent handle state via onDataChanged
+    _editableData[path] = value;
+    // Don't invalidate cache here - it causes unnecessary rebuilds on every keystroke
+    // Let parent rebuild handle cache invalidation if needed
+
+    // Notify parent of the change - parent will update its state and rebuild
     widget.onDataChanged?.call(_editableData);
   }
 
   TextEditingController _getOrCreateController(String fieldPath, String initialValue) {
     if (!_textControllers.containsKey(fieldPath)) {
       _textControllers[fieldPath] = TextEditingController(text: initialValue);
-    } else {
-      _textControllers[fieldPath]?.text = initialValue;
     }
+    // Never update controller text during rebuilds - this causes listener cascade
+    // The controller maintains its own state from user input
     return _textControllers[fieldPath]!;
   }
 

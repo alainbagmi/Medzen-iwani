@@ -300,7 +300,7 @@ Fill in the JSON above with extracted information from the transcript. Be thorou
 }
 
 /**
- * Invoke Bedrock to generate SOAP note
+ * Invoke Bedrock to generate SOAP note with timeout protection
  */
 async function generateSOAPWithBedrock(request: SOAPGenerationRequest): Promise<any> {
   const bedrockClient = new BedrockRuntimeClient({
@@ -337,7 +337,13 @@ async function generateSOAPWithBedrock(request: SOAPGenerationRequest): Promise<
   let response;
   try {
     console.log(`[Bedrock] Sending request to Bedrock...`);
-    response = await bedrockClient.send(command);
+    // **CRITICAL FIX**: Add 45-second timeout to Bedrock call
+    response = await Promise.race([
+      bedrockClient.send(command),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Bedrock request timeout (45s) - try again or contact support')), 45000)
+      ),
+    ]);
     console.log(`[Bedrock] Response received, status: ${response.$metadata?.httpStatusCode}`);
   } catch (bedrockError) {
     console.error('[Bedrock] Failed to invoke model:', bedrockError instanceof Error ? bedrockError.message : String(bedrockError));
@@ -559,7 +565,7 @@ async function getPatientHistory(
 }
 
 /**
- * Insert normalized SOAP data into 11 tables
+ * Insert normalized SOAP data into 11 tables with optimized parallel inserts
  */
 async function insertNormalizedSOAPData(
   supabase: any,
@@ -569,121 +575,139 @@ async function insertNormalizedSOAPData(
 ): Promise<void> {
   console.log(`[SOAP Normalization] Inserting normalized data for SOAP note ${soapNoteId}`);
 
+  // **OPTIMIZATION**: Collect all insert promises and run in parallel
+  const insertPromises: Promise<any>[] = [];
+
   // 1. Insert HPI Details
   if (soapJson.subjective?.hpi) {
-    console.log(`[SOAP Normalization] Inserting HPI details...`);
-    await supabase.from('soap_hpi_details').insert({
-      soap_note_id: soapNoteId,
-      hpi_narrative: soapJson.subjective.hpi.narrative || '',
-      symptom_onset: soapJson.subjective.hpi.symptom_onset || 'unknown',
-      duration: soapJson.subjective.hpi.duration || 'unknown',
-      location: soapJson.subjective.hpi.location || 'unknown',
-      radiation: soapJson.subjective.hpi.radiation || null,
-      quality: soapJson.subjective.hpi.quality || 'unknown',
-      severity_scale: soapJson.subjective.hpi.severity_scale_0_10 || null,
-      timing_pattern: soapJson.subjective.hpi.timing || 'unknown',
-      context: soapJson.subjective.hpi.context || 'unknown',
-      aggravating_factors: soapJson.subjective.hpi.modifying_factors?.aggravating || [],
-      relieving_factors: soapJson.subjective.hpi.modifying_factors?.relieving || [],
-      associated_symptoms: soapJson.subjective.hpi.associated_symptoms || [],
-      pertinent_negatives: soapJson.subjective.hpi.pertinent_negatives || [],
-    });
+    console.log(`[SOAP Normalization] Queuing HPI details insert...`);
+    insertPromises.push(
+      supabase.from('soap_hpi_details').insert({
+        soap_note_id: soapNoteId,
+        hpi_narrative: soapJson.subjective.hpi.narrative || '',
+        symptom_onset: soapJson.subjective.hpi.symptom_onset || 'unknown',
+        duration: soapJson.subjective.hpi.duration || 'unknown',
+        location: soapJson.subjective.hpi.location || 'unknown',
+        radiation: soapJson.subjective.hpi.radiation || null,
+        quality: soapJson.subjective.hpi.quality || 'unknown',
+        severity_scale: soapJson.subjective.hpi.severity_scale_0_10 || null,
+        timing_pattern: soapJson.subjective.hpi.timing || 'unknown',
+        context: soapJson.subjective.hpi.context || 'unknown',
+        aggravating_factors: soapJson.subjective.hpi.modifying_factors?.aggravating || [],
+        relieving_factors: soapJson.subjective.hpi.modifying_factors?.relieving || [],
+        associated_symptoms: soapJson.subjective.hpi.associated_symptoms || [],
+        pertinent_negatives: soapJson.subjective.hpi.pertinent_negatives || [],
+      })
+    );
   }
 
-  // 2. Insert ROS (Review of Systems)
+  // 2. Insert ROS (Review of Systems) - parallel
   if (soapJson.subjective?.ros && typeof soapJson.subjective.ros === 'object') {
-    console.log(`[SOAP Normalization] Inserting ROS entries...`);
+    console.log(`[SOAP Normalization] Queuing ROS entries insert (parallel)...`);
     const rosSystems = [
       'constitutional', 'cardiovascular', 'respiratory', 'gastrointestinal',
       'genitourinary', 'musculoskeletal', 'skin', 'neurologic', 'psychiatric',
       'endocrine', 'hematologic', 'allergic_immunologic',
     ];
 
-    for (const system of rosSystems) {
-      const rosData = soapJson.subjective.ros[system];
-      if (rosData) {
-        await supabase.from('soap_review_of_systems').insert({
-          soap_note_id: soapNoteId,
-          system_name: system === 'hematologic' ? 'hematologic_lymphatic' : system === 'allergic_immunologic' ? 'allergic_immunologic' : system,
-          has_symptoms: (rosData.positives?.length || 0) > 0,
-          symptoms_positive: rosData.positives || [],
-          symptoms_negative: rosData.negatives || [],
-          symptoms_unknown: rosData.unknown || [],
-        });
-      }
-    }
+    const rosInserts = rosSystems
+      .map((system) => {
+        const rosData = soapJson.subjective.ros[system];
+        if (rosData) {
+          return supabase.from('soap_review_of_systems').insert({
+            soap_note_id: soapNoteId,
+            system_name: system === 'hematologic' ? 'hematologic_lymphatic' : system === 'allergic_immunologic' ? 'allergic_immunologic' : system,
+            has_symptoms: (rosData.positives?.length || 0) > 0,
+            symptoms_positive: rosData.positives || [],
+            symptoms_negative: rosData.negatives || [],
+            symptoms_unknown: rosData.unknown || [],
+          });
+        }
+        return null;
+      })
+      .filter((p): p is Promise<any> => p !== null);
+
+    insertPromises.push(...rosInserts);
   }
 
   // 3. Insert Vital Signs
   if (soapJson.objective?.vitals) {
-    console.log(`[SOAP Normalization] Inserting vital signs...`);
+    console.log(`[SOAP Normalization] Queuing vital signs insert...`);
     const vitals = soapJson.objective.vitals;
-    await supabase.from('soap_vital_signs').insert({
-      soap_note_id: soapNoteId,
-      source: vitals.source || 'unknown',
-      temperature_value: vitals.temp_c || null,
-      temperature_unit: vitals.temp_c ? 'celsius' : null,
-      blood_pressure_systolic: vitals.bp_mmHg ? parseInt(vitals.bp_mmHg.split('/')[0]) : null,
-      blood_pressure_diastolic: vitals.bp_mmHg ? parseInt(vitals.bp_mmHg.split('/')[1]) : null,
-      heart_rate: vitals.hr_bpm || null,
-      respiratory_rate: vitals.rr_bpm || null,
-      oxygen_saturation: vitals.spo2_percent || null,
-      weight_kg: vitals.weight_kg || null,
-      height_cm: vitals.height_cm || null,
-      bmi: vitals.bmi || null,
-    });
+    insertPromises.push(
+      supabase.from('soap_vital_signs').insert({
+        soap_note_id: soapNoteId,
+        source: vitals.source || 'unknown',
+        temperature_value: vitals.temp_c || null,
+        temperature_unit: vitals.temp_c ? 'celsius' : null,
+        blood_pressure_systolic: vitals.bp_mmHg ? parseInt(vitals.bp_mmHg.split('/')[0]) : null,
+        blood_pressure_diastolic: vitals.bp_mmHg ? parseInt(vitals.bp_mmHg.split('/')[1]) : null,
+        heart_rate: vitals.hr_bpm || null,
+        respiratory_rate: vitals.rr_bpm || null,
+        oxygen_saturation: vitals.spo2_percent || null,
+        weight_kg: vitals.weight_kg || null,
+        height_cm: vitals.height_cm || null,
+        bmi: vitals.bmi || null,
+      })
+    );
   }
 
-  // 4. Insert Physical Exam
+  // 4. Insert Physical Exam - parallel
   if (soapJson.objective?.physical_exam_limited) {
-    console.log(`[SOAP Normalization] Inserting physical exam findings...`);
+    console.log(`[SOAP Normalization] Queuing physical exam inserts (parallel)...`);
     const examSystems = ['general', 'heent', 'cardiovascular', 'respiratory', 'abdomen', 'msk', 'neuro', 'skin', 'psych'];
-    for (const system of examSystems) {
-      const examKey = system === 'msk' ? 'msk' : system === 'neuro' ? 'neuro' : system === 'psych' ? 'psych' : system;
-      const finding = soapJson.objective.physical_exam_limited.systems?.[examKey];
-      if (finding && finding !== 'unknown') {
-        await supabase.from('soap_physical_exam').insert({
-          soap_note_id: soapNoteId,
-          system_name: examKey,
-          is_abnormal: false,
-          findings: [finding],
-          limited_by_telemedicine: true,
-          visual_inspection_only: true,
-          observation_notes: finding,
-        });
-      }
-    }
+    const examInserts = examSystems
+      .map((system) => {
+        const examKey = system === 'msk' ? 'msk' : system === 'neuro' ? 'neuro' : system === 'psych' ? 'psych' : system;
+        const finding = soapJson.objective.physical_exam_limited.systems?.[examKey];
+        if (finding && finding !== 'unknown') {
+          return supabase.from('soap_physical_exam').insert({
+            soap_note_id: soapNoteId,
+            system_name: examKey,
+            is_abnormal: false,
+            findings: [finding],
+            limited_by_telemedicine: true,
+            visual_inspection_only: true,
+            observation_notes: finding,
+          });
+        }
+        return null;
+      })
+      .filter((p): p is Promise<any> => p !== null);
+    insertPromises.push(...examInserts);
   }
 
-  // 5. Insert Medical/Surgical History
+  // 5. Insert Medical/Surgical History - parallel
   if (soapJson.subjective?.pmh?.conditions) {
-    console.log(`[SOAP Normalization] Inserting past medical history...`);
-    for (const condition of soapJson.subjective.pmh.conditions) {
-      await supabase.from('soap_history_items').insert({
+    console.log(`[SOAP Normalization] Queuing PMH inserts (parallel)...`);
+    const pmhInserts = soapJson.subjective.pmh.conditions.map((condition: any) =>
+      supabase.from('soap_history_items').insert({
         soap_note_id: soapNoteId,
         history_type: 'past_medical',
         condition_name: condition.name || condition,
         status: 'active',
-      });
-    }
+      })
+    );
+    insertPromises.push(...pmhInserts);
   }
 
   if (soapJson.subjective?.psh?.surgeries) {
-    console.log(`[SOAP Normalization] Inserting past surgical history...`);
-    for (const surgery of soapJson.subjective.psh.surgeries) {
-      await supabase.from('soap_history_items').insert({
+    console.log(`[SOAP Normalization] Queuing PSH inserts (parallel)...`);
+    const pshInserts = soapJson.subjective.psh.surgeries.map((surgery: any) =>
+      supabase.from('soap_history_items').insert({
         soap_note_id: soapNoteId,
         history_type: 'past_surgical',
         surgery_name: surgery.name || surgery,
-      });
-    }
+      })
+    );
+    insertPromises.push(...pshInserts);
   }
 
-  // 6. Insert Medications
+  // 6. Insert Medications - parallel
   if (soapJson.subjective?.medications) {
-    console.log(`[SOAP Normalization] Inserting medications...`);
-    for (const med of soapJson.subjective.medications) {
-      await supabase.from('soap_medications').insert({
+    console.log(`[SOAP Normalization] Queuing medication inserts (parallel)...`);
+    const medInserts = soapJson.subjective.medications.map((med: any) =>
+      supabase.from('soap_medications').insert({
         soap_note_id: soapNoteId,
         source: 'current_medication',
         medication_name: med.name || med,
@@ -691,31 +715,31 @@ async function insertNormalizedSOAPData(
         route: med.route || 'oral',
         frequency: med.frequency || '',
         status: 'active',
-      });
-    }
+      })
+    );
+    insertPromises.push(...medInserts);
   }
 
-  // 7. Insert Allergies
+  // 7. Insert Allergies - parallel
   if (soapJson.subjective?.allergies) {
-    console.log(`[SOAP Normalization] Inserting allergies...`);
-    for (const allergy of soapJson.subjective.allergies) {
-      await supabase.from('soap_allergies').insert({
+    console.log(`[SOAP Normalization] Queuing allergy inserts (parallel)...`);
+    const allergyInserts = soapJson.subjective.allergies.map((allergy: any) =>
+      supabase.from('soap_allergies').insert({
         soap_note_id: soapNoteId,
         allergen: allergy.allergen || allergy,
         allergen_type: allergy.type || 'drug',
         severity: allergy.severity || 'unknown',
         status: 'active',
-      });
-    }
+      })
+    );
+    insertPromises.push(...allergyInserts);
   }
 
-  // 8. Insert Assessment Items
+  // 8. Insert Assessment Items - parallel
   if (soapJson.assessment?.problem_list) {
-    console.log(`[SOAP Normalization] Inserting assessment items...`);
-    const problemList = soapJson.assessment.problem_list;
-    for (let i = 0; i < problemList.length; i++) {
-      const problem = problemList[i];
-      await supabase.from('soap_assessment_items').insert({
+    console.log(`[SOAP Normalization] Queuing assessment inserts (parallel)...`);
+    const assessmentInserts = soapJson.assessment.problem_list.map((problem: any, i: number) =>
+      supabase.from('soap_assessment_items').insert({
         soap_note_id: soapNoteId,
         problem_number: i + 1,
         diagnosis_description: problem.diagnosis || problem,
@@ -723,120 +747,127 @@ async function insertNormalizedSOAPData(
         status: 'new',
         confidence: 'suspected',
         clinical_impression_summary: soapJson.assessment.clinical_impression_summary || '',
-      });
-    }
+      })
+    );
+    insertPromises.push(...assessmentInserts);
   }
 
-  // 9. Insert Plan Items
+  // 9. Insert Plan Items - parallel
   if (soapJson.plan) {
-    console.log(`[SOAP Normalization] Inserting plan items...`);
-
-    // Treatments
+    console.log(`[SOAP Normalization] Queuing plan inserts (parallel)...`);
     if (soapJson.plan.treatments) {
-      for (const treatment of soapJson.plan.treatments) {
-        await supabase.from('soap_plan_items').insert({
+      const treatmentInserts = soapJson.plan.treatments.map((treatment: any) =>
+        supabase.from('soap_plan_items').insert({
           soap_note_id: soapNoteId,
           plan_type: 'medication',
           description: treatment.description || treatment,
           status: 'ordered',
-        });
-      }
+        })
+      );
+      insertPromises.push(...treatmentInserts);
     }
 
-    // Lab orders
     if (soapJson.plan.orders) {
-      for (const order of soapJson.plan.orders) {
-        await supabase.from('soap_plan_items').insert({
+      const orderInserts = soapJson.plan.orders.map((order: any) =>
+        supabase.from('soap_plan_items').insert({
           soap_note_id: soapNoteId,
           plan_type: 'lab',
           description: order.description || order,
           status: 'ordered',
-        });
-      }
+        })
+      );
+      insertPromises.push(...orderInserts);
     }
 
-    // Follow-up
     if (soapJson.plan.follow_up) {
-      await supabase.from('soap_plan_items').insert({
-        soap_note_id: soapNoteId,
-        plan_type: 'follow_up',
-        description: `Follow up in ${soapJson.plan.follow_up.timeframe || 'unknown'}`,
-        follow_up_timeframe: soapJson.plan.follow_up.timeframe || 'unknown',
-        follow_up_type: soapJson.plan.follow_up.type || 'telemedicine',
-        status: 'pending',
-      });
+      insertPromises.push(
+        supabase.from('soap_plan_items').insert({
+          soap_note_id: soapNoteId,
+          plan_type: 'follow_up',
+          description: `Follow up in ${soapJson.plan.follow_up.timeframe || 'unknown'}`,
+          follow_up_timeframe: soapJson.plan.follow_up.timeframe || 'unknown',
+          follow_up_type: soapJson.plan.follow_up.type || 'telemedicine',
+          status: 'pending',
+        })
+      );
     }
 
-    // Patient education
     if (soapJson.plan.patient_education) {
-      for (const edu of soapJson.plan.patient_education) {
-        await supabase.from('soap_plan_items').insert({
+      const eduInserts = soapJson.plan.patient_education.map((edu: any) =>
+        supabase.from('soap_plan_items').insert({
           soap_note_id: soapNoteId,
           plan_type: 'education',
           description: edu.topic || edu,
           education_topic: edu.topic || edu,
           status: 'pending',
-        });
-      }
+        })
+      );
+      insertPromises.push(...eduInserts);
     }
 
-    // Return precautions
     if (soapJson.plan.follow_up?.return_precautions) {
-      for (const precaution of soapJson.plan.follow_up.return_precautions) {
-        await supabase.from('soap_plan_items').insert({
+      const precautionInserts = soapJson.plan.follow_up.return_precautions.map((precaution: string) =>
+        supabase.from('soap_plan_items').insert({
           soap_note_id: soapNoteId,
           plan_type: 'other',
           is_return_precaution: true,
           red_flag_symptom: precaution,
           description: `Return precaution: ${precaution}`,
           status: 'pending',
-        });
-      }
+        })
+      );
+      insertPromises.push(...precautionInserts);
     }
   }
 
-  // 10. Insert Safety Alerts
+  // 10. Insert Safety Alerts - parallel
   if (soapJson.safety) {
-    console.log(`[SOAP Normalization] Inserting safety alerts...`);
-
+    console.log(`[SOAP Normalization] Queuing safety alert inserts (parallel)...`);
     if (soapJson.safety.medication_safety_notes) {
-      for (const note of soapJson.safety.medication_safety_notes) {
-        await supabase.from('soap_safety_alerts').insert({
+      const safetyInserts = soapJson.safety.medication_safety_notes.map((note: string) =>
+        supabase.from('soap_safety_alerts').insert({
           soap_note_id: soapNoteId,
           alert_type: 'drug_interaction',
           severity: 'warning',
           title: 'Medication Safety',
           description: note,
-        });
-      }
+        })
+      );
+      insertPromises.push(...safetyInserts);
     }
 
     if (soapJson.safety.limitations) {
-      for (const limitation of soapJson.safety.limitations) {
-        await supabase.from('soap_safety_alerts').insert({
+      const limitInserts = soapJson.safety.limitations.map((limitation: string) =>
+        supabase.from('soap_safety_alerts').insert({
           soap_note_id: soapNoteId,
           alert_type: 'limitation',
           severity: 'informational',
           title: 'Clinical Limitation',
           description: limitation,
-        });
-      }
+        })
+      );
+      insertPromises.push(...limitInserts);
     }
   }
 
   // 11. Insert Coding & Billing
   if (soapJson.coding_billing) {
-    console.log(`[SOAP Normalization] Inserting coding and billing information...`);
+    console.log(`[SOAP Normalization] Queuing coding and billing insert...`);
     const coding = soapJson.coding_billing;
-    await supabase.from('soap_coding_billing').insert({
-      soap_note_id: soapNoteId,
-      cpt_code: coding.suggested_cpt?.[0] || null,
-      mdm_level: coding.mdm_level_suggestion || 'moderate',
-      mdm_rationale: coding.rationale || '',
-    });
+    insertPromises.push(
+      supabase.from('soap_coding_billing').insert({
+        soap_note_id: soapNoteId,
+        cpt_code: coding.suggested_cpt?.[0] || null,
+        mdm_level: coding.mdm_level_suggestion || 'moderate',
+        mdm_rationale: coding.rationale || '',
+      })
+    );
   }
 
-  console.log(`[SOAP Normalization] Normalized data insertion completed for SOAP note ${soapNoteId}`);
+  // **CRITICAL OPTIMIZATION**: Execute all inserts in parallel
+  console.log(`[SOAP Normalization] Executing ${insertPromises.length} database inserts in parallel...`);
+  await Promise.all(insertPromises);
+  console.log(`[SOAP Normalization] All normalized data inserts completed for SOAP note ${soapNoteId}`);
 }
 
 serve(async (req: Request) => {
@@ -864,7 +895,7 @@ serve(async (req: Request) => {
 
     console.log(`[SOAP Generation] Starting for session ${sessionId}`);
 
-    // Get appointment details to extract patient ID
+    // **OPTIMIZATION**: Fetch appointment data (we need patientId and providerId for parallel history fetch)
     const { data: appointmentData } = await supabase
       .from('appointments')
       .select('patient_id, provider_id')
@@ -878,7 +909,7 @@ serve(async (req: Request) => {
     const patientId = appointmentData.patient_id;
     const providerId = appointmentData.provider_id;
 
-    // Fetch patient history (Step 2)
+    // Fetch patient history in parallel
     console.log('[SOAP Generation] Fetching patient history...');
     const patientHistory = await getPatientHistory(supabase, patientId, appointmentId);
 

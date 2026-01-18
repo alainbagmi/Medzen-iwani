@@ -1,19 +1,11 @@
 // Automatic FlutterFlow imports
-import '/backend/backend.dart';
-import '/backend/schema/structs/index.dart';
 import '/backend/supabase/supabase.dart';
-import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import 'index.dart'; // Imports other custom widgets
-import '/custom_code/actions/index.dart'; // Imports custom actions
-import '/flutter_flow/custom_functions.dart'; // Imports custom functions
 import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
-import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,12 +53,15 @@ class _PostCallClinicalNotesDialogState
   @override
   void initState() {
     super.initState();
-    // Simply initialize to ready state - no async operations
-    setState(() {
-      _soapData = _createEmptySoapStructure();
-      _isGenerating = false;
-    });
+    // Initialize to ready state
+    _soapData = _createEmptySoapStructure();
+    _isGenerating = false;
     debugPrint('📱 PostCallClinicalNotesDialog initialized');
+
+    // Trigger automatic transcript fetching and SOAP generation after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkTranscriptAndGenerateNote();
+    });
   }
 
   @override
@@ -258,23 +253,41 @@ class _PostCallClinicalNotesDialogState
       // Get Firebase token with force refresh for authentication
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        setState(() {
-          _isGenerating = false;
-          _errorMessage = 'User not authenticated. Please log in again.';
-          _soapData = _createEmptySoapStructure();
-        });
+        if (mounted) {
+          setState(() {
+            _isGenerating = false;
+            _errorMessage = 'User not authenticated. Please log in again.';
+            _soapData = _createEmptySoapStructure();
+          });
+        }
         return;
       }
 
       final token = await currentUser.getIdToken(true);
       if (token == null) {
-        setState(() {
-          _isGenerating = false;
-          _errorMessage = 'Could not refresh authentication token.';
-          _soapData = _createEmptySoapStructure();
-        });
+        if (mounted) {
+          setState(() {
+            _isGenerating = false;
+            _errorMessage = 'Could not refresh authentication token.';
+            _soapData = _createEmptySoapStructure();
+          });
+        }
         return;
       }
+
+      // **WEB FIX**: Add safeguard timer to ensure UI is responsive within 65 seconds
+      // This prevents indefinite UI freeze if exception handling fails
+      bool responseReceived = false;
+      final safeguardTimer = Timer(const Duration(seconds: 65), () {
+        if (!responseReceived && mounted) {
+          debugPrint('⚠️ Safeguard timeout triggered - forcing _isGenerating = false');
+          setState(() {
+            _isGenerating = false;
+            _errorMessage = 'SOAP generation is taking longer than expected. Please try again.';
+            _soapData = _createEmptySoapStructure();
+          });
+        }
+      });
 
       final response = await http.post(
         Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
@@ -296,45 +309,56 @@ class _PostCallClinicalNotesDialogState
         onTimeout: () => throw TimeoutException('SOAP generation timed out after 60 seconds'),
       );
 
+      responseReceived = true;
+      safeguardTimer.cancel();
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          // Extract structured SOAP data from response
-          if (data['soapNote'] != null) {
-            _soapData = data['soapNote'] as Map<String, dynamic>;
-          } else if (data['normalizedSoapNote'] != null) {
-            _soapData = data['normalizedSoapNote'] as Map<String, dynamic>;
-          } else {
-            _soapData = _createEmptySoapStructure();
-          }
-          _soapNoteId = data['soapNoteId'] as String?;
-          _isGenerating = false;
-        });
+        if (mounted) {
+          setState(() {
+            // Extract structured SOAP data from response
+            if (data['soapNote'] != null) {
+              _soapData = data['soapNote'] as Map<String, dynamic>;
+            } else if (data['normalizedSoapNote'] != null) {
+              _soapData = data['normalizedSoapNote'] as Map<String, dynamic>;
+            } else {
+              _soapData = _createEmptySoapStructure();
+            }
+            _soapNoteId = data['soapNoteId'] as String?;
+            _isGenerating = false;
+          });
+        }
       } else {
         debugPrint('Generate SOAP note failed: ${response.body}');
+        if (mounted) {
+          setState(() {
+            _isGenerating = false;
+            _errorMessage = 'Failed to generate SOAP note: ${response.statusCode}';
+            // Create empty SOAP structure so UI still displays
+            _soapData = _createEmptySoapStructure();
+          });
+        }
+      }
+    } on TimeoutException {
+      debugPrint('❌ SOAP generation timed out after 60 seconds');
+      if (mounted) {
         setState(() {
           _isGenerating = false;
-          _errorMessage = 'Failed to generate SOAP note: ${response.statusCode}';
+          _errorMessage = 'SOAP generation timed out. Please try again or fill the form manually.';
           // Create empty SOAP structure so UI still displays
           _soapData = _createEmptySoapStructure();
         });
       }
-    } on TimeoutException {
-      debugPrint('❌ SOAP generation timed out after 60 seconds');
-      setState(() {
-        _isGenerating = false;
-        _errorMessage = 'SOAP generation timed out. Please try again or fill the form manually.';
-        // Create empty SOAP structure so UI still displays
-        _soapData = _createEmptySoapStructure();
-      });
     } catch (e) {
       debugPrint('Error generating SOAP note: $e');
-      setState(() {
-        _isGenerating = false;
-        _errorMessage = 'Error generating SOAP note: $e';
-        // Create empty SOAP structure so UI still displays
-        _soapData = _createEmptySoapStructure();
-      });
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+          _errorMessage = 'Error generating SOAP note: $e';
+          // Create empty SOAP structure so UI still displays
+          _soapData = _createEmptySoapStructure();
+        });
+      }
     }
   }
 
@@ -391,8 +415,6 @@ class _PostCallClinicalNotesDialogState
         _syncToEhrInBackground();
         _updatePatientMedicalRecordInBackground();
       }
-
-      widget.onSaved?.call();
 
       if (mounted) {
         Navigator.of(context)
@@ -538,7 +560,9 @@ class _PostCallClinicalNotesDialogState
       return;
     }
 
-    setState(() => _isAiEnhancing = true);
+    if (mounted) {
+      setState(() => _isAiEnhancing = true);
+    }
 
     try {
       final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
@@ -547,21 +571,39 @@ class _PostCallClinicalNotesDialogState
       // Get Firebase token with force refresh for authentication
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User not authenticated. Please log in again.')),
-        );
-        setState(() => _isAiEnhancing = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User not authenticated. Please log in again.')),
+          );
+          setState(() => _isAiEnhancing = false);
+        }
         return;
       }
 
       final token = await currentUser.getIdToken(true);
       if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not refresh authentication token.')),
-        );
-        setState(() => _isAiEnhancing = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not refresh authentication token.')),
+          );
+          setState(() => _isAiEnhancing = false);
+        }
         return;
       }
+
+      // **WEB FIX**: Add safeguard timer for AI enhancement as well
+      bool responseReceived = false;
+      final safeguardTimer = Timer(const Duration(seconds: 65), () {
+        if (!responseReceived && mounted) {
+          debugPrint('⚠️ AI enhancement safeguard timeout triggered');
+          setState(() {
+            _isAiEnhancing = false;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('AI enhancement took too long. Please try again.')),
+            );
+          });
+        }
+      });
 
       final response = await http.post(
         Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
@@ -584,17 +626,22 @@ class _PostCallClinicalNotesDialogState
         onTimeout: () => throw TimeoutException('AI enhancement timed out after 60 seconds'),
       );
 
+      responseReceived = true;
+      safeguardTimer.cancel();
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          // Extract structured SOAP data from response
-          if (data['soapNote'] != null) {
-            _soapData = data['soapNote'] as Map<String, dynamic>;
-          } else if (data['normalizedSoapNote'] != null) {
-            _soapData = data['normalizedSoapNote'] as Map<String, dynamic>;
-          }
-          _isAiEnhancing = false;
-        });
+        if (mounted) {
+          setState(() {
+            // Extract structured SOAP data from response
+            if (data['soapNote'] != null) {
+              _soapData = data['soapNote'] as Map<String, dynamic>;
+            } else if (data['normalizedSoapNote'] != null) {
+              _soapData = data['normalizedSoapNote'] as Map<String, dynamic>;
+            }
+            _isAiEnhancing = false;
+          });
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -650,173 +697,176 @@ class _PostCallClinicalNotesDialogState
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final dialogWidth = widget.width ?? (isMobile ? double.maxFinite : 800.0);
-    final dialogHeight = widget.height ?? MediaQuery.of(context).size.height * 0.85;
+    final dialogHeight = widget.height ?? MediaQuery.of(context).size.height * 0.80;
 
-    return Dialog(
+    return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       insetPadding: const EdgeInsets.all(16),
-      child: Container(
+      contentPadding: EdgeInsets.zero,
+      content: SizedBox(
         width: dialogWidth,
         height: dialogHeight,
-        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Row(
-              children: [
-                const Icon(Icons.medical_services,
-                    color: Colors.blue, size: 28),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'Post-Call Clinical Notes',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (_callTranscript != null && _callTranscript!.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.green[50],
-                                border: Border.all(color: Colors.green[300]!),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Transcript Ready',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.green[700],
-                                      fontWeight: FontWeight.w600,
+                      const Icon(Icons.medical_services,
+                          color: Colors.blue, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'Post-Call Clinical Notes',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                if (_callTranscript != null && _callTranscript!.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[50],
+                                      border: Border.all(color: Colors.green[300]!),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.check_circle, size: 14, color: Colors.green[700]),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Transcript Ready',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.green[700],
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
+                              ],
+                            ),
+                            Text(
+                              'Patient: ${widget.patientName}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
                               ),
                             ),
-                        ],
-                      ),
-                      Text(
-                        'Patient: ${widget.patientName}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: _discardNote,
-                ),
-              ],
+                  const Divider(height: 24),
+                ],
+              ),
             ),
-            const Divider(height: 24),
-
-            // Content
-            if (_isGenerating) ...[
-              const Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('Generating clinical note from transcript...'),
-                    ],
-                  ),
-                ),
-              ),
-            ] else if (_isAiEnhancing) ...[
-              const Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text('✨ Enhancing SOAP note with AI insights...'),
-                      SizedBox(height: 8),
-                      Text(
-                        'Analyzing transcript and optimizing clinical documentation',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ] else ...[
-              if (_errorMessage != null)
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.warning_amber, color: Colors.orange[700]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(color: Colors.orange[900]),
+            // Content area - Expanded to fill available space
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: _isGenerating
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(),
+                            const SizedBox(height: 16),
+                            const Text('Generating clinical note from transcript...'),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              if (_soapData != null)
-                Expanded(
-                  child: SoapSectionsViewer(
-                    soapData: _soapData!,
-                    isEditable: true,
-                    onDataChanged: (updatedData) {
-                      setState(() {
-                        _soapData = updatedData;
-                      });
-                    },
-                  ),
-                )
-              else
-                const Expanded(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-            ],
-
-            const SizedBox(height: 16),
-
-            // Actions
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+                      )
+                    : _isAiEnhancing
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 16),
+                                const Text('✨ Enhancing SOAP note with AI insights...'),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Analyzing transcript and optimizing clinical documentation',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_errorMessage != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.orange[200]!),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.warning_amber, color: Colors.orange[700]),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _errorMessage!,
+                                            style: TextStyle(color: Colors.orange[900]),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              if (_soapData != null)
+                                Expanded(
+                                  child: SoapSectionsViewer(
+                                    soapData: _soapData!,
+                                    isEditable: true,
+                                    onDataChanged: (updatedData) {
+                                      _soapData = updatedData;
+                                    },
+                                  ),
+                                )
+                              else
+                                const Expanded(
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                            ],
+                          ),
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: (_isLoading || _isAiEnhancing || _isGenerating) ? null : _discardNote,
                     child: const Text('Discard'),
                   ),
                   const SizedBox(width: 12),
-                  // AI Enhance button - only show if transcript exists
                   if (_callTranscript != null && _callTranscript!.isNotEmpty)
                     ElevatedButton.icon(
                       onPressed:

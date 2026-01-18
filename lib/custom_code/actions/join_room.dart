@@ -28,6 +28,11 @@ import 'dart:async' show Completer;
 // Inline video call state tracking (to avoid FlutterFlow sync issues)
 bool _isInVideoCall = false;
 
+// Guard flag to prevent concurrent onCallEnded callback execution
+// Multiple MEETING_LEFT events fire during call teardown; this ensures only one callback executes at a time
+// preventing context corruption and dialog unresponsiveness
+bool _callEndedCallbackExecuting = false;
+
 // Inline session timeout control - self-contained for FlutterFlow compatibility
 // Note: ActivityDetector widget handles the actual timeout logic
 void _pauseSessionTimeoutLocal() {
@@ -714,6 +719,10 @@ Future joinRoom(
       // Create a Completer to signal when call ends (for post-call dialog)
       final callEndedCompleter = Completer<void>();
 
+      // Guard flag to prevent dialog from being shown multiple times
+      // when MEETING_LEFT event fires repeatedly due to Chime SDK reconnection
+      bool _postCallDialogShown = false;
+
       await Navigator.of(context).push(
         MaterialPageRoute(
           builder: (routeContext) {
@@ -745,6 +754,14 @@ Future joinRoom(
                 onCallEnded: () async {
                   final callEndStartTime = DateTime.now();
                   debugPrint('🔍 onCallEnded callback triggered at ${callEndStartTime.toIso8601String()}');
+
+                  // Guard against concurrent callback execution when multiple MEETING_LEFT events fire
+                  if (_callEndedCallbackExecuting) {
+                    debugPrint('⚠️ onCallEnded callback already executing - ignoring duplicate event');
+                    return; // Exit early to prevent concurrent execution
+                  }
+                  _callEndedCallbackExecuting = true; // Mark callback as executing
+
                   // NOTE: Do NOT resume session timeout yet - the post-call dialog may take time
                   // Session timeout will be resumed AFTER the dialog closes (line 811)
                   if (routeContext.mounted) {
@@ -805,7 +822,9 @@ Future joinRoom(
 
                     // Show post-call dialog BEFORE popping the page
                     // This ensures routeContext is still valid (fixes context.mounted = false issue)
-                    if (isProvider && routeContext.mounted) {
+                    // Guard against multiple dialog shows when MEETING_LEFT event fires multiple times
+                    if (isProvider && routeContext.mounted && !_postCallDialogShown) {
+                      _postCallDialogShown = true;  // Set flag immediately to prevent re-entry on next MEETING_LEFT
                       final dialogShowTime = DateTime.now();
                       debugPrint('✅ Showing post-call clinical notes dialog in routeContext at ${dialogShowTime.toIso8601String()}');
                       debugPrint('⏱️ Time elapsed since call end started: ${dialogShowTime.difference(callEndStartTime).inMilliseconds}ms');
@@ -836,8 +855,31 @@ Future joinRoom(
                           },
                         );
                         debugPrint('✅ Post-call dialog closed');
+
+                        // CRITICAL: Only pop the route AFTER the dialog has closed
+                        // This prevents the route from being popped while the dialog is still open
+                        debugPrint('🔍 Popping video call page after dialog close');
+                        if (routeContext.mounted) {
+                          try {
+                            Navigator.of(routeContext).pop();
+                            debugPrint('🔍 Video call page popped successfully');
+                          } catch (e) {
+                            debugPrint('❌ Error popping video call page: $e');
+                          }
+                        } else {
+                          debugPrint('⚠️ Cannot pop video call page - routeContext not mounted');
+                        }
                       } catch (dialogError) {
                         debugPrint('❌ Error showing post-call dialog: $dialogError');
+                        // Still try to pop the route even if dialog failed
+                        if (routeContext.mounted) {
+                          try {
+                            Navigator.of(routeContext).pop();
+                            debugPrint('🔍 Video call page popped after dialog error');
+                          } catch (e) {
+                            debugPrint('❌ Error popping after dialog error: $e');
+                          }
+                        }
                       }
                     } else if (isProvider) {
                       debugPrint('⚠️ Cannot show post-call dialog - routeContext not mounted');
@@ -845,14 +887,15 @@ Future joinRoom(
                       debugPrint('⚠️ Not showing post-call dialog - not a provider');
                     }
 
-                    // Now pop the video call page
-                    debugPrint('🔍 Popping video call page');
-                    Navigator.of(routeContext).pop();
-                    debugPrint('🔍 Video call page popped - completing completer');
+                    debugPrint('🔍 Completing call-ended completer');
                     // Signal that call has ended (completes immediately)
                     if (!callEndedCompleter.isCompleted) {
                       callEndedCompleter.complete();
                     }
+
+                    // Reset callback guard flag to allow future callbacks to execute
+                    _callEndedCallbackExecuting = false;
+                    debugPrint('✅ onCallEnded callback completed - guard flag reset');
                   }
                 },
               ),
@@ -868,7 +911,17 @@ Future joinRoom(
 
       // CRITICAL: Kill any lingering video call processes after post-call dialog closes
       debugPrint('🔥 Triggering video call process cleanup...');
-      await killVideoCallProcesses(sessionId);
+      // Use timeout to prevent web platform from hanging during cleanup
+      try {
+        await killVideoCallProcesses(sessionId).timeout(
+          const Duration(seconds: 5),
+          onTimeout: () {
+            debugPrint('⚠️ Video call process cleanup timed out - skipping');
+          },
+        );
+      } catch (e) {
+        debugPrint('⚠️ Error during cleanup (non-critical): $e');
+      }
     }
   } catch (e) {
     debugPrint('Error setting up video call: $e');
@@ -925,14 +978,25 @@ Future<void> killVideoCallProcesses(String? meetingId) async {
       try {
         final channels = supabase.getChannels();
         debugPrint('   Found ${channels.length} active channels');
-        for (final channel in channels) {
-          try {
-            await supabase.removeChannel(channel);
-            debugPrint('   ✅ Removed channel');
-          } catch (e) {
-            debugPrint('   ⚠️ Error removing individual channel: $e');
-          }
-        }
+
+        // Use Future.wait with timeout for each channel removal
+        await Future.wait(
+          channels.map((channel) async {
+            try {
+              await supabase
+                  .removeChannel(channel)
+                  .timeout(const Duration(seconds: 2),
+                      onTimeout: () {
+                    debugPrint('   ⚠️ Channel removal timeout - skipping');
+                    return '';
+                  });
+              debugPrint('   ✅ Removed channel');
+            } catch (e) {
+              debugPrint('   ⚠️ Error removing individual channel: $e');
+            }
+          }),
+          eagerError: false,
+        );
         debugPrint('✅ All Supabase channels cleanup attempted');
       } catch (e) {
         debugPrint('⚠️ Error accessing channels list: $e');
