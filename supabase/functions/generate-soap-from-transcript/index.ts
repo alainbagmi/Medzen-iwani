@@ -443,19 +443,28 @@ async function getPatientHistory(
 ): Promise<PatientHistoryData & { recentVitals?: any }> {
   console.log(`[Patient History] Fetching history for patient ${patientId}`);
 
-  // Get patient profile data
-  const { data: patientProfile } = await supabase
-    .from('patient_profiles')
-    .select(
-      `id,
-       medical_conditions,
-       current_medications,
-       surgical_history,
-       family_history,
-       allergies`
-    )
-    .eq('patient_id', patientId)
-    .single();
+  try {
+    // **CRITICAL TIMEOUT FIX**: Wrap patient profile fetch with 5-second timeout
+    // Prevents edge function from hanging if Supabase query stalls
+    const patientProfilePromise = supabase
+      .from('patient_profiles')
+      .select(
+        `id,
+         medical_conditions,
+         current_medications,
+         surgical_history,
+         family_history,
+         allergies`
+      )
+      .eq('patient_id', patientId)
+      .single();
+
+    const { data: patientProfile } = await Promise.race([
+      patientProfilePromise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Patient history fetch timeout (5s)')), 5000)
+      ),
+    ]) as any;
 
   // Parse medical conditions
   const medicalConditions: string[] = [];
@@ -554,14 +563,26 @@ async function getPatientHistory(
       }
     : undefined;
 
-  return {
-    medicalConditions,
-    currentMedications,
-    surgicalHistory,
-    familyHistory,
-    allergies,
-    recentVitals,
-  };
+    return {
+      medicalConditions,
+      currentMedications,
+      surgicalHistory,
+      familyHistory,
+      allergies,
+      recentVitals,
+    };
+  } catch (timeoutError) {
+    console.error('[Patient History] Timeout or error fetching history:', timeoutError instanceof Error ? timeoutError.message : String(timeoutError));
+    // Return empty history structure on timeout - better than hanging
+    return {
+      medicalConditions: [],
+      currentMedications: [],
+      surgicalHistory: [],
+      familyHistory: [],
+      allergies: [],
+      recentVitals: undefined,
+    };
+  }
 }
 
 /**
@@ -1007,9 +1028,18 @@ serve(async (req: Request) => {
 
     // Step 5: Retrieve complete SOAP note using helper view
     console.log('[SOAP Generation] Retrieving complete SOAP note from normalized view...');
-    const { data: completeSoapNote, error: retrieveError } = await supabase
+    // **CRITICAL TIMEOUT FIX**: Wrap view retrieval with 10-second timeout
+    // Prevents edge function from hanging if database view is slow
+    const viewRetrievalPromise = supabase
       .rpc('get_soap_note_full', { p_soap_note_id: soapData.id })
       .single();
+
+    const { data: completeSoapNote, error: retrieveError } = await Promise.race([
+      viewRetrievalPromise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database view retrieval timeout (10s)')), 10000)
+      ),
+    ]) as any;
 
     if (retrieveError) {
       console.warn('[SOAP Generation] Warning - could not retrieve via helper view:', retrieveError);
