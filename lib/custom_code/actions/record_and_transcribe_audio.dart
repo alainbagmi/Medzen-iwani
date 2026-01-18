@@ -12,11 +12,15 @@ import 'package:flutter/material.dart';
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_sound/flutter_sound.dart';
-import 'dart:io' as io;
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+// Conditional imports: only load mobile packages on non-web platforms
+// On web, use stub implementations to prevent compilation errors
+// Note: the 'as' clause applies to both the primary and conditional import
+import 'package:flutter_sound/flutter_sound.dart' if (dart.library.html) './_mobile_stubs.dart';
+import 'dart:io' if (dart.library.html) './_mobile_stubs.dart' as io;
+import 'package:path_provider/path_provider.dart' if (dart.library.html) './_mobile_stubs.dart';
+import 'package:permission_handler/permission_handler.dart' if (dart.library.html) './_mobile_stubs.dart';
 
 /// Record audio from microphone and transcribe it using AWS Transcribe Medical
 /// Returns the transcribed text
@@ -27,7 +31,23 @@ Future<String> recordAndTranscribeAudio(
   VoidCallback? onRecordingStop,
   Function(String)? onTranscribing,
 }) async {
-  final recorder = FlutterSoundRecorder();
+  // Audio recording is not supported on web platform
+  if (kIsWeb) {
+    debugPrint('⚠️ Audio recording is not supported on web platform');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Audio recording is not available on web. Please use a mobile device.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+    return '';
+  }
+
+  // Mobile-only recorder - only executed on mobile platforms
+  // Create new recorder instance directly (no caching)
+  final FlutterSoundRecorder recorder = FlutterSoundRecorder();
   String transcribedText = '';
 
   try {

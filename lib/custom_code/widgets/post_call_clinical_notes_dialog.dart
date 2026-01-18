@@ -56,56 +56,32 @@ class _PostCallClinicalNotesDialogState
   String? _soapNoteId;
   String? _callTranscript;
   bool _isAiEnhancing = false;
+  final TextEditingController _notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-
-    // Initialize with empty SOAP structure to avoid UI freeze
+    // Simply initialize to ready state - no async operations
     setState(() {
       _soapData = _createEmptySoapStructure();
-      _isGenerating = true;
+      _isGenerating = false;
     });
-
-    // Schedule the async database queries to run AFTER the dialog is fully built
-    // This prevents the UI from freezing while queries execute
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      debugPrint('🔍 Starting post-frame async load of transcript and SOAP data...');
-
-      // Wrap init in timeout to prevent indefinite hanging
-      _checkTranscriptAndGenerateNote().timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          debugPrint('⚠️ Session lookup timed out after 15 seconds');
-          if (mounted) {
-            setState(() {
-              _isGenerating = false;
-              _soapData = _createEmptySoapStructure();
-            });
-          }
-        },
-      ).catchError((e) {
-        debugPrint('Error in async load: $e');
-        if (mounted) {
-          setState(() {
-            _isGenerating = false;
-            _soapData = _createEmptySoapStructure();
-          });
-        }
-      });
-    });
+    debugPrint('📱 PostCallClinicalNotesDialog initialized');
   }
 
   @override
   void dispose() {
+    _notesController.dispose();
     super.dispose();
   }
 
   Future<void> _checkTranscriptAndGenerateNote() async {
+    debugPrint('⏳ _checkTranscriptAndGenerateNote() called - setting _isGenerating = true');
     setState(() {
       _isGenerating = true;
       _errorMessage = null;
     });
+    debugPrint('✅ setState completed for _isGenerating = true');
 
     try {
       debugPrint('🔍 Fetching session: ${widget.sessionId}');
@@ -203,12 +179,14 @@ class _PostCallClinicalNotesDialogState
 
       if (session == null) {
         debugPrint('❌ Could not find session by either ID or appointmentId. User can fill form manually.');
+        debugPrint('🔄 Creating empty SOAP structure and hiding progress indicator');
         setState(() {
           _isGenerating = false;
           _errorMessage = null; // Don't show error, just continue with empty form
           // Create empty SOAP data structure - allow user to fill it manually
           _soapData = _createEmptySoapStructure();
         });
+        debugPrint('✅ setState completed - empty form should now display');
         return;
       }
 

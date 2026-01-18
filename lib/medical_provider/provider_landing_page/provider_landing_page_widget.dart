@@ -2364,7 +2364,7 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                         Column(
                                                                       mainAxisSize:
                                                                           MainAxisSize
-                                                                              .max,
+                                                                              .min,
                                                                       mainAxisAlignment:
                                                                           MainAxisAlignment
                                                                               .center,
@@ -2372,7 +2372,8 @@ class _ProviderLandingPageWidgetState extends State<ProviderLandingPageWidget>
                                                                           CrossAxisAlignment
                                                                               .center,
                                                                       children: [
-                                                                        Expanded(
+                                                                        Flexible(
+                                                                          fit: FlexFit.loose,
                                                                           child:
                                                                               Row(
                                                                             mainAxisSize:
