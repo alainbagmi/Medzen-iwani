@@ -323,12 +323,15 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
-      // **WEB FIX**: Add safeguard timer to ensure UI is responsive within 45 seconds
+      // **WEB FIX**: Add safeguard timer to ensure UI is responsive within 55 seconds
       // This prevents indefinite UI freeze by forcing UI reset after maximum wait time
+      // (matches edge function Bedrock timeout of 45s + 10s network buffer)
       bool responseReceived = false;
-      safeguardTimer = Timer(const Duration(seconds: 45), () {
+      final soapGenerationStartTime = DateTime.now();
+      debugPrint('📊 SOAP generation started at ${soapGenerationStartTime.toIso8601String()}');
+      safeguardTimer = Timer(const Duration(seconds: 55), () {
         if (!responseReceived && mounted) {
-          debugPrint('⚠️ Safeguard timeout triggered - forcing UI responsive state');
+          debugPrint('⚠️ Safeguard timeout triggered after 55 seconds - forcing UI responsive state');
           if (mounted) {
             setState(() {
               _isGenerating = false;
@@ -355,12 +358,14 @@ class _PostCallClinicalNotesDialogState
           'transcript': transcript,
         }),
       ).timeout(
-        const Duration(seconds: 40),
-        onTimeout: () => throw TimeoutException('SOAP generation timed out after 40 seconds'),
+        const Duration(seconds: 50),
+        onTimeout: () => throw TimeoutException('SOAP generation timed out after 50 seconds'),
       );
 
       responseReceived = true;
       safeguardTimer?.cancel();
+      final elapsed = DateTime.now().difference(soapGenerationStartTime);
+      debugPrint('✅ SOAP generation completed in ${elapsed.inMilliseconds}ms (${elapsed.inSeconds}s)');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
