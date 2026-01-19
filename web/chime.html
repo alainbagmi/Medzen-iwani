@@ -16,16 +16,31 @@
         // Replaces Dart template injection with URL parameters
         // ============================================
         const urlParams = new URLSearchParams(window.location.search);
-        const userName = urlParams.get('userName') || 'Participant';
-        const userRole = urlParams.get('userRole') || 'Guest';
-        const userProfileImage = urlParams.get('userProfileImage') || '';
-        const providerName = urlParams.get('providerName') || 'Provider';
-        const providerRole = urlParams.get('providerRole') || 'Medical Provider';
-        const patientName = urlParams.get('patientName') || 'Patient';
-        const sessionId = urlParams.get('sessionId') || '';
-        const appointmentId = urlParams.get('appointmentId') || '';
 
-        console.log('📝 URL Parameters loaded:', { userName, userRole, providerName, patientName, sessionId, appointmentId });
+        // Store all URL params in a single object to avoid re-declaration errors
+        const urlState = {
+            userName: urlParams.get('userName') || 'Participant',
+            userRole: urlParams.get('userRole') || 'Guest',
+            userProfileImage: urlParams.get('userProfileImage') || '',
+            providerName: urlParams.get('providerName') || 'Provider',
+            providerRole: urlParams.get('providerRole') || 'Medical Provider',
+            patientName: urlParams.get('patientName') || 'Patient',
+            sessionId: urlParams.get('sessionId') || '',
+            appointmentId: urlParams.get('appointmentId') || ''
+        };
+
+        // Backward compatibility: expose as individual global variables
+        // These are used in code at lines 1804-1814 and elsewhere
+        const userName = urlState.userName;
+        const userRole = urlState.userRole;
+        const userProfileImage = urlState.userProfileImage;
+        const providerName = urlState.providerName;
+        const providerRole = urlState.providerRole;
+        const patientName = urlState.patientName;
+        const sessionId = urlState.sessionId;
+        const appointmentId = urlState.appointmentId;
+
+        console.log('📝 URL Parameters loaded:', urlState);
         // ============================================
         // FLUTTER COMMUNICATION SHIM (Web + Mobile)
         // Creates FlutterChannel object that works with:
@@ -72,6 +87,22 @@
             console.log('✅ FlutterChannel shim installed for ' + platform);
 
             // ============================================
+            // CREATE MEDZEN CHIME NAMESPACE (Production-Safe)
+            // Prevents "joinMeeting is not defined" by ensuring the function
+            // exists in a known namespace before any message handlers try to use it.
+            // Implementation is deferred until after Chime SDK loads.
+            // ============================================
+            window.MedZenChime = window.MedZenChime || {
+                ready: false,
+                async join(payload) {
+                    if (!window.joinMeeting) {
+                        throw new Error('joinMeeting not yet initialized. Chime SDK may not be loaded.');
+                    }
+                    return await window.joinMeeting(payload.meeting, payload.attendee);
+                }
+            };
+
+            // ============================================
             // WEB PLATFORM: Listen for messages from parent Flutter app
             // This handles JOIN_MEETING and other commands from Flutter
             // ============================================
@@ -114,9 +145,13 @@
                                 leaveBtn.title = data.isProvider ? 'End Call for Everyone' : 'Leave Call';
                             }
 
-                            // Call joinMeeting with the provided data
+                            // Call MedZenChime.join() (guaranteed to exist, even if implementation isn't ready)
                             try {
-                                await joinMeeting(data.meeting, data.attendee);
+                                await window.MedZenChime.join({
+                                    meeting: data.meeting,
+                                    attendee: data.attendee,
+                                    urlState: urlState
+                                });
                                 console.log('✅ Meeting joined successfully via postMessage');
 
                                 // Apply initial mic/camera state
