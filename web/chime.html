@@ -1785,9 +1785,9 @@
         let currentMeetingId = null; // For API calls to end meeting
         let currentSessionId = '' + sessionId + '';  // ✅ PHASE 7 FIX: Renamed from sessionId to avoid shadowing URL param
         let currentAppointmentId = '' + appointmentId + '';  // ✅ PHASE 7 FIX: Added appointment ID from URL
-        let providerName = '' + providerName + ''; // Provider's display name for remote tile
-        let providerRole = '' + providerRole + ''; // Provider's role (e.g., "Dr." prefix or specialty)
-        let patientName = '' + patientName + ''; // Patient's display name for remote tile
+        let currentProviderName = '' + providerName + ''; // Provider's display name for remote tile
+        let currentProviderRole = '' + providerRole + ''; // Provider's role (e.g., "Dr." prefix or specialty)
+        let currentPatientName = '' + patientName + ''; // Patient's display name for remote tile
         let identityReady = true;  // Pre-initialized with actual participant details
         let attendees = new Map();
         let videoTiles = new Map();
@@ -3077,11 +3077,11 @@
                 // Remote tile: show the OTHER person's info
                 if (isProviderUser) {
                     // Provider is viewing patient - show patient name
-                    displayName = patientName && patientName.trim() ? patientName : 'Patient';
+                    displayName = currentPatientName && currentPatientName.trim() ? currentPatientName : 'Patient';
                 } else {
                     // Patient is viewing provider - show provider name and role
-                    displayName = providerName && providerName.trim() ? providerName : 'Provider';
-                    roleText = providerRole && providerRole.trim() ? providerRole : '';
+                    displayName = currentProviderName && currentProviderName.trim() ? currentProviderName : 'Provider';
+                    roleText = currentProviderRole && currentProviderRole.trim() ? currentProviderRole : '';
                 }
             }
 
