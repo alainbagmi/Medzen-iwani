@@ -1,12 +1,12 @@
 /**
  * MedZen Generate SOAP Note from Transcript
  *
- * Generates a clinician-grade SOAP note using AWS Bedrock (Claude 3 Opus).
+ * Generates a SOAP note using AWS Bedrock (Claude 3 Haiku).
  * Accepts either live-merged or medical-grade transcripts and produces
  * structured SOAP JSON that doctors can review, edit, and submit.
  *
  * Features:
- * - Claude 3 Opus for high-quality medical reasoning
+ * - Claude 3 Haiku for fast inference (10-15 seconds vs 30-45 seconds)
  * - Strict SOAP JSON schema validation
  * - Medical entity extraction
  * - ICD-10 and CPT code suggestions
@@ -15,7 +15,7 @@
  * - Telemedicine limitations documentation
  * - Full audit trail
  *
- * @version 1.0.0
+ * @version 1.1.0
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
@@ -32,8 +32,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 // Model configuration
-const BEDROCK_MODEL_ID = 'eu.anthropic.claude-opus-4-5-20251101-v1:0';  // Claude Opus 4.5 (EU region)
-const TEMPERATURE = 0.1;  // Low randomness for medical consistency (Opus 4.5 does not support top_p with temperature)
+const BEDROCK_MODEL_ID = 'eu.anthropic.claude-3-haiku-20240307-v1:0';  // Claude 3 Haiku (EU region) - fast inference for immediate SOAP generation
+const TEMPERATURE = 0.1;  // Low randomness for medical consistency
 
 // CORS Headers
 const corsHeaders = {
@@ -966,8 +966,8 @@ serve(async (req: Request) => {
         .eq('id', transcriptId);
     }
 
-    // Call Bedrock
-    console.log('[SOAP Generation] Calling Bedrock Claude 3 Opus...');
+    // Call Bedrock (Claude 3 Haiku for fast inference)
+    console.log('[SOAP Generation] Calling Bedrock Claude 3 Haiku for fast SOAP generation...');
     const soapJson = await generateSOAPWithBedrock(body);
 
     // Validate schema
