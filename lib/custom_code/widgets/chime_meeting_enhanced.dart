@@ -206,10 +206,11 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             // Removed: allowfullscreen boolean attribute (deprecated, conflicts with Permissions-Policy)
             // Result: All communication via postMessage (no same-origin needed)
             ..setAttribute('allow', 'camera; microphone; fullscreen; display-capture; encrypted-media; autoplay')
-            // SECURITY FIX: Remove 'allow-same-origin' (prevents sandbox escape via srcdoc)
-            // Keep only: allow-scripts (code must run), allow-popups (might be needed), allow-modals
-            // Result: iframe remains isolated, can't access parent context
-            ..setAttribute('sandbox', 'allow-scripts allow-popups allow-presentation allow-forms allow-downloads allow-modals');
+            // SECURITY FIX: Include 'allow-same-origin' for getUserMedia to work
+            // Without it: origin becomes "null" → getUserMedia() throws Invalid security origin
+            // Safe because: we load from same origin (relative URL), not using srcdoc
+            // Result: iframe gets real HTTPS origin → getUserMedia works → camera/mic permissions available
+            ..setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation allow-forms allow-downloads allow-modals');
 
           // ✅ CRITICAL FIX (Phase 7): Load from HTTPS origin using src attribute, not embedded HTML
           // - srcdoc (embedded HTML) → origin: null → getUserMedia() blocked
