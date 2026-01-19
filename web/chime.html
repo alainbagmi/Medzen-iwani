@@ -23,8 +23,9 @@
         const providerRole = urlParams.get('providerRole') || 'Medical Provider';
         const patientName = urlParams.get('patientName') || 'Patient';
         const sessionId = urlParams.get('sessionId') || '';
+        const appointmentId = urlParams.get('appointmentId') || '';
 
-        console.log('📝 URL Parameters loaded:', { userName, userRole, providerName, patientName, sessionId });
+        console.log('📝 URL Parameters loaded:', { userName, userRole, providerName, patientName, sessionId, appointmentId });
         // ============================================
         // FLUTTER COMMUNICATION SHIM (Web + Mobile)
         // Creates FlutterChannel object that works with:
@@ -1782,7 +1783,8 @@
         let callTitle = 'Video Call';
         let isProviderUser = false; // Provider can end call, patient can only leave
         let currentMeetingId = null; // For API calls to end meeting
-        let sessionId = '' + sessionId + '';  // Injected from Flutter - maps to appointmentId
+        let currentSessionId = '' + sessionId + '';  // ✅ PHASE 7 FIX: Renamed from sessionId to avoid shadowing URL param
+        let currentAppointmentId = '' + appointmentId + '';  // ✅ PHASE 7 FIX: Added appointment ID from URL
         let providerName = '' + providerName + ''; // Provider's display name for remote tile
         let providerRole = '' + providerRole + ''; // Provider's role (e.g., "Dr." prefix or specialty)
         let patientName = '' + patientName + ''; // Patient's display name for remote tile

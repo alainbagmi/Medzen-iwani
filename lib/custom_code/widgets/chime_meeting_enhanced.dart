@@ -211,9 +211,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             // Result: iframe remains isolated, can't access parent context
             ..setAttribute('sandbox', 'allow-scripts allow-popups allow-presentation allow-forms allow-downloads allow-modals');
 
-          // Set the HTML content via srcdoc
-          final htmlContent = _getEnhancedChimeHTML();
-          iframe.setAttribute('srcdoc', htmlContent);
+          // ✅ CRITICAL FIX (Phase 7): Load from HTTPS origin using src attribute, not embedded HTML
+          // - srcdoc (embedded HTML) → origin: null → getUserMedia() blocked
+          // - src attribute (external file) → origin: https://[deployment].pages.dev → getUserMedia() allowed
+          // This enables the browser permission dialog and real transcription
+          final chimeUrl = _buildChimeUrl();
+          iframe.src = chimeUrl;
+          debugPrint('🔗 Loading iframe from URL: $chimeUrl');
 
           // Store iframe reference for later postMessage communication
           _webIframe = iframe;
@@ -6675,6 +6679,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       providerRole: widget.providerRole,
       patientName: widget.patientName,
       sessionId: widget.sessionId,
+      appointmentId: widget.appointmentId,
     );
   }
 
@@ -6688,6 +6693,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     String? providerRole,
     String? patientName,
     String? sessionId,
+    String? appointmentId,
   }) {
     // ✅ Use relative URL so it loads from the same origin as the app
     // When deployed to Cloudflare Pages: https://[deployment-id].medzen-dev.pages.dev/chime.html
@@ -6702,6 +6708,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       'providerRole': (providerRole ?? '').isNotEmpty ? providerRole! : 'Medical Provider',
       'patientName': (patientName ?? '').isNotEmpty ? patientName! : 'Patient',
       'sessionId': sessionId ?? '',
+      'appointmentId': appointmentId ?? '',
     };
 
     final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
