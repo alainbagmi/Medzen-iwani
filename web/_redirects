@@ -1,0 +1,9 @@
+# Cloudflare Pages redirect rules
+# Service worker - serve as-is, don't redirect to index.html
+/firebase-messaging-sw.js /firebase-messaging-sw.js 200
+
+# Firebase Cloud Messaging scope - serve as-is
+/firebase-cloud-messaging-push-scope/* /firebase-cloud-messaging-push-scope/index.html 200
+
+# SPA fallback - everything else goes to index.html
+/* /index.html 200

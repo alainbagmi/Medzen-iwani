@@ -306,6 +306,7 @@ class _SoapSectionsViewerState extends State<SoapSectionsViewer>
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Column(
+      mainAxisSize: MainAxisSize.max,
       children: [
         // Tab bar
         TabBar(

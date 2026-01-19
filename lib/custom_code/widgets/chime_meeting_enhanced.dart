@@ -49,6 +49,7 @@ class ChimeMeetingEnhanced extends StatefulWidget {
     this.height,
     required this.meetingData,
     required this.attendeeData,
+    this.sessionId,
     this.userName = 'User',
     this.userProfileImage,
     this.userRole,
@@ -71,6 +72,7 @@ class ChimeMeetingEnhanced extends StatefulWidget {
   final double? height;
   final String meetingData;
   final String attendeeData;
+  final String? sessionId; // Video call session ID from edge function (used for transcript tracking)
   final String userName;
   final String? userProfileImage;
   final String? userRole;
@@ -100,6 +102,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   bool _isLoading = true;
   bool _sdkReady = false;
   Timer? _sdkLoadTimeout;
+  Timer? _meetingJoinTimeout;
 
   // Web-specific state
   String? _webViewId;
@@ -141,7 +144,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   Timer? _transcriptionIndicatorHideTimer; // Timer to auto-hide transcription indicator
   bool _showTranscriptionIndicator = true; // Whether to show transcription indicator
 
-  // === GUARD FLAG FOR MEETING END CALLBACK ===
+  // === GUARD FLAGS ===
+  bool _sdkReadyProcessing = false; // Prevent duplicate SDK_READY processing
+  bool _meetingJoinedProcessing = false; // Prevent duplicate MEETING_JOINED processing
   bool _meetingEndCallbackExecuting = false; // Prevent duplicate call end processing
 
   @override
@@ -156,6 +161,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         '📹 Initial mic enabled: ${widget.initialMicEnabled} (muted: $_isMuted)');
     debugPrint(
         '📹 Initial camera enabled: ${widget.initialCameraEnabled} (video off: $_isVideoOff)');
+
+    // FIX: Initialize sessionId synchronously from widget parameter (prevents race condition)
+    // CRITICAL: This must happen BEFORE any transcript events arrive from AWS Chime
+    // Root cause: Without this, transcript events in _handleLiveCaption() check `if (_sessionId != null)`
+    // and silently skip persistence to database, resulting in empty transcript_segments array
+    if (widget.sessionId != null && widget.sessionId!.isNotEmpty) {
+      _sessionId = widget.sessionId;
+      debugPrint('✅ Initialized _sessionId from widget parameter: $_sessionId');
+    } else {
+      debugPrint('⚠️ No sessionId provided from widget, will attempt async lookup later');
+    }
 
     _extractMeetingId();
 
@@ -185,12 +201,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             ..style.border = 'none'
             ..style.width = '100%'
             ..style.height = '100%'
-            // Critical: Allow camera, microphone, and display-capture for video calls
-            ..allow =
-                'camera; microphone; display-capture; autoplay; fullscreen; encrypted-media'
-            ..setAttribute('allowfullscreen', 'true')
-            // Critical: Allow scripts and cross-origin requests for Chime SDK CDN
-            ..setAttribute('sandbox', 'allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox allow-presentation');
+            // SECURITY FIX: Use modern Permissions-Policy (not deprecated allowfullscreen)
+            // Allows: camera, microphone (for video calls), fullscreen (for display), display-capture (for screen share)
+            // Removed: allowfullscreen boolean attribute (deprecated, conflicts with Permissions-Policy)
+            // Result: All communication via postMessage (no same-origin needed)
+            ..setAttribute('allow', 'camera; microphone; fullscreen; display-capture; encrypted-media; autoplay')
+            // SECURITY FIX: Remove 'allow-same-origin' (prevents sandbox escape via srcdoc)
+            // Keep only: allow-scripts (code must run), allow-popups (might be needed), allow-modals
+            // Result: iframe remains isolated, can't access parent context
+            ..setAttribute('sandbox', 'allow-scripts allow-popups allow-presentation allow-forms allow-downloads allow-modals');
 
           // Set the HTML content via srcdoc
           final htmlContent = _getEnhancedChimeHTML();
@@ -847,6 +866,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     try {
       if (message == 'SDK_READY') {
+        if (_sdkReadyProcessing) {
+          debugPrint('⚠️ SDK_READY already processing - ignoring duplicate');
+          return;
+        }
         _handleSdkReady();
       } else if (message.startsWith('MEETING_ENDED_BY_PROVIDER:')) {
         // Check guard flag to prevent duplicate processing of multiple signals
@@ -875,6 +898,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           message.startsWith('MEETING_ERROR')) {
         _handleMeetingEnd(message);
       } else if (message.startsWith('MEETING_JOINED')) {
+        if (_meetingJoinedProcessing) {
+          debugPrint('⚠️ MEETING_JOINED already processing - ignoring duplicate');
+          return;
+        }
         _handleMeetingJoined();
       } else if (message == 'CHAT_OPENED') {
         // Chat panel was opened - reset unread count
@@ -889,6 +916,10 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
           _showChat = false;
         });
         debugPrint('📨 Chat closed');
+      } else if (message == 'START_TRANSCRIPTION') {
+        // Transcription button clicked - start transcription
+        debugPrint('🎙️ [Flutter] START_TRANSCRIPTION message received from JavaScript');
+        _startTranscription();
       } else {
         // Try parsing as JSON for structured events
         final data = jsonDecode(message);
@@ -953,6 +984,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   }
 
   void _handleSdkReady() {
+    // Guard against duplicate processing
+    if (_sdkReadyProcessing || _sdkReady) {
+      debugPrint('⚠️ SDK already processing/ready - ignoring duplicate');
+      return;
+    }
+
+    _sdkReadyProcessing = true;
+
     debugPrint('✅ Chime SDK loaded and ready');
     _sdkLoadTimeout?.cancel();
     setState(() => _sdkReady = true);
@@ -979,12 +1018,20 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   Future<void> _handleMeetingEnd(String message) async {
     debugPrint('📞 Meeting ended: $message at ${DateTime.now().toIso8601String()}');
 
+    // Cancel timeouts
+    _sdkLoadTimeout?.cancel();
+    _meetingJoinTimeout?.cancel();
+
     // Stop transcription first (for providers) - this aggregates the transcript
     if (_isTranscriptionEnabled && widget.isProvider == true) {
       debugPrint('🛑 Stopping transcription before ending call...');
       await _stopTranscription();
       debugPrint('✅ Transcription stopped and transcript aggregated');
     }
+
+    // Finalize transcript and queue SOAP generation (Phase 4)
+    // This runs in background - don't wait for completion
+    _finalizeTranscriptAndQueueSoap();
 
     if (widget.onCallEnded != null) {
       debugPrint('📞 Calling onCallEnded callback to show post-call dialog');
@@ -996,7 +1043,99 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     debugPrint('✅ Meeting end process completed - guard flag reset');
   }
 
+  /// Finalize transcript and queue SOAP generation
+  /// Runs asynchronously in background after meeting ends
+  void _finalizeTranscriptAndQueueSoap() {
+    // Fire and forget - don't await completion
+    Future.microtask(() async {
+      try {
+        debugPrint('[Background] Starting transcript finalization and SOAP queueing...');
+
+        // ✅ CRITICAL FIX: Ensure _sessionId is set before calling finalize-transcript
+        if (_sessionId == null) {
+          debugPrint('[Background] ⚠️ _sessionId is null, fetching from database...');
+          await _fetchSessionId();
+          if (_sessionId == null) {
+            debugPrint('[Background] ❌ Failed to fetch _sessionId, cannot finalize transcript');
+            return;
+          }
+          debugPrint('[Background] ✅ Successfully fetched _sessionId: $_sessionId');
+        }
+
+        // Get Firebase token for auth
+        final firebaseToken =
+            await FirebaseAuth.instance.currentUser?.getIdToken(true);
+
+        if (firebaseToken == null) {
+          debugPrint('⚠️ [Background] No Firebase token available for finalize-transcript');
+          return;
+        }
+
+        // Get Supabase configuration
+        final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
+        final supabaseAnonKey = FFDevEnvironmentValues().Supabasekey;
+
+        // Step 1: Call finalize-transcript to merge captions
+        debugPrint('[Background] Calling finalize-transcript edge function...');
+
+        final requestBody = {
+          'sessionId': _sessionId,  // Use actual session ID (not appointmentId)
+        };
+        final requestBodyJson = jsonEncode(requestBody);
+        debugPrint('[DEBUG] 📤 finalize-transcript request body: $requestBodyJson');
+
+        final finalizeResponse = await http.post(
+          Uri.parse('$supabaseUrl/functions/v1/finalize-transcript'),
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseAnonKey,
+            'Authorization': 'Bearer $supabaseAnonKey',
+            'x-firebase-token': firebaseToken,
+          },
+          body: requestBodyJson,
+        ).timeout(
+          Duration(seconds: 30),
+          onTimeout: () {
+            debugPrint('⚠️ [Background] finalize-transcript timeout (30s)');
+            throw TimeoutException('Finalize transcript timeout');
+          },
+        );
+
+        if (finalizeResponse.statusCode == 200) {
+          debugPrint('[Background] ✅ Transcript finalized successfully');
+
+          // Decode response to get details
+          final finalizeData = jsonDecode(finalizeResponse.body);
+          debugPrint('[Background] Transcript: ${finalizeData['transcriptLength']} chars, '
+              '${finalizeData['segmentCount']} segments');
+        } else {
+          debugPrint('[Background] ⚠️ Finalize response: ${finalizeResponse.statusCode}');
+          debugPrint('[Background] Response: ${finalizeResponse.body}');
+        }
+
+        // Step 2: Queue SOAP generation via update (optional - finalize-transcript already does this)
+        // The finalize-transcript function already sets soap_status='queued', so SOAP generation
+        // will be triggered when post-call dialog polls for status
+        debugPrint('[Background] ✅ Transcript finalization process completed');
+      } catch (e) {
+        debugPrint('[Background] ⚠️ Transcript finalization error: $e');
+        // Don't rethrow - we don't want background errors to affect UI
+      }
+    });
+  }
+
   void _handleMeetingJoined() {
+    // Guard against duplicate processing
+    if (_meetingJoinedProcessing) {
+      debugPrint('⚠️ Meeting already processing join - ignoring duplicate');
+      return;
+    }
+
+    _meetingJoinedProcessing = true;
+
+    // Cancel meeting join timeout since we successfully joined
+    _meetingJoinTimeout?.cancel();
+
     debugPrint('✅ Successfully joined meeting');
 
     // Register self-attendee if not already in the attendees map
@@ -1102,8 +1241,9 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
     if (transcriptText.isEmpty) return;
 
+    // DIAGNOSTIC: Log ALL events to track transcript flow
     debugPrint(
-        '📝 Live Caption: [$speakerName] $transcriptText (partial: $isPartial)');
+        '📝 Live Caption: [$speakerName] $transcriptText (partial: $isPartial, session: $_sessionId)');
 
     // Update current caption for overlay display
     setState(() {
@@ -1120,19 +1260,35 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
     });
 
-    // Only store non-partial (final) transcripts to database
-    if (!isPartial && _sessionId != null) {
+    // Store transcripts to database
+    // UPDATED: Store BOTH partial and final transcripts (partial=true stores "partial", partial=false stores "final")
+    // This ensures no transcript segments are lost due to timing issues
+    if (_sessionId != null) {
       try {
+        // Determine transcript type
+        final transcriptType = isPartial ? 'partial' : 'final';
+
         await SupaFlow.client.from('live_caption_segments').insert({
           'session_id': _sessionId,
           'speaker_name': speakerName,
           'transcript_text': transcriptText,
           'is_partial': isPartial,
+          'transcript_type': transcriptType, // NEW: Track type for filtering
+          'result_id': resultId, // NEW: Deduplicate segments
+          'created_at': timestamp,
         });
-        debugPrint('✅ Caption stored to database');
+
+        debugPrint(
+            '✅ Caption stored ($transcriptType) - $speakerName: ${transcriptText.substring(0, 40).replaceAll('\n', ' ')}...');
       } catch (e) {
         debugPrint('❌ Failed to store caption: $e');
       }
+    } else {
+      // DIAGNOSTIC: Why is sessionId null during call?
+      debugPrint(
+          '⚠️ SKIPPED storing caption (sessionId is null!) - this means _fetchSessionId() failed');
+      debugPrint(
+          '   Check: widget.sessionId=${widget.sessionId}, appointmentId=${widget.appointmentId}');
     }
   }
 
@@ -1503,10 +1659,33 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
 
       // Save message to Supabase (appointment-based chat)
-      final senderName = data['sender'] as String? ?? widget.userName;
-      final senderRole = data['role'] as String? ?? widget.userRole ?? '';
-      final senderAvatar =
-          data['profileImage'] as String? ?? widget.userProfileImage ?? '';
+      // ✅ PHASE 5 FIX: Validate and provide fallbacks for identity values
+      String senderName = (data['sender'] as String?)?.trim() ?? widget.userName ?? 'Participant';
+      String senderRole = (data['role'] as String?)?.trim() ?? widget.userRole ?? '';
+      String senderAvatar = (data['profileImage'] as String?)?.trim() ?? widget.userProfileImage ?? '';
+
+      // Ensure we never save generic 'User' name or empty values
+      if (senderName.isEmpty || senderName == 'User') {
+        debugPrint(
+            '⚠️ WARNING: Received invalid sender name: "$senderName", using widget.userName');
+        senderName = widget.userName ?? 'Participant';
+      }
+
+      debugPrint(
+          '💬 Message identity validation: sender="$senderName", role="$senderRole"');
+
+      // Determine receiver based on sender role
+      String? receiverId;
+      String? receiverName;
+      if (widget.isProvider) {
+        // Provider sending message → patient is receiver
+        receiverId = widget.patientId;
+        receiverName = widget.patientName;
+      } else {
+        // Patient sending message → provider is receiver
+        receiverId = widget.providerId;
+        receiverName = widget.providerName;
+      }
 
       final messageData = {
         'appointment_id':
@@ -1517,6 +1696,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         'sender_name':
             senderRole.isNotEmpty ? '$senderRole $senderName' : senderName,
         'sender_avatar': senderAvatar,
+        'receiver_id': receiverId, // Add receiver ID
+        'receiver_name': receiverName, // Add receiver name
         'message': data['message'] ?? '',
         'message_content': data['message'] ?? '',
         'message_type': data['messageType'] ?? 'text',
@@ -1735,6 +1916,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
   /// Fetches the video call session ID for this appointment
   Future<String?> _fetchSessionId() async {
+    // ✅ PRIORITY: Use sessionId passed from join_room.dart via edge function response
+    // This is the authoritative source, extracted directly from the database
+    if (widget.sessionId != null && widget.sessionId!.isNotEmpty) {
+      _sessionId = widget.sessionId;
+      debugPrint('✅ Using sessionId from widget parameter: $_sessionId');
+      return _sessionId;
+    }
+
+    // Fallback: Query database if sessionId not provided
     if (widget.appointmentId == null) {
       debugPrint('⚠️ No appointment ID for session lookup');
       return null;
@@ -2087,6 +2277,12 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   /// This is called AFTER server-side transcription starts, because the initial
   /// setup check runs before transcription is enabled and the controller may not exist.
   Future<void> _subscribeToTranscriptionControllerViaJS() async {
+    // Web platform uses iframe postMessage, not InAppWebViewController
+    if (kIsWeb) {
+      debugPrint('ℹ️ Web platform uses postMessage for transcription - skipping JS injection');
+      return;
+    }
+
     if (_webViewController == null) {
       debugPrint(
           '⚠️ WebView controller not available for transcription subscription');
@@ -2230,6 +2426,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     try {
       debugPrint('🎬 Joining meeting...');
 
+      // Start timeout for meeting join (20 seconds)
+      _meetingJoinTimeout = Timer(const Duration(seconds: 20), () {
+        if (!_meetingJoinedProcessing && mounted) {
+          debugPrint('⚠️ Meeting join timeout after 20 seconds');
+          _showErrorSnackBar('Failed to join meeting. Please try again.');
+          if (widget.onCallEnded != null) {
+            widget.onCallEnded!();
+          }
+        }
+      });
+
       // Parse meeting and attendee data
       final meetingMap = jsonDecode(widget.meetingData);
       final attendeeMap = jsonDecode(widget.attendeeData);
@@ -2295,17 +2502,26 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         console.log('Initial Mic Off:', $initialMicOff);
         console.log('Initial Video Off:', $initialVideoOff);
 
-        currentAttendeeName = $userName;
-        currentUserRole = $userRole;
-        currentUserProfileImage = $userProfileImage;
+        // ✅ PHASE 5 FIX: Initialize identity with actual values from Dart
+        currentAttendeeName = $userName || 'Participant';
+        currentUserRole = $userRole || 'Guest';
+        currentUserProfileImage = $userProfileImage || '';
         callTitle = $callTitleJson;
         isProviderUser = $isProvider;
         currentMeetingId = $meetingIdForApi;
 
         // Provider/Patient info for displaying correct names on remote video tiles
-        providerName = $providerNameJson;
-        providerRole = $providerRoleJson;
-        patientName = $patientNameJson;
+        providerName = $providerNameJson || 'Provider';
+        providerRole = $providerRoleJson || 'Medical Provider';
+        patientName = $patientNameJson || 'Patient';
+
+        // ✅ Log identity initialization for debugging
+        console.log('✅ Identity initialized from Dart:', {
+            currentAttendeeName,
+            currentUserRole,
+            hasProfileImage: !!currentUserProfileImage,
+            isProvider: isProviderUser
+        });
 
         // Store initial device state from pre-joining dialog
         const shouldStartMuted = $initialMicOff;
@@ -2417,8 +2633,28 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     }
   }
 
+  /// Escape Dart string for safe JavaScript string literal injection
+  String _escapeJsString(String str) {
+    return str
+        .replaceAll('\\', '\\\\') // Escape backslashes first
+        .replaceAll("'", "\\'")   // Escape single quotes
+        .replaceAll('\n', '\\n')  // Escape newlines
+        .replaceAll('\r', '\\r')  // Escape carriage returns
+        .replaceAll('\t', '\\t'); // Escape tabs
+  }
+
   String _getEnhancedChimeHTML() {
-    return r'''
+    // Extract participant details from widget, with sensible defaults
+    final userName = _escapeJsString(widget.userName ?? 'User');
+    final userRole = _escapeJsString(widget.userRole ?? '');
+    final userProfileImage = _escapeJsString(widget.userProfileImage ?? '');
+    final providerName = _escapeJsString(widget.providerName ?? '');
+    final patientName = _escapeJsString(widget.patientName ?? '');
+    final providerRole = _escapeJsString(widget.providerRole ?? '');
+    final sessionId = widget.appointmentId ?? '';
+
+    // Build HTML with injected participant details at critical initialization points
+    String htmlBefore = r'''
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2630,6 +2866,13 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 
         // SDK Load Success Handler
         function handleSDKLoadSuccess() {
+            // Guard against double initialization
+            if (window.__CHIME_INIT_DONE__) {
+                console.log('⚠️ SDK already initialized, skipping duplicate init');
+                return;
+            }
+            window.__CHIME_INIT_DONE__ = true;
+
             console.log('📦 SDK script loaded from CDN');
             updateLoadingStatus('SDK downloaded, initializing...');
             if (typeof window.ChimeSDK !== 'undefined') {
@@ -3769,6 +4012,14 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 </svg>
                 <span id="chat-badge" class="notification-badge hidden">0</span>
             </button>
+            <button id="transcription-btn" class="control-btn" title="Start Transcription">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            </button>
             <button id="leave-btn" class="control-btn leave" title="End Call">
                 <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
@@ -4163,15 +4414,17 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         // Global variables
         let meetingSession;
         let audioVideo;
-        let currentAttendeeName = 'User';
-        let currentUserRole = '';
-        let currentUserProfileImage = '';
+        let currentAttendeeName = '{{CURRENT_ATTENDEE_NAME}}';  // Injected from Flutter
+        let currentUserRole = '{{CURRENT_USER_ROLE}}';          // Injected from Flutter
+        let currentUserProfileImage = '{{CURRENT_USER_PROFILE_IMAGE}}';  // Injected from Flutter
         let callTitle = 'Video Call';
         let isProviderUser = false; // Provider can end call, patient can only leave
         let currentMeetingId = null; // For API calls to end meeting
-        let providerName = ''; // Provider's display name for remote tile
-        let providerRole = ''; // Provider's role (e.g., "Dr." prefix or specialty)
-        let patientName = ''; // Patient's display name for remote tile
+        let sessionId = '{{SESSION_ID}}';  // Injected from Flutter - maps to appointmentId
+        let providerName = '{{PROVIDER_NAME}}'; // Provider's display name for remote tile
+        let providerRole = '{{PROVIDER_ROLE}}'; // Provider's role (e.g., "Dr." prefix or specialty)
+        let patientName = '{{PATIENT_NAME}}'; // Patient's display name for remote tile
+        let identityReady = true;  // Pre-initialized with actual participant details
         let attendees = new Map();
         let videoTiles = new Map();
         let isMuted = false;
@@ -5357,14 +5610,30 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             if (meetingSession.audioVideo.transcriptionController) {
                 console.log('🎙️ Setting up transcription controller subscription...');
 
+                // DIAGNOSTIC: Track if events are firing
+                let transcriptEventCount = 0;
+                let lastEventTime = Date.now();
+
                 meetingSession.audioVideo.transcriptionController.subscribeToTranscriptEvent((transcriptEvent) => {
+                    transcriptEventCount++;
+                    const now = Date.now();
+                    const timeSinceLastEvent = now - lastEventTime;
+                    lastEventTime = now;
+
+                    // DIAGNOSTIC: Log every event received
+                    console.log(`📊 [Event #${transcriptEventCount}] Received transcript event (${timeSinceLastEvent}ms since last)`);
+
                     if (!transcriptEvent || !transcriptEvent.transcriptAlternative) {
+                        console.warn('⚠️ Event missing transcriptAlternative');
                         return;
                     }
 
                     // Process transcript items
-                    transcriptEvent.transcriptAlternative.forEach((alternative) => {
-                        if (!alternative.items) return;
+                    transcriptEvent.transcriptAlternative.forEach((alternative, altIndex) => {
+                        if (!alternative.items) {
+                            console.warn('⚠️ Alternative #' + altIndex + ' missing items');
+                            return;
+                        }
 
                         // Build the transcript text from items
                         const transcriptText = alternative.items
@@ -5372,16 +5641,21 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                             .filter(content => content && content.trim())
                             .join(' ');
 
-                        if (!transcriptText || !transcriptText.trim()) return;
+                        if (!transcriptText || !transcriptText.trim()) {
+                            console.warn('⚠️ No transcript text in items');
+                            return;
+                        }
 
                         // Determine speaker
                         const speakerLabel = alternative.items[0]?.speakerLabel || 'Unknown';
                         const isPartial = transcriptEvent.isPartial || false;
                         const resultId = transcriptEvent.resultId || Date.now().toString();
 
-                        console.log('📝 Transcription:', {
+                        console.log('📝 Transcription Event:', {
+                            eventNum: transcriptEventCount,
                             speaker: speakerLabel,
                             partial: isPartial,
+                            itemCount: alternative.items.length,
                             text: transcriptText.substring(0, 50) + '...'
                         });
 
@@ -5399,9 +5673,20 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                     });
                 });
 
-                console.log('✅ Transcription controller subscription active');
+                console.log('✅ Transcription controller subscription active (will log when events arrive)');
+
+                // Set up periodic diagnostic (every 5 seconds)
+                setInterval(() => {
+                    if (transcriptEventCount === 0) {
+                        console.warn('⚠️ No transcript events received in last 5 seconds (check if transcription started)');
+                    } else {
+                        console.log(`📊 Transcript events: ${transcriptEventCount} total received`);
+                    }
+                }, 5000);
             } else {
                 console.log('⚠️ Transcription controller not available (transcription may not be started)');
+                console.log('   Check: meetingSession=' + (meetingSession ? 'exists' : 'NULL'));
+                console.log('   Check: meetingSession.audioVideo=' + (meetingSession?.audioVideo ? 'exists' : 'NULL'));
             }
         }
 
@@ -5635,6 +5920,19 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             toggleChat();
         });
 
+        document.getElementById('transcription-btn').addEventListener('click', () => {
+            console.log('🎙️ Transcription button clicked');
+            const btn = document.getElementById('transcription-btn');
+
+            // Post message to Flutter to start/stop transcription
+            if (window.FlutterChannel) {
+                console.log('📤 Sending START_TRANSCRIPTION message to Flutter');
+                window.FlutterChannel.postMessage('START_TRANSCRIPTION');
+            } else {
+                console.warn('⚠️ FlutterChannel not available');
+            }
+        });
+
         document.getElementById('leave-btn').addEventListener('click', () => {
             // CRITICAL: Check flag first to prevent any race conditions
             if (callEnding) {
@@ -5841,23 +6139,56 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
             const message = input.value.trim();
             if (!message) return;
 
+            // ✅ PHASE 5 FIX: Enhanced identity validation before sending
+            // Log current identity state for debugging
+            console.log('📨 Send message - Identity check:', {
+                currentAttendeeName,
+                currentUserRole,
+                identityReady,
+                isValidUser: currentAttendeeName && currentAttendeeName !== 'User' && currentAttendeeName !== ''
+            });
+
+            // Robust identity validation
+            if (!identityReady) {
+                console.warn('⚠️ Identity not ready (identityReady=false)');
+                alert('Please wait for connection to establish...');
+                return;
+            }
+
+            if (!currentAttendeeName || currentAttendeeName === 'User' || currentAttendeeName === '') {
+                console.error('❌ Invalid attendee name:', currentAttendeeName);
+                alert('Error: Identity not properly initialized. Please refresh and try again.');
+                return;
+            }
+
+            if (!currentUserRole) {
+                console.warn('⚠️ User role not set, using participant identity');
+            }
+
+            // ✅ Message sent with validated identity
+            console.log('✅ Sending message with identity:', {
+                sender: currentAttendeeName,
+                role: currentUserRole || 'Participant',
+                hasProfileImage: !!currentUserProfileImage
+            });
+
             const messageData = {
                 type: 'SEND_MESSAGE',
                 data: {
                     message: message,
                     messageType: 'text',
                     timestamp: new Date().toISOString(),
-                    sender: currentAttendeeName,
-                    role: currentUserRole,
-                    profileImage: currentUserProfileImage
+                    sender: currentAttendeeName,  // Now guaranteed to be valid
+                    role: currentUserRole || 'Participant',  // Fallback if not set
+                    profileImage: currentUserProfileImage || ''
                 }
             };
 
             window.FlutterChannel?.postMessage(JSON.stringify(messageData));
             displayMessage({
                 sender: currentAttendeeName,
-                role: currentUserRole,
-                profileImage: currentUserProfileImage,
+                role: currentUserRole || 'Participant',
+                profileImage: currentUserProfileImage || '',
                 message: message,
                 timestamp: new Date().toISOString(),
                 isOwn: true
@@ -6281,6 +6612,24 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
 </body>
 </html>
 ''';
+
+    // Inject actual participant details from Flutter into HTML
+    // ✅ PHASE 5 FIX: Ensure identity values are never empty
+    final safeUserName = userName.isNotEmpty ? userName : 'Participant';
+    final safeUserRole = userRole.isNotEmpty ? userRole : 'Guest';
+    final safeProfileImage = userProfileImage;
+    final safeProviderName = providerName.isNotEmpty ? providerName : 'Provider';
+    final safeProviderRole = providerRole.isNotEmpty ? providerRole : 'Medical Provider';
+    final safePatientName = patientName.isNotEmpty ? patientName : 'Patient';
+
+    return htmlBefore
+        .replaceAll('{{CURRENT_ATTENDEE_NAME}}', safeUserName)
+        .replaceAll('{{CURRENT_USER_ROLE}}', safeUserRole)
+        .replaceAll('{{CURRENT_USER_PROFILE_IMAGE}}', safeProfileImage)
+        .replaceAll('{{PROVIDER_NAME}}', safeProviderName)
+        .replaceAll('{{PROVIDER_ROLE}}', safeProviderRole)
+        .replaceAll('{{PATIENT_NAME}}', safePatientName)
+        .replaceAll('{{SESSION_ID}}', sessionId);
   }
 
   @override
@@ -6356,8 +6705,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
                 child: _buildCaptionOverlay(),
               ),
 
-            // Transcription indicator (top-right corner, auto-hide after 5 seconds)
-            if (_sdkReady && !_showChat && _showTranscriptionIndicator)
+            // Transcription indicator (top-right corner)
+            if (_sdkReady && !_showChat)
               Positioned(
                 top: 50,
                 right: 16,

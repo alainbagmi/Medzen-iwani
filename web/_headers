@@ -1,0 +1,19 @@
+/firebase-messaging-sw.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: max-age=3600, public
+
+/firebase-cloud-messaging-push-scope/*
+  Content-Type: text/html; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/*.js
+  Content-Type: application/javascript; charset=utf-8
+  Cache-Control: max-age=31536000, immutable
+
+/*.css
+  Content-Type: text/css; charset=utf-8
+  Cache-Control: max-age=31536000, immutable
+
+/
+  Cache-Control: no-cache, no-store, must-revalidate
+  Content-Type: text/html; charset=utf-8

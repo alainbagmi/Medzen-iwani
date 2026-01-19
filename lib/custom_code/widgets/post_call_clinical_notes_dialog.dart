@@ -51,24 +51,76 @@ class _PostCallClinicalNotesDialogState
   bool _isAiEnhancing = false;
   final TextEditingController _notesController = TextEditingController();
 
+  // Logging tracking
+  late DateTime _dialogCreatedAt;
+  String? _lastLogContext;
+
+  /// ⏱️ Timing instrumentation helper - wraps async operations with stopwatch logging
+  /// Logs: [START label] → [END label (Xms)] or [FAIL label (Xms) => error]
+  Future<T> timed<T>(String label, Future<T> Function() fn) async {
+    final sw = Stopwatch()..start();
+    debugPrint('⏱️  START $label');
+    try {
+      final result = await fn();
+      debugPrint('✅ END   $label (${sw.elapsedMilliseconds}ms)');
+      return result;
+    } catch (e, st) {
+      debugPrint('❌ FAIL  $label (${sw.elapsedMilliseconds}ms) => $e');
+      rethrow;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _dialogCreatedAt = DateTime.now();
+
     // Initialize to ready state
     _soapData = _createEmptySoapStructure();
     _isGenerating = false;
-    debugPrint('📱 PostCallClinicalNotesDialog initialized');
+
+    debugPrint('═══════════════════════════════════════════════════════════');
+    debugPrint('📱 [SOAP Dialog] Initialized at ${_dialogCreatedAt.toIso8601String()}');
+    debugPrint('   Session ID: ${widget.sessionId}');
+    debugPrint('   Appointment ID: ${widget.appointmentId}');
+    debugPrint('   Patient: ${widget.patientName}');
+    debugPrint('═══════════════════════════════════════════════════════════');
 
     // Trigger automatic transcript fetching and SOAP generation after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[SOAP Dialog] First frame callback fired, calling _checkTranscriptAndGenerateNote()');
       _checkTranscriptAndGenerateNote();
     });
   }
 
   @override
   void dispose() {
-    _notesController.dispose();
-    super.dispose();
+    final disposeStartTime = DateTime.now();
+    final lifespanElapsed = DateTime.now().difference(_dialogCreatedAt);
+
+    debugPrint('═══════════════════════════════════════════════════════════');
+    debugPrint('🔴 [SOAP Dialog] dispose() called');
+    debugPrint('   Session ID: ${widget.sessionId}');
+    debugPrint('   Dialog lifespan: ${lifespanElapsed.inSeconds}s (${lifespanElapsed.inMilliseconds}ms)');
+    debugPrint('   _isGenerating: $_isGenerating | _soapNoteId: $_soapNoteId');
+    debugPrint('═══════════════════════════════════════════════════════════');
+
+    try {
+      debugPrint('[Cleanup] Disposing TextEditingController...');
+      _notesController.dispose();
+      debugPrint('✅ TextEditingController disposed');
+
+      debugPrint('[Cleanup] Calling super.dispose()...');
+      super.dispose();
+      debugPrint('✅ super.dispose() completed');
+
+      final disposeElapsed = DateTime.now().difference(disposeStartTime);
+      debugPrint('✅ [SOAP Dialog] Cleanup completed in ${disposeElapsed.inMilliseconds}ms');
+    } catch (e) {
+      final disposeElapsed = DateTime.now().difference(disposeStartTime);
+      debugPrint('❌ Error during dispose after ${disposeElapsed.inMilliseconds}ms: $e');
+      rethrow;
+    }
   }
 
   Future<void> _checkTranscriptAndGenerateNote() async {
@@ -96,8 +148,8 @@ class _PostCallClinicalNotesDialogState
       // OPTIMIZATION: Try both in parallel - sessionId (fast) + appointmentId (fallback)
       if (isValidSessionId) {
         debugPrint('⚡ Parallelizing sessionId and appointmentId lookups...');
-        final sessionByIdFuture = _fetchSessionByIdWithRetry();
-        final sessionByAppointmentFuture = _fetchSessionByAppointmentId();
+        final sessionByIdFuture = timed('fetch-session-by-id', () => _fetchSessionByIdWithRetry());
+        final sessionByAppointmentFuture = timed('fetch-session-by-appointmentId', () => _fetchSessionByAppointmentId());
 
         final results = await Future.wait([
           sessionByIdFuture,
@@ -107,7 +159,7 @@ class _PostCallClinicalNotesDialogState
         session = results[0] ?? results[1]; // Use sessionId result if available, else appointmentId
       } else {
         debugPrint('⏳ Session ID invalid or empty: "${widget.sessionId}". Using appointmentId lookup only.');
-        session = await _fetchSessionByAppointmentId();
+        session = await timed('fetch-session-by-appointmentId-only', () => _fetchSessionByAppointmentId());
       }
 
       // OPTIMIZATION 3: Show empty template immediately instead of waiting for generation
@@ -134,15 +186,19 @@ class _PostCallClinicalNotesDialogState
 
       if (transcript == null || transcript.isEmpty) {
         debugPrint('⚠️ Transcript is empty, showing empty form');
+        if (!mounted) return;  // CRITICAL: Widget may have unmounted during async gap
         setState(() {
           _isGenerating = false;
           _soapData = _createEmptySoapStructure();
+          // Show helpful message on web when transcript unavailable
+          _errorMessage = 'Transcript unavailable. Please enter clinical notes manually below.';
         });
         return;
       }
 
       // OPTIMIZATION 3: Show empty template first, then enhance async
       debugPrint('📋 Showing empty form template immediately...');
+      if (!mounted) return;  // CRITICAL: Widget may have unmounted during async gap
       setState(() {
         _isGenerating = false; // Stop showing spinner
         _soapData = _createEmptySoapStructure();
@@ -173,7 +229,7 @@ class _PostCallClinicalNotesDialogState
         debugPrint('🔍 Attempting to fetch session by ID (attempt ${retries + 1}/$maxRetries)...');
         final session = await SupaFlow.client
             .from('video_call_sessions')
-            .select('id, transcript, speaker_segments, status')
+            .select('id, transcript_text, transcript_status, soap_status, soap_json')
             .eq('id', widget.sessionId!)
             .maybeSingle()
             .timeout(
@@ -213,7 +269,7 @@ class _PostCallClinicalNotesDialogState
       debugPrint('🔍 Fetching session by appointmentId: ${widget.appointmentId}');
       final session = await SupaFlow.client
           .from('video_call_sessions')
-          .select('id, transcript, speaker_segments, status')
+          .select('id, transcript_text, transcript_status, soap_status, soap_json')
           .eq('appointment_id', widget.appointmentId)
           .order('created_at', ascending: false)
           .limit(1)
@@ -291,9 +347,11 @@ class _PostCallClinicalNotesDialogState
       String? token;
       debugPrint('⏳ About to call getIdToken(true) with 10-sec timeout');
       try {
-        token = await currentUser.getIdToken(true).timeout(
-          const Duration(seconds: 10),
-          onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+        token = await timed('firebase-token-refresh-forced', () =>
+          currentUser.getIdToken(true).timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+          )
         );
         debugPrint('✅ Firebase token obtained (refreshed): ${token?.substring(0, 20)}...');
       } catch (e) {
@@ -301,8 +359,10 @@ class _PostCallClinicalNotesDialogState
         debugPrint('⏳ Fallback: Calling getIdToken(false) with 5-sec timeout');
         // Fall back to non-refreshed token (may be stale but better than freezing)
         try {
-          token = await currentUser.getIdToken(false).timeout(
-            const Duration(seconds: 5),
+          token = await timed('firebase-token-fallback-nofresh', () =>
+            currentUser.getIdToken(false).timeout(
+              const Duration(seconds: 5),
+            )
           );
           debugPrint('✅ Firebase token obtained (non-refreshed): ${token?.substring(0, 20)}...');
         } catch (err) {
@@ -349,24 +409,26 @@ class _PostCallClinicalNotesDialogState
         }
       });
 
-      final response = await http.post(
-        Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': 'Bearer $supabaseKey',
-          'x-firebase-token': token,
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'sessionId': widget.sessionId,
-          'appointmentId': widget.appointmentId,
-          'providerId': widget.providerId,
-          'patientId': widget.patientId,
-          'transcript': transcript,
-        }),
-      ).timeout(
-        const Duration(seconds: 25), // Reduced from 50s to 25s - Haiku should be much faster
-        onTimeout: () => throw TimeoutException('SOAP generation timed out after 25 seconds'),
+      final response = await timed('http-post-generate-soap', () =>
+        http.post(
+          Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': 'Bearer $supabaseKey',
+            'x-firebase-token': token!,
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'sessionId': widget.sessionId,
+            'appointmentId': widget.appointmentId,
+            'providerId': widget.providerId,
+            'patientId': widget.patientId,
+            'transcript': transcript,
+          }),
+        ).timeout(
+          const Duration(seconds: 25), // Reduced from 50s to 25s - Haiku should be much faster
+          onTimeout: () => throw TimeoutException('SOAP generation timed out after 25 seconds'),
+        )
       );
 
       responseReceived = true;
@@ -428,21 +490,43 @@ class _PostCallClinicalNotesDialogState
   }
 
   Future<void> _saveNote() async {
+    final saveStartTime = DateTime.now();
+    debugPrint('═══════════════════════════════════════════════════════════');
+    debugPrint('💾 [SOAP Dialog] _saveNote() called at ${saveStartTime.toIso8601String()}');
+    debugPrint('   mounted: $mounted | _soapData != null: ${_soapData != null}');
+    debugPrint('═══════════════════════════════════════════════════════════');
+
     if (_soapData == null) {
+      debugPrint('❌ No SOAP data to save, showing snackbar');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No SOAP data to save')),
       );
       return;
     }
 
+    debugPrint('✅ SOAP data present, starting save process');
+    debugPrint('   mounted: $mounted');
+
+    if (!mounted) {
+      debugPrint('⚠️ Widget unmounted before setState, aborting save');
+      return;
+    }
+
     setState(() => _isLoading = true);
+    debugPrint('✅ setState(_isLoading = true) completed');
 
     try {
       // PHASE 1: DATABASE SAVE (BLOCKING - PRIMARY OPERATION)
       // This is the critical operation that must complete successfully
       // The SOAP note is persisted to Supabase as the source of truth
+      debugPrint('📝 PHASE 1: Starting database save...');
+      final dbStartTime = DateTime.now();
+
       if (_soapNoteId != null) {
         // Update existing SOAP note
+        debugPrint('🔄 Updating existing SOAP note (ID: $_soapNoteId)');
+        debugPrint('   SOAP data size: ${jsonEncode(_soapData).length} bytes');
+
         await SupaFlow.client
             .from('soap_notes')
             .update({
@@ -451,8 +535,18 @@ class _PostCallClinicalNotesDialogState
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', _soapNoteId!);
+
+        final dbElapsed = DateTime.now().difference(dbStartTime);
+        debugPrint('✅ SOAP note updated successfully in ${dbElapsed.inMilliseconds}ms');
       } else {
         // Create new SOAP note if not generated yet
+        debugPrint('➕ Creating new SOAP note (no ID yet)');
+        debugPrint('   Session: ${widget.sessionId}');
+        debugPrint('   Appointment: ${widget.appointmentId}');
+        debugPrint('   Provider: ${widget.providerId}');
+        debugPrint('   Patient: ${widget.patientId}');
+        debugPrint('   SOAP data size: ${jsonEncode(_soapData).length} bytes');
+
         final result = await SupaFlow.client
             .from('soap_notes')
             .insert({
@@ -469,33 +563,69 @@ class _PostCallClinicalNotesDialogState
             .single();
 
         _soapNoteId = result['id'] as String?;
+        final dbElapsed = DateTime.now().difference(dbStartTime);
+        debugPrint('✅ New SOAP note created (ID: $_soapNoteId) in ${dbElapsed.inMilliseconds}ms');
       }
+
+      debugPrint('📝 PHASE 1 complete - database save successful');
 
       // PHASE 2: ASYNC BACKGROUND OPERATIONS (NON-BLOCKING - SECONDARY)
       // After database save completes successfully, fire async background operations:
       // 1. Sync SOAP note to EHRbase (non-blocking)
       // 2. Update cumulative patient medical record (non-blocking)
       // These do not block the provider workflow - if they fail, they're logged but don't prevent closing
+      debugPrint('🔄 PHASE 2: Starting async background operations (non-blocking)...');
+      debugPrint('   _soapNoteId: $_soapNoteId');
+
       if (_soapNoteId != null) {
+        debugPrint('🚀 Firing background tasks: EHR sync + patient record update');
         _syncToEhrInBackground();
         _updatePatientMedicalRecordInBackground();
+        debugPrint('✅ Background tasks fired (non-blocking)');
+      } else {
+        debugPrint('⚠️ No SOAP note ID available, skipping background tasks');
       }
 
+      // Check mounted before navigation
+      debugPrint('📤 Checking mounted status before navigation...');
+      debugPrint('   mounted: $mounted');
+
       if (mounted) {
+        debugPrint('✅ Widget still mounted, closing dialog');
         Navigator.of(context)
             .pop({'saved': true, 'soapNoteId': _soapNoteId, 'soapData': _soapData});
+        final totalElapsed = DateTime.now().difference(saveStartTime);
+        debugPrint('✅ Dialog closed successfully in ${totalElapsed.inMilliseconds}ms');
+      } else {
+        debugPrint('⚠️ Widget unmounted during save, navigation skipped');
       }
     } catch (e) {
-      debugPrint('Error saving SOAP note: $e');
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('❌ ERROR in _saveNote(): $e');
+      debugPrint('   Error type: ${e.runtimeType}');
+      debugPrint('   mounted: $mounted');
+      debugPrint('═══════════════════════════════════════════════════════════');
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error saving SOAP note: $e')),
         );
       }
     } finally {
+      debugPrint('🔚 _saveNote() finally block - cleaning up...');
+      debugPrint('   mounted: $mounted');
+
       if (mounted) {
         setState(() => _isLoading = false);
+        debugPrint('✅ setState(_isLoading = false) completed');
+      } else {
+        debugPrint('⚠️ Widget unmounted in finally block, setState skipped');
       }
+
+      final totalElapsed = DateTime.now().difference(saveStartTime);
+      debugPrint('═══════════════════════════════════════════════════════════');
+      debugPrint('✅ _saveNote() completed in ${totalElapsed.inMilliseconds}ms (${totalElapsed.inSeconds}s)');
+      debugPrint('═══════════════════════════════════════════════════════════');
     }
   }
 
@@ -504,6 +634,14 @@ class _PostCallClinicalNotesDialogState
   /// Does not block the provider workflow
   /// If EHR sync fails, the SOAP note is still safely stored in database
   Future<void> _syncToEhrInBackground() async {
+    final syncStartTime = DateTime.now();
+    debugPrint('═══════════════════════════════════════════════════════════');
+    debugPrint('🔄 [SOAP Dialog] EHR Background Sync Started at ${syncStartTime.toIso8601String()}');
+    debugPrint('   SOAP Note ID: $_soapNoteId');
+    debugPrint('   Patient ID: ${widget.patientId}');
+    debugPrint('   Session ID: ${widget.sessionId}');
+    debugPrint('═══════════════════════════════════════════════════════════');
+
     try {
       // Get Firebase token with force refresh to ensure validity
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -512,20 +650,30 @@ class _PostCallClinicalNotesDialogState
         return;
       }
 
+      debugPrint('✅ Current user found: ${currentUser.uid}');
+
       // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
       String? token;
+      debugPrint('⏳ Acquiring Firebase token for EHR sync...');
       try {
+        final tokenStartTime = DateTime.now();
         token = await currentUser.getIdToken(true).timeout(
           const Duration(seconds: 10),
           onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
         );
+        final tokenElapsed = DateTime.now().difference(tokenStartTime);
+        debugPrint('✅ Firebase token obtained (refreshed) in ${tokenElapsed.inMilliseconds}ms: ${token?.substring(0, 20)}...');
       } catch (e) {
         debugPrint('⚠️ Firebase token refresh failed in EHR sync: $e');
+        debugPrint('⏳ Fallback: Trying non-refreshed token...');
         // Fall back to non-refreshed token
         try {
+          final tokenStartTime = DateTime.now();
           token = await currentUser.getIdToken(false).timeout(
             const Duration(seconds: 5),
           );
+          final tokenElapsed = DateTime.now().difference(tokenStartTime);
+          debugPrint('✅ Firebase token obtained (non-refreshed) in ${tokenElapsed.inMilliseconds}ms: ${token?.substring(0, 20)}...');
         } catch (_) {
           debugPrint('⚠️ Even non-refreshed token failed, skipping EHR sync');
           return;
@@ -542,6 +690,9 @@ class _PostCallClinicalNotesDialogState
 
       // Fire-and-forget HTTP call (don't await, don't block provider)
       // If sync-to-ehrbase fails, the SOAP note is already safely in database
+      final httpStartTime = DateTime.now();
+      debugPrint('[EHR Sync] Sending HTTP POST to sync-to-ehrbase edge function...');
+
       unawaited(
         http
             .post(
@@ -559,21 +710,28 @@ class _PostCallClinicalNotesDialogState
               }),
             )
             .then((response) {
+              final httpElapsed = DateTime.now().difference(httpStartTime);
               if (response.statusCode == 200) {
-                debugPrint(
-                    '✅ SOAP note synced to EHRbase in background');
+                debugPrint('✅ SOAP note synced to EHRbase in background (${httpElapsed.inMilliseconds}ms)');
+                debugPrint('   Response body length: ${response.body.length} bytes');
               } else {
-                debugPrint(
-                    '⚠️ Warning: Failed to sync to EHRbase: ${response.body}');
+                debugPrint('⚠️ EHR sync returned status ${response.statusCode} (${httpElapsed.inMilliseconds}ms)');
+                debugPrint('   Response: ${response.body.length > 200 ? response.body.substring(0, 200) + '...' : response.body}');
               }
             })
             .catchError((e) {
-              debugPrint('⚠️ Background EHR sync failed: $e');
+              final httpElapsed = DateTime.now().difference(httpStartTime);
+              debugPrint('⚠️ Background EHR sync HTTP failed after ${httpElapsed.inMilliseconds}ms: $e');
               // Don't throw - background task should never block provider
             }),
       );
+
+      final totalElapsed = DateTime.now().difference(syncStartTime);
+      debugPrint('[EHR Sync] Background operation initiated (total: ${totalElapsed.inMilliseconds}ms, HTTP is async)');
+
     } catch (e) {
-      debugPrint('⚠️ Non-blocking error syncing to EHRbase: $e');
+      final totalElapsed = DateTime.now().difference(syncStartTime);
+      debugPrint('⚠️ Non-blocking error syncing to EHRbase after ${totalElapsed.inMilliseconds}ms: $e');
       // Silently fail - don't block provider workflow
     }
   }
@@ -582,6 +740,13 @@ class _PostCallClinicalNotesDialogState
   /// Fires after SOAP note is saved successfully
   /// Does not block the provider workflow
   Future<void> _updatePatientMedicalRecordInBackground() async {
+    final updateStartTime = DateTime.now();
+    debugPrint('═══════════════════════════════════════════════════════════');
+    debugPrint('👤 [Patient Record] Update Background Started at ${updateStartTime.toIso8601String()}');
+    debugPrint('   SOAP Note ID: $_soapNoteId');
+    debugPrint('   Patient ID: ${widget.patientId}');
+    debugPrint('═══════════════════════════════════════════════════════════');
+
     try {
       // Get Firebase token with force refresh to ensure validity
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -592,20 +757,29 @@ class _PostCallClinicalNotesDialogState
 
       // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
       String? token;
+      final tokenStartTime = DateTime.now();
       try {
+        debugPrint('[Patient Record] Attempting Firebase token refresh (10s timeout)...');
         token = await currentUser.getIdToken(true).timeout(
           const Duration(seconds: 10),
           onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
         );
+        final tokenElapsed = DateTime.now().difference(tokenStartTime);
+        debugPrint('✅ Firebase token refreshed in ${tokenElapsed.inMilliseconds}ms: ${token?.substring(0, 20) ?? 'unknown'}...');
       } catch (e) {
-        debugPrint('⚠️ Firebase token refresh failed in patient record update: $e');
+        final tokenElapsed = DateTime.now().difference(tokenStartTime);
+        debugPrint('⚠️ Firebase token refresh failed after ${tokenElapsed.inMilliseconds}ms: $e');
         // Fall back to non-refreshed token
         try {
+          debugPrint('[Patient Record] Falling back to non-refreshed token (5s timeout)...');
           token = await currentUser.getIdToken(false).timeout(
             const Duration(seconds: 5),
           );
+          final fallbackElapsed = DateTime.now().difference(tokenStartTime);
+          debugPrint('✅ Non-refreshed token obtained in ${fallbackElapsed.inMilliseconds}ms: ${token?.substring(0, 20) ?? 'unknown'}...');
         } catch (_) {
-          debugPrint('⚠️ Even non-refreshed token failed, skipping patient record update');
+          final fallbackElapsed = DateTime.now().difference(tokenStartTime);
+          debugPrint('⚠️ Even non-refreshed token failed after ${fallbackElapsed.inMilliseconds}ms, skipping patient record update');
           return;
         }
       }
@@ -619,6 +793,9 @@ class _PostCallClinicalNotesDialogState
       }
 
       // Fire-and-forget HTTP call (don't await, don't block provider)
+      final httpStartTime = DateTime.now();
+      debugPrint('[Patient Record] Sending HTTP POST to update-patient-medical-record edge function...');
+
       unawaited(
         http
             .post(
@@ -636,21 +813,28 @@ class _PostCallClinicalNotesDialogState
               }),
             )
             .then((response) {
+              final httpElapsed = DateTime.now().difference(httpStartTime);
               if (response.statusCode == 200) {
-                debugPrint(
-                    '✅ Patient medical record updated in background');
+                debugPrint('✅ Patient medical record updated in background (${httpElapsed.inMilliseconds}ms)');
+                debugPrint('   Response body length: ${response.body.length} bytes');
               } else {
-                debugPrint(
-                    '⚠️ Warning: Failed to update patient record: ${response.body}');
+                debugPrint('⚠️ Patient record update returned status ${response.statusCode} (${httpElapsed.inMilliseconds}ms)');
+                debugPrint('   Response: ${response.body.length > 200 ? response.body.substring(0, 200) + '...' : response.body}');
               }
             })
             .catchError((e) {
-              debugPrint('⚠️ Background update failed: $e');
+              final httpElapsed = DateTime.now().difference(httpStartTime);
+              debugPrint('⚠️ Patient record update HTTP failed after ${httpElapsed.inMilliseconds}ms: $e');
               // Don't throw - background task should never block provider
             }),
       );
+
+      final totalElapsed = DateTime.now().difference(updateStartTime);
+      debugPrint('[Patient Record] Background operation initiated (total: ${totalElapsed.inMilliseconds}ms, HTTP is async)');
+
     } catch (e) {
-      debugPrint('⚠️ Non-blocking error updating patient record: $e');
+      final totalElapsed = DateTime.now().difference(updateStartTime);
+      debugPrint('⚠️ Non-blocking error updating patient record after ${totalElapsed.inMilliseconds}ms: $e');
       // Silently fail - don't block provider workflow
     }
   }
@@ -736,7 +920,7 @@ class _PostCallClinicalNotesDialogState
       });
 
       final response = await http.post(
-        Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
+        Uri.parse('$supabaseUrl/functions/v1/generate-soap-background'),
         headers: {
           'apikey': supabaseKey,
           'Authorization': 'Bearer $supabaseKey',
@@ -745,11 +929,8 @@ class _PostCallClinicalNotesDialogState
         },
         body: jsonEncode({
           'sessionId': widget.sessionId,
-          'appointmentId': widget.appointmentId,
-          'providerId': widget.providerId,
-          'patientId': widget.patientId,
-          'transcript': _callTranscript,
-          'existingSoapNote': _soapData, // Pass existing data for enhancement context
+          'mode': 'on-demand', // ← NEW: Specify on-demand enhancement mode
+          'existingSoap': _soapData, // ← NEW: Pass existing SOAP for enhancement context
         }),
       ).timeout(
         const Duration(seconds: 25), // Reduced from 40s to 25s - Haiku should respond quickly
@@ -763,11 +944,9 @@ class _PostCallClinicalNotesDialogState
         final data = jsonDecode(response.body);
         if (mounted) {
           setState(() {
-            // Extract structured SOAP data from response
-            if (data['soapNote'] != null) {
-              _soapData = data['soapNote'] as Map<String, dynamic>;
-            } else if (data['normalizedSoapNote'] != null) {
-              _soapData = data['normalizedSoapNote'] as Map<String, dynamic>;
+            // Extract SOAP data from background function response
+            if (data['soap'] != null) {
+              _soapData = data['soap'] as Map<String, dynamic>;
             }
             _isAiEnhancing = false;
           });
@@ -832,10 +1011,22 @@ class _PostCallClinicalNotesDialogState
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('🎨 [build] method called. _isGenerating=$_isGenerating, _soapData=${_soapData != null}, _isAiEnhancing=$_isAiEnhancing');
+    final buildStartTime = DateTime.now();
+    final timeSinceCreation = DateTime.now().difference(_dialogCreatedAt);
+
+    debugPrint('═══════════════════════════════════════════════════════════');
+    debugPrint('🎨 [build] Render cycle triggered at ${buildStartTime.toIso8601String()}');
+    debugPrint('   Time since dialog creation: ${timeSinceCreation.inMilliseconds}ms');
+    debugPrint('   State: _isGenerating=$_isGenerating | _soapData=${_soapData != null ? 'YES' : 'NO'} | _isAiEnhancing=$_isAiEnhancing');
+    debugPrint('   SOAP Note ID: $_soapNoteId');
+    debugPrint('   Error Message: ${_errorMessage ?? 'none'}');
+    debugPrint('═══════════════════════════════════════════════════════════');
+
     final isMobile = MediaQuery.of(context).size.width < 600;
     final dialogWidth = widget.width ?? (isMobile ? double.maxFinite : 800.0);
     final dialogHeight = widget.height ?? MediaQuery.of(context).size.height * 0.80;
+
+    debugPrint('[build] Dialog dimensions: ${dialogWidth.toStringAsFixed(0)}x${dialogHeight.toStringAsFixed(0)} (mobile=$isMobile)');
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -948,6 +1139,7 @@ class _PostCallClinicalNotesDialogState
                             ),
                           )
                         : Column(
+                            mainAxisSize: MainAxisSize.max,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               if (_errorMessage != null)

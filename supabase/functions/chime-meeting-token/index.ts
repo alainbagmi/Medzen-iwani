@@ -361,8 +361,18 @@ serve(async (req) => {
           console.log("✓ Existing session updated in database");
         }
 
-        // Verify session was actually created/updated
-        if (!sessionCreated) {
+        // Get the actual session ID for transcription call
+        // Extract from either the insert result or update result
+        let sessionId: string | undefined;
+
+        if (updateResult && updateResult.length > 0) {
+          sessionId = updateResult[0].id;
+          console.log("✓ Using session ID from update:", sessionId);
+        } else if (insertResult && insertResult.length > 0) {
+          sessionId = insertResult[0].id;
+          console.log("✓ Using session ID from insert:", sessionId);
+        } else {
+          // Fallback: verify in database
           console.error("❌ CRITICAL: Session not created - verifying in database...");
           const { data: verifySession } = await supabaseAdmin
             .from("video_call_sessions")
@@ -381,7 +391,104 @@ serve(async (req) => {
               { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          console.log("✓ Session verified in database:", verifySession.id);
+          sessionId = verifySession.id;
+          console.log("✓ Session verified in database:", sessionId);
+        }
+
+        // START TRANSCRIPTION if enabled - Call Supabase edge function directly (not Lambda)
+        if (enableTranscription && sessionId) {
+          console.log(`🎙️ Starting transcription for meeting: ${lambdaResponse.meeting.MeetingId}, sessionId: ${sessionId}`);
+
+          try {
+            // Call start-medical-transcription edge function directly
+            const transcriptionResponse = await fetch(
+              `${Deno.env.get("SUPABASE_URL")}/functions/v1/start-medical-transcription`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "apikey": Deno.env.get("SUPABASE_ANON_KEY") || "",
+                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`,
+                },
+                body: JSON.stringify({
+                  meetingId: lambdaResponse.meeting.MeetingId,
+                  sessionId: sessionId,
+                  action: "start",
+                  language: transcriptionLanguage || "en-US",
+                  specialty: "PRIMARYCARE",  // Default specialty
+                  enableSpeakerIdentification: true,
+                  contentIdentificationType: "PII",  // Redact PII
+                  maxDurationMinutes: 120
+                }),
+              }
+            );
+
+            const transcriptionJson = await transcriptionResponse.json();
+
+            if (transcriptionResponse.ok && transcriptionJson.success) {
+              console.log(`✅ Transcription started successfully for meeting ${lambdaResponse.meeting.MeetingId}`);
+              console.log(`📊 Transcription config:`, {
+                engine: transcriptionJson.engine,
+                language: transcriptionJson.language,
+                medicalVocabulary: transcriptionJson.medicalVocabulary
+              });
+
+              // Edge function already updates the session with transcription_status: 'recording'
+              // Just confirm it in logs
+              console.log(`✓ Transcription status updated to 'recording' by edge function`);
+            } else {
+              console.error(`❌ Failed to start transcription:`, transcriptionJson?.error || "Unknown error");
+
+              // Attempt to mark transcription as failed
+              if (sessionId) {
+                try {
+                  await supabaseAdmin
+                    .from("video_call_sessions")
+                    .update({
+                      transcription_status: "failed",
+                      transcription_updated_at: new Date().toISOString()
+                    })
+                    .eq("id", sessionId);
+                } catch (e) {
+                  console.error("Failed to update transcription_status to failed:", e);
+                }
+              }
+              // Don't fail the entire meeting - transcription is optional
+            }
+          } catch (transcriptionError) {
+            console.error(`❌ Error calling transcription edge function:`, transcriptionError);
+            // Don't throw - transcription failure shouldn't block the meeting
+            // Attempt to update session status anyway
+            if (sessionId) {
+              try {
+                await supabaseAdmin
+                  .from("video_call_sessions")
+                  .update({
+                    transcription_status: "failed",
+                    transcription_updated_at: new Date().toISOString()
+                  })
+                  .eq("id", sessionId);
+              } catch (e) {
+                console.error("Failed to update transcription_status:", e);
+              }
+            }
+          }
+        } else {
+          console.log(`⏭️ Transcription disabled for this meeting`);
+          // Update session with none status
+          if (sessionId) {
+            try {
+              await supabaseAdmin
+                .from("video_call_sessions")
+                .update({
+                  transcription_status: "none",
+                  transcription_updated_at: new Date().toISOString()
+                })
+                .eq("id", sessionId);
+            } catch (e) {
+              console.error("Failed to update transcription_status:", e);
+            }
+          }
         }
 
         // If provider started the call, send push notification to patient
@@ -440,6 +547,7 @@ serve(async (req) => {
           JSON.stringify({
             meetingId: lambdaResponse.meeting.MeetingId,
             attendeeToken: lambdaResponse.attendee.AttendeeId,
+            sessionId: sessionId,
             meeting: lambdaResponse.meeting,
             attendee: lambdaResponse.attendee,
             recordingEnabled: enableRecording,
@@ -589,6 +697,7 @@ serve(async (req) => {
             meeting: session.meeting_data,
             attendee: lambdaResponse.attendee,
             appointmentId: session.appointment_id,
+            sessionId: session.id,
             meetingId: sessionMeetingId,
             recordingEnabled: session.recording_enabled,
             transcriptionEnabled: session.transcription_enabled,

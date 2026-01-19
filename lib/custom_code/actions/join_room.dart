@@ -230,6 +230,8 @@ Future joinRoom(
       'action': action,
       'appointmentId': appointmentId,
       if (meetingId != null) 'meetingId': meetingId,
+      'enableTranscription': true,  // Always enable transcription for medical consultations
+      'transcriptionLanguage': 'en-US',  // Default language; could be extended per user preference
     };
 
     // Retry logic for Supabase connection issues
@@ -554,6 +556,19 @@ Future joinRoom(
     debugPrint('=== Chime Meeting Created/Joined ===');
     debugPrint('Meeting ID: $meetingId');
     debugPrint('Attendee ID: ${attendeeData['AttendeeId']}');
+
+    // ✅ CRITICAL: Extract sessionId from edge function response
+    // This is the actual database session ID that must be used for all downstream operations
+    final responseSessionId = meetingResponse['sessionId'] as String?;
+    if (responseSessionId == null || responseSessionId.isEmpty) {
+      throw Exception('Edge function did not return sessionId in response');
+    }
+
+    // Override the sessionId parameter with the one from edge function
+    // This ensures we use the database-generated sessionId for finalize-transcript, etc.
+    sessionId = responseSessionId;
+
+    debugPrint('✓ Session ID extracted from response: $sessionId');
     debugPrint('===================================');
 
     // CRITICAL FIX: NOW SHOW PRE-JOINING DIALOG (after credentials obtained)
@@ -739,6 +754,7 @@ Future joinRoom(
                 // Full screen - let widget determine size
                 meetingData: jsonEncode(meetingData),
                 attendeeData: jsonEncode(attendeeData),
+                sessionId: sessionId, // ✅ Pass database session ID for transcript tracking
                 userName: effectiveUserName ?? 'User',
                 userProfileImage: _validateImageUrl(effectiveProfileImage),
                 userRole: isProvider ? 'Doctor' : null,
