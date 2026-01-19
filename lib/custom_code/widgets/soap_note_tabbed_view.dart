@@ -60,6 +60,7 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
     _tabController = TabController(length: 12, vsync: this);
     _initializeControllers();
     _loadSoapDraft();
+    _prefillPatientDetails();
   }
 
   void _initializeControllers() {
@@ -116,6 +117,41 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
         _isLoading = false;
       });
       debugPrint('❌ Error loading SOAP draft: $e');
+    }
+  }
+
+  Future<void> _prefillPatientDetails() async {
+    try {
+      // Load patient data from context snapshot
+      final snapshot = await SupaFlow.client
+          .from('video_call_sessions')
+          .select('patient_id, context_snapshot')
+          .eq('id', widget.encounterId)
+          .single();
+
+      if (snapshot['context_snapshot'] != null) {
+        final contextData = snapshot['context_snapshot'] as Map<String, dynamic>;
+        final patientData = contextData['patient_details'] as Map<String, dynamic>?;
+
+        if (patientData != null) {
+          setState(() {
+            _localSoapData['tab2_patient_identification'] = {
+              'full_name': patientData['full_name'] ?? '',
+              'dob': patientData['dob'] ?? '',
+              'age': patientData['age'] ?? 0,
+              'sex_at_birth': patientData['sex'] ?? '',
+              'emergency_contact_name': patientData['emergency_contact_name'] ?? '',
+              'emergency_contact_phone': patientData['emergency_contact_phone'] ?? '',
+              'medical_record_number': patientData['medical_record_number'] ?? '',
+              'insurance': patientData['insurance'] ?? '',
+            };
+          });
+          debugPrint('✅ Patient details prefilled from context snapshot');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Could not prefill patient details: $e');
+      // Non-critical error, continue without prefilled data
     }
   }
 
@@ -267,7 +303,15 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
   }
 
   Future<void> _submitSoapNote() async {
-    // Update status to submitted
+    // Validate before submission
+    final validationResult = _validateSoapNote();
+    if (!validationResult['isValid']) {
+      if (mounted) {
+        _showValidationSummaryDialog(validationResult);
+      }
+      return;
+    }
+
     final token = await FirebaseAuth.instance.currentUser?.getIdToken(true);
     if (token == null) return;
 
@@ -281,11 +325,206 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
       await SupaFlow.client.from('video_call_sessions').update({
         'soap_status': 'submitted',
         'encounter_status': 'soap_submitted',
+        'submitted_at': DateTime.now().toIso8601String(),
       }).eq('id', widget.encounterId);
+
+      debugPrint('✅ SOAP note submitted successfully');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('SOAP note submitted successfully')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('❌ Error submitting SOAP note: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Map<String, dynamic> _validateSoapNote() {
+    final errors = <String>[];
+    final warnings = <String>[];
+
+    // Validate Tab 1: Encounter Header
+    final tab1 = _localSoapData['tab1_encounter_header'] ?? {};
+    if ((tab1['visit_date'] ?? '').toString().isEmpty) errors.add('• Tab 1: Visit Date is required');
+    if ((tab1['chief_complaint_as_written'] ?? '').toString().isEmpty) {
+      errors.add('• Tab 1: Chief Complaint is required');
+    }
+
+    // Validate Tab 2: Patient Identification
+    final tab2 = _localSoapData['tab2_patient_identification'] ?? {};
+    if ((tab2['full_name'] ?? '').toString().isEmpty) errors.add('• Tab 2: Patient Full Name is required');
+    if ((tab2['dob'] ?? '').toString().isEmpty) warnings.add('• Tab 2: Date of Birth not provided');
+
+    // Validate Tab 3: Chief Complaint
+    final tab3 = _localSoapData['tab3_cc'] ?? {};
+    if ((tab3['chief_complaint_patient_words'] ?? '').toString().isEmpty) {
+      errors.add('• Tab 3: Chief Complaint (patient words) is required');
+    }
+
+    // Validate Tab 4: HPI
+    final tab4 = _localSoapData['tab4_subjective_hpi'] ?? {};
+    if ((tab4['onset_date'] ?? '').toString().isEmpty) warnings.add('• Tab 4: Onset Date not provided');
+
+    // Validate Tab 7: Vitals
+    final tab7Vitals = _localSoapData['tab7_objective_vitals_general']?['vitals'] ?? {};
+    if (tab7Vitals.isEmpty) warnings.add('• Tab 7: Vital signs not recorded');
+
+    // Validate Tab 10: Assessment
+    final tab10 = _localSoapData['tab10_assessment'] ?? {};
+    final problemList = tab10['problem_list'] as List?;
+    if (problemList == null || problemList.isEmpty) {
+      errors.add('• Tab 10: Problem List is required (add at least one item)');
+    }
+
+    // Validate Tab 11: Plan
+    final tab11 = _localSoapData['tab11_plan'] ?? {};
+    if ((tab11['medications'] as List?)?.isEmpty ?? true) {
+      warnings.add('• Tab 11: No medications added to plan');
+    }
+
+    return {
+      'isValid': errors.isEmpty,
+      'errors': errors,
+      'warnings': warnings,
+      'dataSize': jsonEncode(_localSoapData).length,
+      'tabsCompleted': _getTabsCompleted(),
+      'estimatedStorageBytes': jsonEncode(_localSoapData).length,
+    };
+  }
+
+  int _getTabsCompleted() {
+    int count = 0;
+    if ((_localSoapData['tab1_encounter_header']?['chief_complaint_as_written'] ?? '').toString().isNotEmpty) count++;
+    if ((_localSoapData['tab2_patient_identification']?['full_name'] ?? '').toString().isNotEmpty) count++;
+    if ((_localSoapData['tab3_cc']?['chief_complaint_patient_words'] ?? '').toString().isNotEmpty) count++;
+    if ((_localSoapData['tab4_subjective_hpi']?['onset_date'] ?? '').toString().isNotEmpty) count++;
+    if ((_localSoapData['tab5_subjective_history']?['pmh'] as List?)?.isNotEmpty ?? false) count++;
+    if ((_localSoapData['tab6_ros'] ?? {}).toString().length > 2) count++;
+    if ((_localSoapData['tab7_objective_vitals_general']?['vitals'] ?? {}).toString().length > 2) count++;
+    if ((_localSoapData['tab8_objective_exam_telemed']?['physical_exam']?['findings'] ?? '').toString().isNotEmpty) count++;
+    if ((_localSoapData['tab9_objective_diagnostics']?['recent_labs'] as List?)?.isNotEmpty ?? false) count++;
+    if ((_localSoapData['tab10_assessment']?['problem_list'] as List?)?.isNotEmpty ?? false) count++;
+    if ((_localSoapData['tab11_plan']?['medications'] as List?)?.isNotEmpty ?? false) count++;
+    if ((_localSoapData['tab12_mdm_quality_attachments_signoff']?['medical_decision_making'] ?? '').toString().isNotEmpty) count++;
+    return count;
+  }
+
+  void _showValidationSummaryDialog(Map<String, dynamic> validationResult) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Validation Summary'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Database Upload Info
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('📊 Database Upload Information',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+                    const SizedBox(height: 8),
+                    Text('Tabs Completed: ${validationResult['tabsCompleted']}/12',
+                        style: const TextStyle(fontSize: 12)),
+                    Text(
+                        'Data Size: ${(validationResult['estimatedStorageBytes'] as int? ?? 0) ~/ 1024} KB',
+                        style: const TextStyle(fontSize: 12)),
+                    Text('Pending Changes: $_pendingOps.length operations',
+                        style: const TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Errors Section
+              if ((validationResult['errors'] as List).isNotEmpty) ...[
+                Text('❌ Required Fields Missing:',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700])),
+                const SizedBox(height: 8),
+                ...((validationResult['errors'] as List).map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(e.toString(), style: const TextStyle(fontSize: 12)),
+                  ),
+                )),
+                const SizedBox(height: 16),
+              ],
+
+              // Warnings Section
+              if ((validationResult['warnings'] as List).isNotEmpty) ...[
+                Text('⚠️ Optional Fields Not Filled:',
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[700])),
+                const SizedBox(height: 8),
+                ...((validationResult['warnings'] as List).map(
+                  (w) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(w.toString(), style: const TextStyle(fontSize: 12)),
+                  ),
+                )),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (validationResult['isValid'] == false)
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Keep Editing'),
+            ),
+          if (validationResult['isValid'] == false)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _submitSoapNoteForced();
+              },
+              child: const Text('Submit Anyway'),
+            ),
+          if (validationResult['isValid'] == true)
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitSoapNoteForced() async {
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken(true);
+    if (token == null) return;
+
+    try {
+      if (_pendingOps.isNotEmpty) {
+        await _sendPatchToServer();
+      }
+
+      await SupaFlow.client.from('video_call_sessions').update({
+        'soap_status': 'submitted',
+        'encounter_status': 'soap_submitted',
+        'submitted_at': DateTime.now().toIso8601String(),
+      }).eq('id', widget.encounterId);
+
+      debugPrint('✅ SOAP note submitted (with validation warnings)');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('SOAP note submitted (some fields incomplete)')),
         );
         Navigator.pop(context);
       }
@@ -376,6 +615,60 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
     }
   }
 
+  void _showCancelConfirmation() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cancel SOAP Note?'),
+        content: const Text(
+          'Are you sure you want to cancel this SOAP note? Any unsaved changes will be lost.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Keep Editing'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _discardSoapNote();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Discard Note'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _discardSoapNote() async {
+    try {
+      // Mark the SOAP note as cancelled/discarded in the database
+      await SupaFlow.client.from('video_call_sessions').update({
+        'soap_status': 'cancelled',
+        'encounter_status': 'soap_cancelled',
+      }).eq('id', widget.encounterId);
+
+      debugPrint('✅ SOAP note discarded');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('SOAP note discarded')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('❌ Error discarding SOAP note: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error discarding note: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -453,77 +746,106 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
               border: Border(top: BorderSide(color: Colors.grey[300]!)),
               color: Colors.grey[50],
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_conflictMessage != null)
-                      Text(
-                        _conflictMessage!,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                      )
-                    else if (_isSaving)
-                      const Text(
-                        'Saving...',
-                        style: TextStyle(fontSize: 12, color: Colors.orange),
-                      )
-                    else if (_pendingOps.isEmpty && _lastSavedTime != null)
-                      const Text(
-                        'Auto-saved ✓',
-                        style: TextStyle(fontSize: 12, color: Colors.green),
-                      )
-                    else if (_pendingOps.isNotEmpty)
-                      Text(
-                        'Unsaved changes (${_pendingOps.length} ops)',
-                        style: const TextStyle(fontSize: 12, color: Colors.blue),
-                      )
-                    else
-                      const Text(
-                        'Ready',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                  ],
-                ),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Show Submit button if status is editing or draft_ready
-                    if (_localSoapData['meta']?['status'] == 'editing' ||
-                        _localSoapData['meta']?['status'] == 'draft_ready')
-                      ElevatedButton(
-                        onPressed: _submitSoapNote,
-                        child: const Text('Submit Note'),
-                      ),
-                    const SizedBox(width: 8),
-                    // Show Sign Off button if status is submitted
-                    if (_localSoapData['meta']?['status'] == 'submitted')
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.check_circle),
-                        onPressed: _signOffSoapNote,
-                        label: const Text('Sign Off'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    // Show read-only indicator if signed or failed
-                    if (_localSoapData['meta']?['status'] == 'signed' ||
-                        _localSoapData['meta']?['status'] == 'failed')
-                      Chip(
-                        label: Text(
-                          _localSoapData['meta']?['status'] == 'signed'
-                              ? 'Note Signed'
-                              : 'Note Failed',
-                        ),
-                        backgroundColor:
-                            _localSoapData['meta']?['status'] == 'signed'
-                                ? Colors.green[100]
-                                : Colors.red[100],
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_conflictMessage != null)
+                          Text(
+                            _conflictMessage!,
+                            style: const TextStyle(color: Colors.red, fontSize: 12),
+                          )
+                        else if (_isSaving)
+                          const Text(
+                            'Saving...',
+                            style: TextStyle(fontSize: 12, color: Colors.orange),
+                          )
+                        else if (_pendingOps.isEmpty && _lastSavedTime != null)
+                          const Text(
+                            'Auto-saved ✓',
+                            style: TextStyle(fontSize: 12, color: Colors.green),
+                          )
+                        else if (_pendingOps.isNotEmpty)
+                          Text(
+                            'Unsaved changes (${_pendingOps.length} ops)',
+                            style: const TextStyle(fontSize: 12, color: Colors.blue),
+                          )
+                        else
+                          const Text(
+                            'Ready',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        // Show Submit button if status is editing or draft_ready
+                        if (_localSoapData['meta']?['status'] == 'editing' ||
+                            _localSoapData['meta']?['status'] == 'draft_ready')
+                          ElevatedButton(
+                            onPressed: _submitSoapNote,
+                            child: const Text('Submit Note'),
+                          ),
+                        const SizedBox(width: 8),
+                        // Show Sign Off button if status is submitted
+                        if (_localSoapData['meta']?['status'] == 'submitted')
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.check_circle),
+                            onPressed: _signOffSoapNote,
+                            label: const Text('Sign Off'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        // Show read-only indicator if signed or failed
+                        if (_localSoapData['meta']?['status'] == 'signed' ||
+                            _localSoapData['meta']?['status'] == 'failed')
+                          Chip(
+                            label: Text(
+                              _localSoapData['meta']?['status'] == 'signed'
+                                  ? 'Note Signed'
+                                  : 'Note Failed',
+                            ),
+                            backgroundColor:
+                                _localSoapData['meta']?['status'] == 'signed'
+                                    ? Colors.green[100]
+                                    : Colors.red[100],
+                          ),
+                      ],
+                    ),
                   ],
                 ),
+                const SizedBox(height: 12),
+                // Save/Cancel buttons for end-of-call workflow
+                if (_localSoapData['meta']?['status'] != 'signed' &&
+                    _localSoapData['meta']?['status'] != 'failed')
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.save),
+                        onPressed: _pendingOps.isNotEmpty ? _sendPatchToServer : null,
+                        label: const Text('Save Changes'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.close),
+                        onPressed: _showCancelConfirmation,
+                        label: const Text('Cancel Note'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -587,8 +909,9 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
     );
   }
 
-  // Tab 2: Patient Identification (placeholder)
+  // Tab 2: Patient Identification
   Widget _buildTab2PatientId() {
+    final patientData = _localSoapData['tab2_patient_identification'] ?? {};
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -597,11 +920,36 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
           const Text('Patient Identification',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          const Text(
-              'Patient demographics auto-populated from context snapshot'),
-          const SizedBox(height: 12),
-          if (_localSoapData['tab2_patient_identification'] != null)
-            Text(_localSoapData['tab2_patient_identification'].toString()),
+          const Text('Patient demographics auto-populated from context snapshot',
+              style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 20),
+          _buildPatientInfoRow('Full Name', patientData['full_name'] ?? ''),
+          _buildPatientInfoRow('Date of Birth', patientData['dob'] ?? ''),
+          _buildPatientInfoRow('Age', (patientData['age'] ?? '').toString()),
+          _buildPatientInfoRow('Sex at Birth', patientData['sex_at_birth'] ?? ''),
+          _buildPatientInfoRow('Medical Record #', patientData['medical_record_number'] ?? ''),
+          _buildPatientInfoRow('Insurance', patientData['insurance'] ?? ''),
+          _buildPatientInfoRow('Emergency Contact', patientData['emergency_contact_name'] ?? ''),
+          _buildPatientInfoRow('Emergency Phone', patientData['emergency_contact_phone'] ?? ''),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 150,
+            child: Text(label + ':', style: const TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Text(value.isEmpty ? 'Not provided' : value,
+                style: TextStyle(color: value.isEmpty ? Colors.grey : Colors.black)),
+          ),
         ],
       ),
     );
@@ -1073,10 +1421,7 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
           children: [
             Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
             ElevatedButton(
-              onPressed: () {
-                // Add new item - simplified for now
-                debugPrint('TODO: Implement add $title');
-              },
+              onPressed: () => _showAddItemDialog(title, path),
               child: const Text('Add'),
             ),
           ],
@@ -1108,9 +1453,7 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete, size: 18),
-                      onPressed: () {
-                        debugPrint('TODO: Implement remove from $title');
-                      },
+                      onPressed: () => _removeItemFromList(path, index),
                     ),
                   ],
                 ),
@@ -1119,6 +1462,94 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
           ),
       ],
     );
+  }
+
+  void _showAddItemDialog(String title, String path) {
+    final textController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Add $title'),
+        content: TextField(
+          controller: textController,
+          decoration: InputDecoration(
+            hintText: 'Enter $title',
+            border: const OutlineInputBorder(),
+          ),
+          maxLines: 3,
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newItem = textController.text.trim();
+              if (newItem.isNotEmpty) {
+                _addItemToList(path, newItem);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addItemToList(String path, String newItem) {
+    setState(() {
+      // Navigate to the list in _localSoapData and add the new item
+      final keys = path.split('.');
+      dynamic current = _localSoapData;
+
+      for (int i = 0; i < keys.length - 1; i++) {
+        if (current[keys[i]] == null) {
+          current[keys[i]] = {};
+        }
+        current = current[keys[i]];
+      }
+
+      // Ensure the final key is a list
+      if (current[keys.last] is! List) {
+        current[keys.last] = [];
+      }
+
+      (current[keys.last] as List).add(newItem);
+      debugPrint('✅ Added item to $path: $newItem');
+    });
+
+    // Trigger autosave via _onFieldChanged
+    _onFieldChanged(r'$.' + path, _localSoapData);
+  }
+
+  void _removeItemFromList(String path, int index) {
+    setState(() {
+      // Navigate to the list and remove the item
+      final keys = path.split('.');
+      dynamic current = _localSoapData;
+
+      for (int i = 0; i < keys.length - 1; i++) {
+        if (current[keys[i]] == null) {
+          return;
+        }
+        current = current[keys[i]];
+      }
+
+      if (current[keys.last] is List) {
+        final list = current[keys.last] as List;
+        if (index >= 0 && index < list.length) {
+          list.removeAt(index);
+          debugPrint('✅ Removed item from $path at index $index');
+        }
+      }
+    });
+
+    // Trigger autosave
+    _onFieldChanged(r'$.' + path, _localSoapData);
   }
 
   // Utility Functions
