@@ -122,32 +122,65 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
 
   Future<void> _prefillPatientDetails() async {
     try {
-      // Load patient data from context snapshot
-      final snapshot = await SupaFlow.client
+      // 1. Get context_snapshot_id from video_call_sessions
+      final session = await SupaFlow.client
           .from('video_call_sessions')
-          .select('patient_id, context_snapshot')
+          .select('context_snapshot_id')
           .eq('id', widget.encounterId)
           .single();
 
-      if (snapshot['context_snapshot'] != null) {
-        final contextData = snapshot['context_snapshot'] as Map<String, dynamic>;
-        final patientData = contextData['patient_details'] as Map<String, dynamic>?;
+      if (session['context_snapshot_id'] == null) {
+        debugPrint('⚠️ No context snapshot ID found');
+        return;
+      }
 
-        if (patientData != null) {
-          setState(() {
-            _localSoapData['tab2_patient_identification'] = {
-              'full_name': patientData['full_name'] ?? '',
-              'dob': patientData['dob'] ?? '',
-              'age': patientData['age'] ?? 0,
-              'sex_at_birth': patientData['sex'] ?? '',
-              'emergency_contact_name': patientData['emergency_contact_name'] ?? '',
-              'emergency_contact_phone': patientData['emergency_contact_phone'] ?? '',
-              'medical_record_number': patientData['medical_record_number'] ?? '',
-              'insurance': patientData['insurance'] ?? '',
-            };
-          });
-          debugPrint('✅ Patient details prefilled from context snapshot');
-        }
+      // 2. Fetch the actual context snapshot
+      final contextSnapshot = await SupaFlow.client
+          .from('context_snapshots')
+          .select('*')
+          .eq('id', session['context_snapshot_id'])
+          .single();
+
+      if (contextSnapshot == null) {
+        debugPrint('⚠️ Context snapshot not found');
+        return;
+      }
+
+      // 3. Extract patient demographics from context snapshot
+      final patientDemographics =
+          contextSnapshot['patient_demographics'] as Map<String, dynamic>?;
+
+      if (patientDemographics != null) {
+        setState(() {
+          _localSoapData['tab2_patient_identification'] = {
+            'full_name': patientDemographics['full_name'] ?? '',
+            'dob': patientDemographics['dob'] ?? '',
+            'sex_at_birth': patientDemographics['sex_at_birth'] ?? '',
+            'email': patientDemographics['email'] ?? '',
+            'phone': patientDemographics['phone'] ?? '',
+          };
+        });
+        debugPrint('✅ Patient details prefilled from context snapshot');
+      }
+
+      // 4. Also prefill allergies and medications if available
+      final allergies = contextSnapshot['allergies'] as List?;
+      final medications = contextSnapshot['current_medications'] as List?;
+
+      if (allergies != null && allergies.isNotEmpty) {
+        setState(() {
+          _localSoapData['tab5_objective_findings'] ??= {};
+          _localSoapData['tab5_objective_findings']['allergies'] = allergies;
+        });
+        debugPrint('✅ Allergies prefilled from context snapshot');
+      }
+
+      if (medications != null && medications.isNotEmpty) {
+        setState(() {
+          _localSoapData['tab4_subjective_hpi'] ??= {};
+          _localSoapData['tab4_subjective_hpi']['medications'] = medications;
+        });
+        debugPrint('✅ Medications prefilled from context snapshot');
       }
     } catch (e) {
       debugPrint('⚠️ Could not prefill patient details: $e');
@@ -645,10 +678,9 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
 
   Future<void> _discardSoapNote() async {
     try {
-      // Mark the SOAP note as cancelled/discarded in the database
+      // Mark the encounter as closed (SOAP note discarded, not finalized)
       await SupaFlow.client.from('video_call_sessions').update({
-        'soap_status': 'cancelled',
-        'encounter_status': 'soap_cancelled',
+        'encounter_status': 'closed',
       }).eq('id', widget.encounterId);
 
       debugPrint('✅ SOAP note discarded');
