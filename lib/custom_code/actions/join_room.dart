@@ -571,6 +571,43 @@ Future joinRoom(
     debugPrint('✓ Session ID extracted from response: $sessionId');
     debugPrint('===================================');
 
+    // ==================== PHASE 8a: Pre-call context snapshot ====================
+    // Create context snapshot BEFORE showing pre-joining dialog to ensure patient data is loaded
+    debugPrint('[joinRoom] Creating context snapshot for patient: $patientId');
+    try {
+      final snapshotToken = await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      final snapshotResponse = await http.post(
+        Uri.parse('$supabaseUrl/functions/v1/create-context-snapshot'),
+        headers: {
+          'apikey': supabaseAnonKey,
+          'Authorization': 'Bearer $supabaseAnonKey',
+          'x-firebase-token': snapshotToken!,
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'encounter_id': sessionId,
+          'patient_id': patientId,
+        }),
+      );
+
+      if (snapshotResponse.statusCode == 200) {
+        final snapshotData = jsonDecode(snapshotResponse.body);
+        debugPrint('[joinRoom] ✅ Context snapshot created: ${snapshotData['snapshot']['id']}');
+        // Store snapshot ID for later use in post-call flow
+        FFAppState().update(() {
+          FFAppState().lastContextSnapshotId = snapshotData['snapshot']['id'];
+        });
+      } else {
+        final errorData = jsonDecode(snapshotResponse.body);
+        debugPrint('[joinRoom] ⚠️  Failed to create context snapshot: ${errorData['error']} (${snapshotResponse.statusCode})');
+        // Continue anyway - call can proceed without pre-loaded context
+      }
+    } catch (e) {
+      debugPrint('[joinRoom] ⚠️  Error creating context snapshot: $e');
+      // Continue anyway - call can proceed without pre-loaded context
+    }
+    // ============================================================================
+
     // CRITICAL FIX: NOW SHOW PRE-JOINING DIALOG (after credentials obtained)
     // At this point, we have valid meeting credentials, so we can safely show dialogs
     debugPrint('=== PHASE 2: Showing Pre-Joining Dialog ===');
@@ -836,45 +873,98 @@ Future joinRoom(
                       }
                     }
 
+                    // ==================== PHASE 8b: Post-call SOAP generation and polling ====================
+                    // Trigger AI SOAP draft generation and poll for completion
+                    if (isProvider) {
+                      debugPrint('[joinRoom] 📋 Triggering AI SOAP draft generation...');
+                      try {
+                        final generateToken = await FirebaseAuth.instance.currentUser?.getIdToken(true);
+                        final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
+                        final supabaseAnonKey = FFDevEnvironmentValues().Supabasekey;
+
+                        final generateResponse = await http.post(
+                          Uri.parse('$supabaseUrl/functions/v1/generate-soap-draft-v2'),
+                          headers: {
+                            'apikey': supabaseAnonKey,
+                            'Authorization': 'Bearer $supabaseAnonKey',
+                            'x-firebase-token': generateToken!,
+                            'Content-Type': 'application/json',
+                          },
+                          body: jsonEncode({'encounter_id': sessionId}),
+                        ).timeout(const Duration(seconds: 10));
+
+                        if (generateResponse.statusCode == 200) {
+                          debugPrint('[joinRoom] ✅ SOAP generation initiated, polling for draft_ready status...');
+
+                          // Poll for draft_ready status (max 60 seconds, check every 2 seconds)
+                          bool draftReady = false;
+                          int pollAttempts = 0;
+                          final int maxPollAttempts = 30; // 30 * 2 sec = 60 sec max
+
+                          while (!draftReady && pollAttempts < maxPollAttempts) {
+                            await Future.delayed(const Duration(seconds: 2));
+
+                            try {
+                              final statusSession = await SupaFlow.client
+                                  .from('video_call_sessions')
+                                  .select('soap_status, soap_draft_json')
+                                  .eq('id', sessionId)
+                                  .single();
+
+                              debugPrint('[joinRoom] 🔍 Poll attempt ${pollAttempts + 1}: soap_status = ${statusSession['soap_status']}');
+
+                              if (statusSession['soap_status'] == 'draft_ready') {
+                                draftReady = true;
+                                debugPrint('[joinRoom] ✅ SOAP draft ready after ${(pollAttempts + 1) * 2} seconds!');
+                              }
+                            } catch (e) {
+                              debugPrint('[joinRoom] ⚠️  Error checking SOAP status: $e');
+                            }
+
+                            pollAttempts++;
+                          }
+
+                          if (!draftReady) {
+                            debugPrint('[joinRoom] ⚠️  SOAP draft generation timed out after 60 seconds, proceeding anyway');
+                          }
+                        } else {
+                          final errorData = jsonDecode(generateResponse.body);
+                          debugPrint('[joinRoom] ⚠️  Failed to trigger SOAP generation: ${errorData['error']} (${generateResponse.statusCode})');
+                        }
+                      } catch (e) {
+                        debugPrint('[joinRoom] ⚠️  Error generating SOAP draft: $e');
+                      }
+                    }
+                    // ============================================================================
+
                     // Show post-call dialog BEFORE popping the page
                     // This ensures routeContext is still valid (fixes context.mounted = false issue)
                     // Guard against multiple dialog shows when MEETING_LEFT event fires multiple times
+                    // ==================== PHASE 8c: Show new SoapNoteTabbedView instead of old dialog ====================
                     if (isProvider && routeContext.mounted && !_postCallDialogShown) {
                       _postCallDialogShown = true;  // Set flag immediately to prevent re-entry on next MEETING_LEFT
-                      final dialogShowTime = DateTime.now();
-                      debugPrint('✅ Showing post-call clinical notes dialog in routeContext at ${dialogShowTime.toIso8601String()}');
-                      debugPrint('⏱️ Time elapsed since call end started: ${dialogShowTime.difference(callEndStartTime).inMilliseconds}ms');
+                      final navigationShowTime = DateTime.now();
+                      debugPrint('✅ Navigating to SoapNoteTabbedView for encounter: $sessionId at ${navigationShowTime.toIso8601String()}');
+                      debugPrint('⏱️ Time elapsed since call end started: ${navigationShowTime.difference(callEndStartTime).inMilliseconds}ms');
                       try {
-                        await showDialog(
-                          context: routeContext,
-                          barrierDismissible: false,
-                          builder: (dialogContext) {
-                            debugPrint('🔍 PostCallClinicalNotesDialog builder executing at ${DateTime.now().toIso8601String()}');
-                            return PostCallClinicalNotesDialog(
-                              sessionId: sessionId,
-                              appointmentId: appointmentId,
-                              providerId: providerId,
-                              patientId: patientId,
-                              patientName: patientName.isEmpty ? 'Patient' : patientName,
-                              onSaved: () {
-                                debugPrint('🔍 Post-call clinical notes saved');
-                                if (dialogContext.mounted) {
-                                  Navigator.of(dialogContext).pop();
-                                }
-                              },
-                              onDiscarded: () {
-                                debugPrint('🔍 Post-call clinical notes discarded');
-                                // Note: _discardNote() in the dialog already calls Navigator.pop()
-                                // so we don't need to pop here to avoid double-pop
-                              },
-                            );
-                          },
+                        // Navigate to SoapNoteTabbedView (new 12-tab SOAP form)
+                        await Navigator.of(routeContext).push(
+                          MaterialPageRoute(
+                            builder: (soapContext) {
+                              debugPrint('🔍 SoapNoteTabbedView route building at ${DateTime.now().toIso8601String()}');
+                              return SoapNoteTabbedView(
+                                encounterId: sessionId,
+                                sessionId: sessionId,
+                                initialStatus: 'draft_ready',
+                              );
+                            },
+                          ),
                         );
-                        debugPrint('✅ Post-call dialog closed');
+                        debugPrint('✅ Returned from SoapNoteTabbedView - user completed or dismissed SOAP form');
 
-                        // CRITICAL: Only pop the route AFTER the dialog has closed
-                        // This prevents the route from being popped while the dialog is still open
-                        debugPrint('🔍 Popping video call page after dialog close');
+                        // CRITICAL: Only pop the CURRENT route (video call page) AFTER the SOAP form has closed
+                        // This prevents the route from being popped while the SOAP form is still open
+                        debugPrint('🔍 Popping video call page after SOAP form close');
                         if (routeContext.mounted) {
                           try {
                             Navigator.of(routeContext).pop();
@@ -885,23 +975,24 @@ Future joinRoom(
                         } else {
                           debugPrint('⚠️ Cannot pop video call page - routeContext not mounted');
                         }
-                      } catch (dialogError) {
-                        debugPrint('❌ Error showing post-call dialog: $dialogError');
-                        // Still try to pop the route even if dialog failed
+                      } catch (navigationError) {
+                        debugPrint('❌ Error navigating to SoapNoteTabbedView: $navigationError');
+                        // Still try to pop the route even if navigation failed
                         if (routeContext.mounted) {
                           try {
                             Navigator.of(routeContext).pop();
-                            debugPrint('🔍 Video call page popped after dialog error');
+                            debugPrint('🔍 Video call page popped after navigation error');
                           } catch (e) {
-                            debugPrint('❌ Error popping after dialog error: $e');
+                            debugPrint('❌ Error popping after navigation error: $e');
                           }
                         }
                       }
                     } else if (isProvider) {
-                      debugPrint('⚠️ Cannot show post-call dialog - routeContext not mounted');
+                      debugPrint('⚠️ Cannot navigate to SoapNoteTabbedView - routeContext not mounted');
                     } else {
-                      debugPrint('⚠️ Not showing post-call dialog - not a provider');
+                      debugPrint('⚠️ Not showing SOAP form - not a provider');
                     }
+                    // ============================================================================
 
                     debugPrint('🔍 Completing call-ended completer');
                     // Signal that call has ended (completes immediately)

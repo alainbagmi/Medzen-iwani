@@ -143,6 +143,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   bool _showMeetingHeader = true; // Whether to show meeting header overlay
   Timer? _transcriptionIndicatorHideTimer; // Timer to auto-hide transcription indicator
   bool _showTranscriptionIndicator = true; // Whether to show transcription indicator
+  int _transcriptSequence = 0; // Sequence counter for chunked transcript storage
 
   // === GUARD FLAGS ===
   bool _sdkReadyProcessing = false; // Prevent duplicate SDK_READY processing
@@ -1282,33 +1283,41 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       }
     });
 
-    // Store transcripts to database
-    // UPDATED: Store BOTH partial and final transcripts (partial=true stores "partial", partial=false stores "final")
-    // This ensures no transcript segments are lost due to timing issues
+    // Store transcripts to database as chunked segments
+    // NEW: Store transcript chunks instead of giant string accumulation
+    // This prevents memory bloat and enables real-time streaming
     if (_sessionId != null) {
       try {
-        // Determine transcript type
-        final transcriptType = isPartial ? 'partial' : 'final';
+        // Increment sequence counter for this chunk
+        _transcriptSequence++;
 
-        await SupaFlow.client.from('live_caption_segments').insert({
-          'session_id': _sessionId,
-          'speaker_name': speakerName,
-          'transcript_text': transcriptText,
-          'is_partial': isPartial,
-          'transcript_type': transcriptType, // NEW: Track type for filtering
-          'result_id': resultId, // NEW: Deduplicate segments
+        // Get current timestamp in milliseconds
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+
+        // Store chunk to call_transcript_chunks table
+        // Using unawaited to prevent blocking UI while storing to database
+        unawaited(SupaFlow.client.from('call_transcript_chunks').insert({
+          'encounter_id': _sessionId,
+          'sequence': _transcriptSequence,
+          'start_ms': nowMs,
+          'end_ms': nowMs,
+          'speaker': speakerName,
+          'attendee_id': null, // TODO: Link to attendee if we can match speaker name
+          'text': transcriptText,
+          'confidence': isPartial ? 0.8 : 1.0, // Lower confidence for partial transcripts
+          'language_code': 'en',
           'created_at': timestamp,
-        });
+        }));
 
         debugPrint(
-            '✅ Caption stored ($transcriptType) - $speakerName: ${transcriptText.substring(0, 40).replaceAll('\n', ' ')}...');
+            '✅ Transcript chunk stored (seq: $_transcriptSequence) - $speakerName: ${transcriptText.substring(0, 40).replaceAll('\n', ' ')}...');
       } catch (e) {
-        debugPrint('❌ Failed to store caption: $e');
+        debugPrint('❌ Failed to store transcript chunk: $e');
       }
     } else {
       // DIAGNOSTIC: Why is sessionId null during call?
       debugPrint(
-          '⚠️ SKIPPED storing caption (sessionId is null!) - this means _fetchSessionId() failed');
+          '⚠️ SKIPPED storing transcript chunk (sessionId is null!) - this means _fetchSessionId() failed');
       debugPrint(
           '   Check: widget.sessionId=${widget.sessionId}, appointmentId=${widget.appointmentId}');
     }

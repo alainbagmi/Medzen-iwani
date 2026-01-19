@@ -2060,6 +2060,22 @@
                         console.warn('⚠️ Attempt ' + attempt + ' failed:', error.name, error.message);
                         lastError = error;
 
+                        // CRITICAL: SecurityError means browser rejected getUserMedia call due to:
+                        // - iframe opaque origin (null) - missing allow-same-origin in sandbox
+                        // - Non-HTTPS context
+                        // - Permissions-Policy blocking from parent
+                        // This is NOT a hardware/permission issue and retrying won't help
+                        // Must stop immediately and show hard error to user
+                        if (error.name === 'SecurityError') {
+                            console.error('🔐 [CRITICAL] SecurityError: Invalid security origin for getUserMedia');
+                            console.error('   This indicates iframe security context issue:');
+                            console.error('   - iframe may have opaque origin (check sandbox attribute)');
+                            console.error('   - parent may have Permissions-Policy blocking camera/microphone');
+                            console.error('   - page may not be HTTPS');
+                            console.error('   Throwing immediately - retrying will not help');
+                            throw error; // Stop retry loop - this is a hard security failure
+                        }
+
                         // Distinguish between actual permission denial and hardware unavailability
                         // On Android WebView and emulators, NotAllowedError can occur due to:
                         // - Hardware not ready yet (camera still releasing from previous session)
@@ -2372,6 +2388,30 @@
                         mediaDevicesAvailable: !!navigator.mediaDevices,
                         getUserMediaAvailable: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
                     }));
+
+                } else if (error.name === 'SecurityError') {
+                    // CRITICAL: SecurityError indicates browser security context failure
+                    // This is a hard failure that cannot be retried - user cannot proceed
+                    // Common causes:
+                    // 1. iframe sandbox missing 'allow-same-origin' → opaque origin (null)
+                    // 2. iframe loaded via data: or blob: URL → opaque origin
+                    // 3. Parent domain blocking via Permissions-Policy
+                    // 4. Non-HTTPS context (strict on some browsers)
+                    console.error('🔐 [CRITICAL] SecurityError: Camera/Microphone blocked by browser security');
+                    console.error('   Full error:', error.message);
+                    console.error('   Likely causes:');
+                    console.error('   1. iframe sandbox attribute missing allow-same-origin');
+                    console.error('   2. Page not using HTTPS');
+                    console.error('   3. Parent Permissions-Policy blocking camera/microphone');
+                    console.error('   User cannot proceed - this is a hard security failure');
+
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'SECURITY_ERROR',
+                        message: 'Camera/Microphone access denied by browser security. This requires a secure HTTPS context. Please try again with a proper browser configuration.',
+                        errorType: 'SecurityError',
+                        errorDetails: error.message,
+                        context: 'requestMediaPermissions'
+                    }));
                 }
 
                 permissionCheckInProgress = false;
@@ -2566,42 +2606,55 @@
                                                 ? { audio: true, video: false }
                                                 : { audio: { echoCancellation: true, noiseSuppression: true }, video: false };
 
-                                            const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-                                            const audioTrack = stream.getAudioTracks()[0];
-                                            if (audioTrack) {
-                                                // Keep the track and don't stop it - pass directly to Chime
-                                                const settings = audioTrack.getSettings();
-                                                console.log('🔊 Got audio track:', audioTrack.label, settings);
+                                            try {
+                                                const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+                                                const audioTrack = stream.getAudioTracks()[0];
+                                                if (audioTrack) {
+                                                    // Keep the track and don't stop it - pass directly to Chime
+                                                    const settings = audioTrack.getSettings();
+                                                    console.log('🔊 Got audio track:', audioTrack.label, settings);
 
-                                                // Try to bind the stream directly instead of stopping
-                                                try {
-                                                    // First try with the device ID
-                                                    if (settings.deviceId) {
+                                                    // Try to bind the stream directly instead of stopping
+                                                    try {
+                                                        // First try with the device ID
+                                                        if (settings.deviceId) {
+                                                            stream.getTracks().forEach(t => t.stop());
+                                                            await new Promise(resolve => setTimeout(resolve, isEmulator ? 2000 : 500));
+                                                            await audioVideo.startAudioInput(settings.deviceId);
+                                                            console.log('✅ Audio fallback succeeded with device:', settings.deviceId);
+                                                            audioSuccess = true;
+                                                            break;
+                                                        }
+                                                    } catch (bindErr) {
+                                                        console.warn('⚠️ Direct bind failed, trying default...', bindErr.name);
                                                         stream.getTracks().forEach(t => t.stop());
                                                         await new Promise(resolve => setTimeout(resolve, isEmulator ? 2000 : 500));
-                                                        await audioVideo.startAudioInput(settings.deviceId);
-                                                        console.log('✅ Audio fallback succeeded with device:', settings.deviceId);
-                                                        audioSuccess = true;
-                                                        break;
-                                                    }
-                                                } catch (bindErr) {
-                                                    console.warn('⚠️ Direct bind failed, trying default...', bindErr.name);
-                                                    stream.getTracks().forEach(t => t.stop());
-                                                    await new Promise(resolve => setTimeout(resolve, isEmulator ? 2000 : 500));
-                                                    // Try with 'default' device ID
-                                                    try {
-                                                        await audioVideo.startAudioInput('default');
-                                                        console.log('✅ Audio fallback succeeded with default device');
-                                                        audioSuccess = true;
-                                                        break;
-                                                    } catch (defaultErr) {
-                                                        console.warn('⚠️ Default device also failed:', defaultErr.name);
+                                                        // Try with 'default' device ID
+                                                        try {
+                                                            await audioVideo.startAudioInput('default');
+                                                            console.log('✅ Audio fallback succeeded with default device');
+                                                            audioSuccess = true;
+                                                            break;
+                                                        } catch (defaultErr) {
+                                                            console.warn('⚠️ Default device also failed:', defaultErr.name);
+                                                        }
                                                     }
                                                 }
+                                                stream.getTracks().forEach(t => t.stop());
+                                            } catch (mediaErr) {
+                                                // Catch getUserMedia-specific errors including SecurityError
+                                                if (mediaErr.name === 'SecurityError') {
+                                                    console.error('🔐 [CRITICAL] SecurityError during audio fallback - cannot proceed');
+                                                    throw mediaErr; // Re-throw to be caught by outer fallback handler
+                                                }
+                                                throw mediaErr;
                                             }
-                                            stream.getTracks().forEach(t => t.stop());
                                         } catch (fallbackErr) {
                                             console.error('❌ Audio fallback attempt ' + fallbackAttempt + ' failed:', fallbackErr.name);
+                                            if (fallbackErr.name === 'SecurityError') {
+                                                console.error('🔐 SecurityError encountered - stopping fallback attempts');
+                                                break; // Stop retry loop on SecurityError
+                                            }
                                             if (fallbackAttempt < 3) {
                                                 await new Promise(resolve => setTimeout(resolve, isEmulator ? 3000 : 1000));
                                             }
@@ -2626,8 +2679,20 @@
                 }
             } catch (error) {
                 console.error('❌ Audio setup error:', error.name, error.message);
+
+                // Check for SecurityError which indicates hard security failure
+                if (error.name === 'SecurityError') {
+                    console.error('🔐 [CRITICAL] SecurityError during audio setup - browser security context failure');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'SECURITY_ERROR',
+                        message: 'Camera/Microphone blocked by browser security during audio setup',
+                        errorType: 'SecurityError',
+                        context: 'setupDevices.audio',
+                        errorDetails: error.message
+                    }));
+                }
                 // Enhanced TypeError detection for audio setup
-                if (error instanceof TypeError || error.name === 'TypeError') {
+                else if (error instanceof TypeError || error.name === 'TypeError') {
                     console.error('🚨 [TypeError] during audio device setup');
                     console.error('   Message:', error.message);
                     console.error('   This may indicate: audioVideo API not ready or audio device enumeration failed');
@@ -2769,8 +2834,20 @@
                 }
             } catch (error) {
                 console.error('❌ Video setup error:', error.name, error.message);
+
+                // Check for SecurityError which indicates hard security failure
+                if (error.name === 'SecurityError') {
+                    console.error('🔐 [CRITICAL] SecurityError during video setup - browser security context failure');
+                    window.FlutterChannel?.postMessage(JSON.stringify({
+                        type: 'SECURITY_ERROR',
+                        message: 'Camera/Microphone blocked by browser security during video setup',
+                        errorType: 'SecurityError',
+                        context: 'setupDevices.video',
+                        errorDetails: error.message
+                    }));
+                }
                 // Enhanced TypeError detection for video setup
-                if (error instanceof TypeError || error.name === 'TypeError') {
+                else if (error instanceof TypeError || error.name === 'TypeError') {
                     console.error('🚨 [TypeError] during video device setup');
                     console.error('   Message:', error.message);
                     console.error('   This may indicate: audioVideo API not ready or device enumeration failed');

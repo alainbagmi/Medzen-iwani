@@ -55,6 +55,12 @@ class _PostCallClinicalNotesDialogState
   late DateTime _dialogCreatedAt;
   String? _lastLogContext;
 
+  // PHASE 2: Polling for SOAP data
+  Timer? _soapPollingTimer;
+  int _soapPollingAttempts = 0;
+  static const int _maxPollingAttempts = 30; // 30 attempts × 1 sec = 30 sec max polling
+  bool _soapDataArrived = false; // Track if SOAP data has been successfully loaded
+
   /// ⏱️ Timing instrumentation helper - wraps async operations with stopwatch logging
   /// Logs: [START label] → [END label (Xms)] or [FAIL label (Xms) => error]
   Future<T> timed<T>(String label, Future<T> Function() fn) async {
@@ -106,6 +112,11 @@ class _PostCallClinicalNotesDialogState
     debugPrint('═══════════════════════════════════════════════════════════');
 
     try {
+      // PHASE 2: Clean up polling timer
+      debugPrint('[Cleanup] Cleaning up polling timer...');
+      _soapPollingTimer?.cancel();
+      debugPrint('✅ Polling timer cancelled');
+
       debugPrint('[Cleanup] Disposing TextEditingController...');
       _notesController.dispose();
       debugPrint('✅ TextEditingController disposed');
@@ -208,6 +219,10 @@ class _PostCallClinicalNotesDialogState
       debugPrint('🚀 Calling _generateClinicalNote() async with transcript');
       unawaited(_generateClinicalNote(transcript)); // Fire-and-forget for faster UI response
       debugPrint('✅ Empty form displayed, generating SOAP in background...');
+
+      // PHASE 2: Start polling for SOAP data to detect when it arrives (fixes web hanging)
+      debugPrint('⏱️ Starting SOAP polling (30 sec timeout, 1 sec intervals)');
+      _startSoapPolling();
     } catch (e) {
       debugPrint('Error checking transcript: $e');
       setState(() {
@@ -217,6 +232,68 @@ class _PostCallClinicalNotesDialogState
       });
     }
   }
+
+  /// PHASE 2: Poll database every 1 second to check if SOAP data has arrived
+  /// Useful for web where background tasks might complete but UI doesn't update automatically
+  /// Stops after 30 attempts (30 seconds) to avoid excessive database queries
+  void _startSoapPolling() {
+    _soapPollingAttempts = 0;
+    _soapPollingTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      _soapPollingAttempts++;
+
+      try {
+        // Query database for SOAP data
+        final session = await SupaFlow.client
+            .from('video_call_sessions')
+            .select('id, soap_json, soap_status')
+            .eq('id', widget.sessionId)
+            .maybeSingle()
+            .timeout(
+              const Duration(seconds: 2),
+              onTimeout: () => throw TimeoutException('SOAP poll query timed out'),
+            );
+
+        if (session != null && session['soap_json'] != null) {
+          // SOAP data arrived! Stop polling and update UI
+          debugPrint('✅ SOAP data detected via polling after ${_soapPollingAttempts}s');
+          _soapPollingTimer?.cancel();
+
+          try {
+            final soapData = jsonDecode(session['soap_json']) as Map<String, dynamic>;
+            if (mounted && !_soapDataArrived) {
+              _soapDataArrived = true;
+              setState(() {
+                _soapData = soapData;
+                _isGenerating = false;
+                _errorMessage = null;
+              });
+              debugPrint('✅ SOAP data populated via polling');
+            }
+          } catch (e) {
+            debugPrint('⚠️ Failed to parse SOAP data from polling: $e');
+          }
+        } else if (_soapPollingAttempts >= _maxPollingAttempts) {
+          // Max polling reached, stop to avoid excessive queries
+          debugPrint('⚠️ SOAP polling timeout after ${_soapPollingAttempts}s - SOAP not ready');
+          _soapPollingTimer?.cancel();
+          if (mounted && !_soapDataArrived) {
+            setState(() {
+              _isGenerating = false;
+              if (_errorMessage == null) {
+                _errorMessage = 'SOAP generation taking longer than expected. Manual entry may be needed.';
+              }
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ SOAP polling error on attempt $_soapPollingAttempts: $e');
+        if (_soapPollingAttempts >= _maxPollingAttempts) {
+          _soapPollingTimer?.cancel();
+        }
+      }
+    });
+  }
+
 
   /// Fetch session by sessionId with aggressive timeout and minimal retry backoff (OPTIMIZATION 1)
   /// Reduced from 500ms/1000ms to 100ms/150ms exponential backoff with 3-second query timeout
@@ -344,24 +421,26 @@ class _PostCallClinicalNotesDialogState
 
       // WEB FIX: Add timeout to getIdToken to prevent indefinite UI freeze on web
       // Firebase auth can be slow on web when Firestore has connection issues
+      // PHASE 2: Reduced timeout on web from 10s to 5s for faster failure detection
       String? token;
-      debugPrint('⏳ About to call getIdToken(true) with 10-sec timeout');
+      final tokenTimeout = 5; // Reduced from 10s for web responsiveness
+      debugPrint('⏳ About to call getIdToken(true) with ${tokenTimeout}-sec timeout');
       try {
         token = await timed('firebase-token-refresh-forced', () =>
           currentUser.getIdToken(true).timeout(
-            const Duration(seconds: 10),
-            onTimeout: () => throw TimeoutException('Firebase token refresh timed out after 10 seconds'),
+            Duration(seconds: tokenTimeout),
+            onTimeout: () => throw TimeoutException('Firebase token refresh timed out after $tokenTimeout seconds'),
           )
         );
         debugPrint('✅ Firebase token obtained (refreshed): ${token?.substring(0, 20)}...');
       } catch (e) {
         debugPrint('⚠️ Firebase token refresh failed: $e');
-        debugPrint('⏳ Fallback: Calling getIdToken(false) with 5-sec timeout');
+        debugPrint('⏳ Fallback: Calling getIdToken(false) with 3-sec timeout');
         // Fall back to non-refreshed token (may be stale but better than freezing)
         try {
           token = await timed('firebase-token-fallback-nofresh', () =>
             currentUser.getIdToken(false).timeout(
-              const Duration(seconds: 5),
+              const Duration(seconds: 3),
             )
           );
           debugPrint('✅ Firebase token obtained (non-refreshed): ${token?.substring(0, 20)}...');

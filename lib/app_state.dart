@@ -491,6 +491,20 @@ class FFAppState extends ChangeNotifier {
   set editLicenseNumber(String value) {
     _editLicenseNumber = value;
   }
+
+  /// Phase 8a: Pre-call context snapshot ID for SOAP generation
+  String _lastContextSnapshotId = '';
+  String get lastContextSnapshotId => _lastContextSnapshotId;
+  set lastContextSnapshotId(String value) {
+    _lastContextSnapshotId = value;
+  }
+
+  /// Phase 8: Current SOAP encounter ID
+  String _currentSoapEncounterId = '';
+  String get currentSoapEncounterId => _currentSoapEncounterId;
+  set currentSoapEncounterId(String value) {
+    _currentSoapEncounterId = value;
+  }
 }
 
 void _safeInit(Function() initializeField) {
