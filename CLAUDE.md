@@ -140,6 +140,7 @@ npx supabase db reset                # Reset migrations
 | **RLS blocking** | Policy must allow `auth.uid() IS NULL OR user_id = auth.uid()`. Verify `firebase_uid` link. |
 | **Transcription stuck** | Check `transcription_usage_daily` for AWS limits. Verify status in `video_call_sessions`. |
 | **Live captions missing** | Check `_isProcessingTranscript` flag. Verify buffer accumulating. Check 12-sec timer. |
+| **Tab 2 Missing Fields** | Run test query: `SELECT COUNT(*) FROM clinical_notes WHERE soap_data->'tab2_patient_identification'->'phone' IS NULL;` If count >0, verify create-context-snapshot deployed and context snapshots have user_profiles data. Check logs: `npx supabase functions logs generate-soap-draft-v2 --tail` for "Tab 2 missing" warnings. May need to re-run context snapshot creation to populate missing address/emergency_contact fields. |
 | **SOAP not populating** | Verify transcript in `call_transcripts`. Check `generate-soap-from-context` logs. |
 | **Build fails** | `flutter clean && flutter pub get` |
 | **iOS pods fail** | `cd ios && pod deintegrate && pod install` |
@@ -356,26 +357,326 @@ final json = jsonDecode(response.body);
 if (json['code'] == 'PATIENT_CANNOT_CREATE') showErrorDialog('Only providers can initiate calls');
 ```
 
-## Video Call Workflow (joinRoom)
+## Enhanced Video Call Data Gathering Workflow
 
-**1. Pre-Call Assessment (provider only):**
-- Show ChimePreJoiningDialog for permissions
-- Fetch patient biometrics & existing SOAP notes
-- Provider reviews context
+### Architecture Overview
 
-**2. Video Execution:**
-- Force-refresh Firebase token: `getIdToken(true)`
-- Call chime-meeting-token edge function (3-retry backoff)
-- Initialize Chime SDK from CDN
-- Create/join meeting, stream to chime_messages
-- Pause session timeout during call
+The enhanced workflow uses a **three-tier query pattern** to gather complete patient data from denormalized database views:
 
-**3. Post-Call Workflow:**
-- Stop transcription capture
-- Show PostCallClinicalNotesDialog (AI auto-populated)
-- Provider reviews & signs
-- Async AWS Transcribe Medical job
-- Sync to EHRbase
+1. **Tier 1: appointment_overview view** - Primary truth source (denormalized appointment + patient + provider)
+2. **Tier 2: user_profiles table** - Address and emergency contact information
+3. **Tier 3: patient_profiles table** - Patient number and cumulative medical record
+
+This architecture ensures complete data availability for SOAP note auto-population while leveraging existing indexed views for performance.
+
+### Pre-Call Context Snapshot
+
+**Data Flow:**
+```
+Provider initiates call via joinRoom action
+  ↓
+create-context-snapshot edge function called
+  ↓
+Step 1: Query appointment_overview by encounter_id
+  → Extract: patient_id, patient demographics, appointment context
+  ↓
+Step 2: Query users table by patient_id
+  → Correct field names: date_of_birth (not dob), gender (not sex_at_birth), phone_number (not phone)
+  ↓
+Step 3: Query user_profiles by user_id
+  → Extract: address, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship
+  ↓
+Step 4: Query patient_profiles by user_id
+  → Extract: patient_number, cumulative_medical_record
+  ↓
+Context snapshot created with complete patient_demographics + appointment_context
+```
+
+**patient_demographics TypeScript Interface (14 fields):**
+```typescript
+patient_demographics: {
+  id: string;                                  // User ID
+  full_name: string;                           // REQUIRED - from users.full_name or appointment_overview.patient_full_name
+  patient_number?: string;                     // OPTIONAL - from patient_profiles.patient_number
+  dob: string;                                 // REQUIRED - from users.date_of_birth (ISO format)
+  age?: number;                                // REQUIRED - calculated from dob
+  gender: string;                              // REQUIRED - from users.gender (NOT sex_at_birth)
+  phone: string;                               // REQUIRED - from users.phone_number (NOT phone)
+  email: string;                               // REQUIRED - from users.email
+  address?: string;                            // OPTIONAL - from user_profiles.address
+  emergency_contact_name?: string;             // OPTIONAL - from user_profiles
+  emergency_contact_phone?: string;            // OPTIONAL - from user_profiles
+  emergency_contact_relationship?: string;     // OPTIONAL - from user_profiles
+  blood_type?: string;                         // OPTIONAL - from patient_profiles
+  created_at: string;                          // Timestamp
+}
+```
+
+**appointment_context TypeScript Interface (9 fields):**
+```typescript
+appointment_context: {
+  appointment_id: string;                      // Unique appointment identifier
+  appointment_number: string;                  // Human-readable reference (e.g., "APT-0042")
+  chief_complaint?: string;                    // Pre-visit chief complaint from appointment
+  appointment_type: string;                    // e.g., "Telehealth Video"
+  specialty?: string;                          // Medical specialty (e.g., "Cardiology")
+  scheduled_start: string;                     // ISO 8601 timestamp
+  provider_name: string;                       // From medical_provider_profiles
+  provider_specialty?: string;                 // Provider's specialty
+  facility_name?: string;                      // From facilities table
+}
+```
+
+**Field Name Mapping Reference:**
+| Database Column | TypeScript Field | Why Important |
+|---|---|---|
+| users.date_of_birth | patient_demographics.dob | Phase 2 correction - code was querying 'dob' which doesn't exist |
+| users.gender | patient_demographics.gender | Phase 2 correction - code was querying 'sex_at_birth' which is actually 'gender' |
+| users.phone_number | patient_demographics.phone | Phase 2 correction - code was querying 'phone' which is actually 'phone_number' |
+| user_profiles.address | patient_demographics.address | Phase 2 enhancement - added address field |
+| user_profiles.emergency_contact_* | patient_demographics.emergency_contact_* | Phase 2 enhancement - added emergency contact fields |
+| patient_profiles.patient_number | patient_demographics.patient_number | Phase 2 enhancement - added patient number field |
+
+**Completeness Logging (creates audit trail):**
+```typescript
+console.log(`[create-context-snapshot] Snapshot completeness check:`);
+console.log(`  - Patient Name: ${snapshot.patient_demographics.full_name ? '✓' : '✗'}`);
+console.log(`  - DOB: ${snapshot.patient_demographics.dob ? '✓' : '✗'}`);
+console.log(`  - Phone: ${snapshot.patient_demographics.phone ? '✓' : '✗'}`);
+console.log(`  - Email: ${snapshot.patient_demographics.email ? '✓' : '✗'}`);
+console.log(`  - Address: ${snapshot.patient_demographics.address ? '✓' : '✗ (optional)'}`);
+console.log(`  - Emergency Contact: ${snapshot.patient_demographics.emergency_contact_name ? '✓' : '✗ (optional)'}`);
+console.log(`  - Patient Number: ${snapshot.patient_demographics.patient_number ? '✓' : '✗ (optional)'}`);
+console.log(`  - Blood Type: ${snapshot.patient_demographics.blood_type !== 'Unknown' ? '✓' : '✗ (optional)'}`);
+```
+
+### SOAP Note Generation
+
+**Tab 1 - Encounter Header (uses appointment_context):**
+- visit_date: appointment_context.scheduled_start
+- visit_type: appointment_context.appointment_type
+- chief_complaint_as_written: appointment_context.chief_complaint (enhanced from transcript if patient elaborates)
+- appointment_number: appointment_context.appointment_number (for reference tracking)
+- provider_name: appointment_context.provider_name
+- facility_name: appointment_context.facility_name
+- specialty: appointment_context.specialty
+
+**Tab 2 - Patient Identification (extracted from patient_demographics):**
+
+*Required Fields (must be populated):*
+- full_name: patient_demographics.full_name
+- dob: patient_demographics.dob (ISO format: YYYY-MM-DD)
+- age: patient_demographics.age (calculated from dob)
+- sex_at_birth: patient_demographics.gender
+- phone: patient_demographics.phone
+- email: patient_demographics.email
+
+*Optional Fields (include if available):*
+- address: patient_demographics.address
+- emergency_contact_name: patient_demographics.emergency_contact_name
+- emergency_contact_phone: patient_demographics.emergency_contact_phone
+- emergency_contact_relationship: patient_demographics.emergency_contact_relationship
+- patient_number: patient_demographics.patient_number
+- blood_type: patient_demographics.blood_type
+
+**Tab 2 Validation Mechanism (TypeScript code):**
+```typescript
+// Validate Tab 2 Patient Identification completeness
+const tab2 = soapDraft.tab2_patient_identification || {};
+const requiredFields = ['full_name', 'dob', 'age', 'sex_at_birth', 'phone', 'email'];
+const missingRequired = requiredFields.filter(field => !tab2[field] || tab2[field] === '');
+
+if (missingRequired.length > 0) {
+  console.warn(`[generate-soap-draft-v2] ⚠️  Tab 2 missing required fields: ${missingRequired.join(', ')}`);
+  
+  // Initialize ai_flags
+  if (!soapDraft.meta.ai_flags) {
+    soapDraft.meta.ai_flags = { needs_clinician_confirmation: [], missing_critical_info: [] };
+  }
+  
+  // Add each missing field to ai_flags
+  missingRequired.forEach(field => {
+    soapDraft.meta.ai_flags.missing_critical_info.push(`Tab 2: ${field} is missing - please fill manually`);
+  });
+  
+  // Adjust confidence score: base 0.8, -0.2 per missing field, minimum 0.5
+  soapDraft.meta.provenance.confidence = Math.max(0.5, soapDraft.meta.provenance.confidence - 0.2);
+}
+
+// Log optional fields status
+const optionalFields = ['address', 'emergency_contact_name', 'emergency_contact_phone', 'patient_number'];
+const presentOptional = optionalFields.filter(field => tab2[field] && tab2[field] !== '');
+console.log(`[generate-soap-draft-v2] Tab 2 optional fields present: ${presentOptional.join(', ') || 'none'}`);
+```
+
+**Confidence Score System:**
+- Base Score: 0.8 (80% confidence)
+- Penalty: -0.2 (20%) per missing REQUIRED field
+- Minimum Floor: 0.5 (50% - minimum usable score)
+- Clinical Threshold: >0.70 (70%)
+
+Example:
+- All 6 required fields present: 0.8 confidence (✓ above threshold)
+- 1 field missing (e.g., phone): 0.8 - 0.2 = 0.6 confidence (⚠️ below 0.70 threshold)
+- 2 fields missing: 0.8 - 0.4 = 0.4 → floor to 0.5 confidence (⚠️ below threshold)
+
+**ai_flags Error Tracking Structure:**
+```typescript
+ai_flags: {
+  missing_critical_info: [
+    "Tab 2: phone is missing - please fill manually",
+    "Tab 2: address not available in patient records"
+  ],
+  needs_clinician_confirmation: [
+    "emergency_contact_relationship unclear - verify with patient",
+    "blood_type not documented - confirm type with patient"
+  ]
+}
+```
+
+### Complete Video Call Workflow (joinRoom Action)
+
+**Stage 1: Pre-Call Assessment (Provider Only)**
+- Show ChimePreJoiningDialog for device permissions
+- Fetch patient demographics from previous calls
+- Call create-context-snapshot to gather complete patient data (three-tier query)
+- Fetch existing SOAP notes for context
+- Provider reviews pre-populated patient information and appointment context
+
+**Stage 2: Video Execution**
+- Force-refresh Firebase token: `getIdToken(true)` (critical for edge function auth)
+- Call chime-meeting-token edge function with 3-retry exponential backoff
+- Initialize Chime SDK from CloudFront CDN
+- Create or join meeting, stream real-time messages to chime_messages table
+- Enable live captions with 3-5 second fade-out
+- Accumulate transcript segments in StringBuffer, process every 12 seconds
+- Prevent session timeout while call is active
+
+**Stage 3: Post-Call Workflow**
+- Stop real-time transcription capture
+- Build speaker map from chime_messages data
+- Initiate AWS Transcribe Medical job (async, 2-10 minute completion)
+- Call generate-soap-draft-v2 with complete context snapshot + transcript
+- Show PostCallClinicalNotesDialog with AI auto-populated 12-tab SOAP
+- Provider reviews all tabs (especially Tab 2 Patient Demographics and Tab 1 Encounter Header)
+- Provider adds/edits clinical notes as needed
+- Provider confirms ai_flags and resolves missing_critical_info
+- Provider signs and saves SOAP note to clinical_notes table
+- System triggers async sync-to-ehrbase for OpenEHR integration
+
+
+
+### Data Flow Diagram: Enhanced Video Call Workflow with Three-Tier Query Architecture
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 1: PRE-CALL CONTEXT GATHERING (create-context-snapshot)                 │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Provider Initiates Call → create-context-snapshot(encounter_id, appointment_id)│
+│                                                                                  │
+│  THREE-TIER QUERY ARCHITECTURE:                                               │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐               │
+│  │ Tier 1:         │  │ Tier 2:          │  │ Tier 3:          │               │
+│  │appointment_     │  │user_profiles     │  │patient_profiles  │               │
+│  │overview         │  │table             │  │table             │               │
+│  │(denormalized)   │  │                  │  │                  │               │
+│  ├─────────────────┤  ├──────────────────┤  ├──────────────────┤               │
+│  │ Returns:        │  │ Returns:         │  │ Returns:         │               │
+│  │ appointment_id  │  │ address          │  │ patient_number   │               │
+│  │ patient_id      │  │ emergency_       │  │ cumulative_      │               │
+│  │ patient_full_   │  │ contact_name     │  │ medical_record   │               │
+│  │ name            │  │ emergency_       │  │ blood_type       │               │
+│  │ patient_email   │  │ contact_phone    │  │                  │               │
+│  │ patient_phone   │  │ emergency_       │  │                  │               │
+│  │ chief_complaint │  │ contact_         │  │                  │               │
+│  │ appointment_    │  │ relationship     │  │                  │               │
+│  │ type            │  │                  │  │                  │               │
+│  │ specialty       │  │                  │  │                  │               │
+│  │ provider_full_  │  │                  │  │                  │               │
+│  │ name            │  │                  │  │                  │               │
+│  │ facility_name   │  │                  │  │                  │               │
+│  └────────┬────────┘  └────────┬─────────┘  └────────┬─────────┘               │
+│           │                    │                     │                         │
+│           └────────────────────┼─────────────────────┘                         │
+│                                ↓                                                │
+│  CONTEXT SNAPSHOT (Stored in context_snapshots JSONB):                         │
+│  ├─ patient_demographics (14 fields total):                                   │
+│  │  ├─ REQUIRED (8): id, full_name, dob, age, gender, phone, email, created_at
+│  │  └─ OPTIONAL (6): patient_number, address, emergency_contact_name,         │
+│  │     emergency_contact_phone, emergency_contact_relationship, blood_type    │
+│  ├─ appointment_context (9 fields):                                           │
+│  │  └─ appointment_id, appointment_number, chief_complaint, appointment_type, │
+│  │     specialty, scheduled_start, provider_name, provider_specialty,         │
+│  │     facility_name                                                          │
+│  └─ Medical History: active_conditions, medications, allergies, surgical_     │
+│     history, family_history, social_history, recent_labs_vitals              │
+│                                                                                  │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 2 & 3: VIDEO CALL + SOAP GENERATION (generate-soap-draft-v2)            │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  During Call: Chime SDK streams video/audio + captures real-time transcription │
+│                                                                                  │
+│  Call Ends → generate-soap-draft-v2(context_snapshot, transcript)             │
+│                                                                                  │
+│  SOAP Generation Pipeline:                                                     │
+│  1. Fetch context_snapshot (JSONB) + call transcript chunks                    │
+│  2. Call AWS Bedrock (Claude) with enhanced prompt:                            │
+│     - Emphasizes Tab 2 completeness (all 6 required fields)                    │
+│     - Includes appointment_context in Tab 1 prompt                             │
+│     - Validates all 12 SOAP tabs populated                                     │
+│  3. AI generates SOAP draft with all 12 tabs                                   │
+│                                                                                  │
+│  ▼ VALIDATION CHECKPOINTS (before returning response):                        │
+│                                                                                  │
+│  ┌──────────────────────────────────────────────────────────────┐             │
+│  │ TAB 2 VALIDATION: Patient Identification Required Fields    │             │
+│  │ ✓ full_name    (from snapshot.patient_demographics.full_name)│             │
+│  │ ✓ dob          (from snapshot.patient_demographics.dob)      │             │
+│  │ ✓ age          (calculated from dob)                         │             │
+│  │ ✓ sex_at_birth (from snapshot.patient_demographics.gender)   │             │
+│  │ ✓ phone        (from snapshot.patient_demographics.phone)    │             │
+│  │ ✓ email        (from snapshot.patient_demographics.email)    │             │
+│  │                                                               │             │
+│  │ OPTIONAL Tab 2 Fields (populate if available):              │             │
+│  │ ○ patient_number (from snapshot.patient_demographics)        │             │
+│  │ ○ address        (from snapshot.patient_demographics)        │             │
+│  │ ○ emergency_contact_name/phone                               │             │
+│  │                                                               │             │
+│  │ IF Any Required Field Missing:                               │             │
+│  │   → ai_flags.missing_critical_info = ["Tab 2: {field}..."]   │             │
+│  │   → Confidence Score: 0.8 - (0.2 × missing_fields)           │             │
+│  │   → Min floor: 0.5 (50% confidence)                          │             │
+│  │                                                               │             │
+│  │ Example Confidence Calculations:                             │             │
+│  │   • All 6 required present: 0.8 ✓ (above 0.70 threshold)   │             │
+│  │   • 1 field missing: 0.8 - 0.2 = 0.6 (below threshold)      │             │
+│  │   • 2 fields missing: 0.8 - 0.4 = 0.4 → 0.5 floor           │             │
+│  └──────────────────────────────────────────────────────────────┘             │
+│                                                                                  │
+│  ▼ SOAP RESPONSE (All 12 Tabs):                                                │
+│  ├─ Tab 1: Encounter Header (includes appointment_context: id, number,        │
+│  │  chief_complaint, provider, facility, specialty)                           │
+│  ├─ Tab 2: Patient Identification (all demographics from snapshot)            │
+│  ├─ Tabs 3-12: Clinical findings (from transcript + medical history)          │
+│  └─ meta.ai_flags: { missing_critical_info: [...], needs_clinician_          │
+│     confirmation: [...], confidence: <0.5-1.0> }                              │
+│                                                                                  │
+│  ▼ POST-CALL WORKFLOW:                                                         │
+│  Provider Reviews SOAP in PostCallClinicalNotesDialog:                         │
+│  • Verifies Tab 2 Patient Demographics is complete                            │
+│  • Verifies Tab 1 Encounter Header has appointment context                    │
+│  • Reviews ai_flags for missing_critical_info requiring manual input          │
+│  • Edits/confirms clinical notes                                              │
+│  • Signs and saves SOAP to clinical_notes table                               │
+│  • Triggers async sync-to-ehrbase for OpenEHR integration                     │
+│                                                                                  │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
 
 ## Real-Time Transcription
 
