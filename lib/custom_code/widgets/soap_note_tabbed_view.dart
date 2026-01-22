@@ -1555,7 +1555,7 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
     });
 
     // Trigger autosave via _onFieldChanged
-    _onFieldChanged(r'$.' + path, _localSoapData);
+    _onFieldChanged(r'$.' + path, newItem);
   }
 
   void _removeItemFromList(String path, int index) {
@@ -1580,8 +1580,11 @@ class _SoapNoteTabbedViewState extends State<SoapNoteTabbedView>
       }
     });
 
-    // Trigger autosave
-    _onFieldChanged(r'$.' + path, _localSoapData);
+    // Trigger autosave via debounce (state change will be detected automatically)
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _sendPatchToServer();
+    });
   }
 
   // Utility Functions

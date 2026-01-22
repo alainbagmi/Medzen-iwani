@@ -326,11 +326,28 @@
     </script>
 
     <!-- Load Chime SDK from CloudFront CDN (custom-built working bundle v3.29.0) -->
-    <script src="https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js"
-            async
-            defer
-            onload="handleSDKLoadSuccess()"
-            onerror="handleSDKLoadError()"></script>
+    <!-- Using dynamic script loading instead of static tag to ensure onload/onerror fire reliably through redirects -->
+    <script>
+        (function loadChimeSDK() {
+            console.log('🚀 Starting Chime SDK load...');
+            const script = document.createElement('script');
+            script.src = 'https://du6iimxem4mh7.cloudfront.net/assets/amazon-chime-sdk-medzen.min.js';
+            script.async = true;
+
+            script.onload = function() {
+                console.log('✅ SDK script loaded from CDN');
+                handleSDKLoadSuccess();
+            };
+
+            script.onerror = function() {
+                console.error('❌ SDK script failed to load');
+                handleSDKLoadError();
+            };
+
+            document.head.appendChild(script);
+            console.log('📦 SDK script appended to document head');
+        })();
+    </script>
 
     <style>
         * {
