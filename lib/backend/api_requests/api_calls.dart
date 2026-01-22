@@ -2182,11 +2182,11 @@ class HelpMePayCall {
     return ApiManager.instance.makeApiCall(
       callName: 'Help Me Pay',
       apiUrl:
-          'https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json',
+          'https://api.twilio.com/2010-04-01/Accounts/${FFAppState().twilioAccountSid}/Messages.json',
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
-            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
+            'Basic ${FFAppState().twilioAuthToken}',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       params: {
@@ -2322,11 +2322,11 @@ class TwillioSendSmsCall {
     return ApiManager.instance.makeApiCall(
       callName: 'Twillio Send sms',
       apiUrl:
-          'https://api.twilio.com/2010-04-01/Accounts/YOUR_TWILIO_ACCOUNT_SID/Messages.json',
+          'https://api.twilio.com/2010-04-01/Accounts/${FFAppState().twilioAccountSid}/Messages.json',
       callType: ApiCallType.POST,
       headers: {
         'Authorization':
-            'Basic QUM0NGJiNjI1MmE0OWQyZWIwMzRlNjA5ZjU0Y2JiZDRhMTpmNmEyMjY3OGQwNmFlZDllMWY1MWFiZjY0MDViNjJjOQ==',
+            'Basic ${FFAppState().twilioAuthToken}',
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       params: {
