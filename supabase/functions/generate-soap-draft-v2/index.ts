@@ -423,7 +423,7 @@ serve(async (req: Request) => {
       );
     }
 
-    const { encounter_id } = await req.json();
+    const { encounter_id, patientMedicalHistory } = await req.json();
 
     if (!encounter_id) {
       return new Response(
@@ -431,6 +431,8 @@ serve(async (req: Request) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('[generate-soap-draft-v2] Received patientMedicalHistory from request body:', !!patientMedicalHistory);
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey);
 
@@ -475,6 +477,45 @@ serve(async (req: Request) => {
       );
     }
 
+    // 3.5. Merge patientMedicalHistory from request body with snapshot from database
+    let contextData: any = { ...snapshot };
+    if (patientMedicalHistory) {
+      console.log('[generate-soap-draft-v2] Merging patientMedicalHistory from request body with snapshot...');
+
+      // Merge patient demographics (request body takes precedence for missing fields)
+      if (patientMedicalHistory.demographics) {
+        contextData.patient_demographics = {
+          ...(contextData.patient_demographics || {}),
+          ...patientMedicalHistory.demographics,
+        };
+        console.log(
+          `[generate-soap-draft-v2] ✅ Merged patient demographics: ${patientMedicalHistory.demographics.full_name || 'N/A'}`
+        );
+      }
+
+      // Merge patient profile data
+      if (patientMedicalHistory.profile) {
+        contextData.patient_profile = {
+          ...(contextData.patient_profile || {}),
+          ...patientMedicalHistory.profile,
+        };
+        console.log('[generate-soap-draft-v2] ✅ Merged patient profile data');
+      }
+
+      // Merge medical history
+      if (patientMedicalHistory.medical_history) {
+        contextData.patient_medical_history = {
+          ...(contextData.patient_medical_history || {}),
+          ...patientMedicalHistory.medical_history,
+        };
+        console.log('[generate-soap-draft-v2] ✅ Merged patient medical history');
+      }
+
+      console.log('[generate-soap-draft-v2] Complete merged context prepared for SOAP generation');
+    } else {
+      console.log('[generate-soap-draft-v2] No patientMedicalHistory in request body, using snapshot data only');
+    }
+
     // 4. Fetch and assemble transcript chunks
     console.log('[generate-soap-draft-v2] Fetching transcript chunks...');
     const { data: chunks, error: chunksError } = await supabaseAdmin
@@ -493,9 +534,9 @@ serve(async (req: Request) => {
 
     console.log(`[generate-soap-draft-v2] Assembled transcript: ${transcriptText.length} characters`);
 
-    // 5. Build the user prompt
+    // 5. Build the user prompt with merged context data
     const userPrompt = buildSoapPrompt(
-      snapshot,
+      contextData,
       transcriptText,
       {
         visit_type: 'video',
@@ -504,6 +545,7 @@ serve(async (req: Request) => {
         appointment_id: session.appointment_id,
       }
     );
+    console.log('[generate-soap-draft-v2] User prompt built with merged patient context');
 
     // 6. Call Bedrock Lambda for SOAP generation (clinical model for providers)
     if (!bedrockLambdaUrl) {

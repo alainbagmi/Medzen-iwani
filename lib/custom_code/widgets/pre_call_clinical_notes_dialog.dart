@@ -39,6 +39,7 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
   String? _errorMessage;
   Map<String, dynamic>? _lastSoapNote;
   Map<String, dynamic>? _patientBiometrics;
+  Map<String, dynamic>? _patientDemographics;
 
   @override
   void initState() {
@@ -53,7 +54,48 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
     });
 
     try {
-      // Get latest SOAP note for this patient (for Previous Clinical Context section)
+      debugPrint('📋 Fetching complete patient context (demographics + medical history) for patient: ${widget.patientId}');
+
+      // FETCH 1: Patient demographics from users table
+      debugPrint('🔍 Fetching patient demographics from users table...');
+      final demographicsResponse = await SupaFlow.client
+          .from('users')
+          .select('id, first_name, last_name, date_of_birth, gender, phone_number, email, created_at')
+          .eq('id', widget.patientId)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 5));
+
+      if (demographicsResponse != null) {
+        _patientDemographics = {
+          'id': demographicsResponse['id'],
+          'full_name': '${demographicsResponse['first_name']} ${demographicsResponse['last_name']}'.trim(),
+          'first_name': demographicsResponse['first_name'],
+          'last_name': demographicsResponse['last_name'],
+          'date_of_birth': demographicsResponse['date_of_birth'],
+          'gender': demographicsResponse['gender'],
+          'phone': demographicsResponse['phone_number'],
+          'email': demographicsResponse['email'],
+          'created_at': demographicsResponse['created_at'],
+        };
+
+        // Calculate age if DOB exists
+        if (demographicsResponse['date_of_birth'] != null) {
+          try {
+            final dob = DateTime.parse(demographicsResponse['date_of_birth']);
+            final now = DateTime.now();
+            int age = now.year - dob.year;
+            if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+              age--;
+            }
+            _patientDemographics!['age'] = age;
+            debugPrint('✅ Patient demographics loaded: ${_patientDemographics!['full_name']}, Age: $age');
+          } catch (e) {
+            debugPrint('⚠️ Could not calculate age from DOB: $e');
+          }
+        }
+      }
+
+      // FETCH 2: Latest SOAP note for this patient (for Previous Clinical Context section)
       final soapNotes = await SupaFlow.client
           .from('soap_notes')
           .select('id')
@@ -73,7 +115,7 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
         }
       }
 
-      // Get patient cumulative medical record from patient_profiles
+      // FETCH 3: Get patient cumulative medical record from patient_profiles
       final patientProfile = await SupaFlow.client
           .from('patient_profiles')
           .select(
@@ -82,6 +124,12 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
           .maybeSingle();
 
       if (patientProfile != null) {
+        // Store patient profile data if not already in demographics
+        if (_patientDemographics != null) {
+          _patientDemographics!['blood_type'] = patientProfile['blood_type'] ?? 'Unknown';
+          debugPrint('✅ Patient profile loaded: Blood Type: ${patientProfile['blood_type']}');
+        }
+
         final cumulativeRecord =
             patientProfile['cumulative_medical_record'] as Map<String, dynamic>?;
 
@@ -138,6 +186,7 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
             // Metadata
             'total_visits': cumulativeRecord['metadata']?['total_visits'] ?? 0,
           };
+          debugPrint('✅ Patient cumulative medical record loaded with all history');
         } else {
           // Fallback to basic fields if no cumulative record
           _patientBiometrics = {
@@ -150,11 +199,12 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
         }
       }
 
+      debugPrint('✅ Complete patient context loaded successfully');
       setState(() {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading patient data: $e');
+      debugPrint('⚠️ Error loading patient data: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Failed to load patient information: $e';
@@ -235,6 +285,209 @@ class _PreCallClinicalNotesDialogState extends State<PreCallClinicalNotesDialog>
                         ),
                       ),
                       const SizedBox(height: 16),
+                    ],
+                    // Patient Identification Section (Demographics)
+                    if (_patientDemographics != null) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Patient Identification',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber[200]!),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Patient Name (highlighted)
+                            if (_patientDemographics!['full_name'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.person, size: 16, color: Colors.amber[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Name',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13)),
+                                          Text(
+                                            _patientDemographics!['full_name'] ?? 'N/A',
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey[900]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            // Date of Birth and Age
+                            if (_patientDemographics!['date_of_birth'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.cake, size: 16, color: Colors.amber[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Date of Birth',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13)),
+                                          Text(
+                                            '${_patientDemographics!['date_of_birth']} (Age: ${_patientDemographics!['age'] ?? 'N/A'})',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[800]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            // Gender
+                            if (_patientDemographics!['gender'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.wc, size: 16, color: Colors.amber[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Gender',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13)),
+                                          Text(
+                                            _patientDemographics!['gender'] ?? 'N/A',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[800]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            // Phone
+                            if (_patientDemographics!['phone'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.phone, size: 16, color: Colors.amber[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Phone',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13)),
+                                          Text(
+                                            _patientDemographics!['phone'] ?? 'N/A',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[800]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            // Email
+                            if (_patientDemographics!['email'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.email, size: 16, color: Colors.amber[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Email',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13)),
+                                          Text(
+                                            _patientDemographics!['email'] ?? 'N/A',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[800]),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            // Blood Type (if available)
+                            if (_patientDemographics!['blood_type'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.bloodtype, size: 16, color: Colors.amber[700]),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('Blood Type',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13)),
+                                          Text(
+                                            _patientDemographics!['blood_type'] ?? 'N/A',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[800]),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                     ],
                     // Patient Cumulative Medical Record Section
                     if (_patientBiometrics != null) ...[

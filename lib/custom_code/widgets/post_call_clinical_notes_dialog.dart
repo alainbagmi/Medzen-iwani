@@ -61,6 +61,9 @@ class _PostCallClinicalNotesDialogState
   static const int _maxPollingAttempts = 30; // 30 attempts × 1 sec = 30 sec max polling
   bool _soapDataArrived = false; // Track if SOAP data has been successfully loaded
 
+  // Patient medical history for pre-populating SOAP form
+  Map<String, dynamic>? _patientMedicalHistory;
+
   /// ⏱️ Timing instrumentation helper - wraps async operations with stopwatch logging
   /// Logs: [START label] → [END label (Xms)] or [FAIL label (Xms) => error]
   Future<T> timed<T>(String label, Future<T> Function() fn) async {
@@ -131,6 +134,114 @@ class _PostCallClinicalNotesDialogState
       final disposeElapsed = DateTime.now().difference(disposeStartTime);
       debugPrint('❌ Error during dispose after ${disposeElapsed.inMilliseconds}ms: $e');
       rethrow;
+    }
+  }
+
+  /// Fetch BOTH patient demographics AND medical history from prior visits
+  /// This data will be used to pre-populate SOAP form Tab 2 with patient context
+  Future<void> _fetchPatientMedicalHistory() async {
+    try {
+      debugPrint('📋 Fetching patient context (demographics + medical history) for patient: ${widget.patientId}');
+      final supabaseUrl = FFDevEnvironmentValues().SupaBaseURL;
+      final supabaseKey = FFDevEnvironmentValues().Supabasekey;
+
+      // Fetch 1: Patient demographics from users table
+      debugPrint('🔍 Fetching patient demographics from users table...');
+      final demographicsResponse = await SupaFlow.client
+          .from('users')
+          .select('id, first_name, last_name, date_of_birth, gender, phone_number, email, created_at')
+          .eq('id', widget.patientId)
+          .single()
+          .timeout(const Duration(seconds: 5));
+
+      // Fetch 2: Patient profile (blood type, patient number)
+      debugPrint('🔍 Fetching patient profile...');
+      final profileResponse = await SupaFlow.client
+          .from('patient_profiles')
+          .select('patient_number, blood_type')
+          .eq('user_id', widget.patientId)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 5));
+
+      // Fetch 3: Patient medical history from edge function
+      debugPrint('🔍 Fetching patient medical history from get-patient-history...');
+      final historyResponse = await http.post(
+        Uri.parse('$supabaseUrl/functions/v1/get-patient-history'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'patientId': widget.patientId,
+          'appointmentId': widget.appointmentId,
+        }),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => throw TimeoutException('Patient history fetch timed out'),
+      );
+
+      if (mounted) {
+        // Combine all data sources into a single patient context object
+        Map<String, dynamic> patientContext = {};
+
+        // Add patient demographics
+        if (demographicsResponse != null) {
+          patientContext['demographics'] = {
+            'id': demographicsResponse['id'],
+            'full_name': '${demographicsResponse['first_name']} ${demographicsResponse['last_name']}'.trim(),
+            'first_name': demographicsResponse['first_name'],
+            'last_name': demographicsResponse['last_name'],
+            'date_of_birth': demographicsResponse['date_of_birth'],
+            'gender': demographicsResponse['gender'],
+            'phone': demographicsResponse['phone_number'],
+            'email': demographicsResponse['email'],
+            'created_at': demographicsResponse['created_at'],
+          };
+
+          // Calculate age if DOB exists
+          if (demographicsResponse['date_of_birth'] != null) {
+            try {
+              final dob = DateTime.parse(demographicsResponse['date_of_birth']);
+              final now = DateTime.now();
+              int age = now.year - dob.year;
+              if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+                age--;
+              }
+              patientContext['demographics']!['age'] = age;
+              debugPrint('✅ Patient demographics loaded: ${patientContext['demographics']['full_name']}, Age: $age');
+            } catch (e) {
+              debugPrint('⚠️ Could not calculate age from DOB: $e');
+            }
+          }
+        }
+
+        // Add patient profile info
+        if (profileResponse != null) {
+          patientContext['profile'] = {
+            'patient_number': profileResponse['patient_number'],
+            'blood_type': profileResponse['blood_type'],
+          };
+          debugPrint('✅ Patient profile loaded: ${profileResponse['patient_number']}, Blood Type: ${profileResponse['blood_type']}');
+        }
+
+        // Add medical history
+        if (historyResponse.statusCode == 200) {
+          final historyData = jsonDecode(historyResponse.body);
+          patientContext['medical_history'] = historyData;
+          debugPrint('✅ Patient medical history loaded: ${historyData['hasHistory']}');
+        } else {
+          debugPrint('⚠️ Failed to fetch medical history: ${historyResponse.statusCode}');
+          patientContext['medical_history'] = null;
+        }
+
+        _patientMedicalHistory = patientContext;
+        debugPrint('✅ Complete patient context loaded successfully');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error fetching patient context: $e');
+      // Continue without context - don't block SOAP generation
+      if (mounted) {
+        _patientMedicalHistory = null;
+      }
     }
   }
 
@@ -215,9 +326,14 @@ class _PostCallClinicalNotesDialogState
         _soapData = _createEmptySoapStructure();
       });
 
+      // Fetch patient medical history in parallel (non-blocking)
+      debugPrint('🚀 Fetching patient medical history in parallel...');
+      unawaited(_fetchPatientMedicalHistory());
+
       // Generate clinical note from transcript using AI (async, non-blocking)
+      // Pass patient medical history getter so SOAP generation can include it when ready
       debugPrint('🚀 Calling _generateClinicalNote() async with transcript');
-      unawaited(_generateClinicalNote(transcript)); // Fire-and-forget for faster UI response
+      unawaited(_generateClinicalNote(transcript, () => _patientMedicalHistory)); // Fire-and-forget for faster UI response
       debugPrint('✅ Empty form displayed, generating SOAP in background...');
 
       // PHASE 2: Start polling for SOAP data to detect when it arrives (fixes web hanging)
@@ -397,7 +513,7 @@ class _PostCallClinicalNotesDialogState
     };
   }
 
-  Future<void> _generateClinicalNote(String transcript) async {
+  Future<void> _generateClinicalNote(String transcript, Function()? getPatientMedicalHistory) async {
     Timer? safeguardTimer;
     try {
       debugPrint('🔍 _generateClinicalNote() started');
@@ -488,9 +604,13 @@ class _PostCallClinicalNotesDialogState
         }
       });
 
+      // Get patient medical history if available (may still be fetching)
+      final patientMedicalHistory = getPatientMedicalHistory?.call();
+      debugPrint('📋 Patient medical history available: ${patientMedicalHistory != null}');
+
       final response = await timed('http-post-generate-soap', () =>
         http.post(
-          Uri.parse('$supabaseUrl/functions/v1/generate-soap-from-transcript'),
+          Uri.parse('$supabaseUrl/functions/v1/generate-soap-draft-v2'),
           headers: {
             'apikey': supabaseKey,
             'Authorization': 'Bearer $supabaseKey',
@@ -503,6 +623,7 @@ class _PostCallClinicalNotesDialogState
             'providerId': widget.providerId,
             'patientId': widget.patientId,
             'transcript': transcript,
+            'patientMedicalHistory': patientMedicalHistory, // ✅ Include patient medical history for SOAP Tab 2 pre-population
           }),
         ).timeout(
           const Duration(seconds: 25), // Reduced from 50s to 25s - Haiku should be much faster
