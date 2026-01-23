@@ -1,5 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts'
+import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts'
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
@@ -55,7 +58,39 @@ function hasMeaningfulContent(note: any): boolean {
  * 6. Retries failed items up to 5 times
  */
 async function processSyncQueue(req: Request): Promise<Response> {
+  const origin = req.headers.get('origin')
+  const corsHeaders_dynamic = getCorsHeaders(origin)
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: { ...corsHeaders_dynamic, ...securityHeaders } })
+  }
+
   try {
+    // Verify Firebase JWT
+    const token = req.headers.get('x-firebase-token')
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Firebase token', code: 'MISSING_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const auth = await verifyFirebaseJWT(token)
+    if (!auth.valid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid Firebase token', code: 'INVALID_FIREBASE_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('process-ehr-sync-queue', auth.user_id || auth.sub || '')
+    const rateLimit = await checkRateLimit(rateLimitConfig)
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit)
+    }
+
     // Create Supabase client
     const supabase = createClient(supabaseUrl!, supabaseServiceRoleKey!)
 
@@ -76,7 +111,7 @@ async function processSyncQueue(req: Request): Promise<Response> {
           error: 'Failed to fetch sync queue items',
           details: fetchError.message
         }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -87,7 +122,7 @@ async function processSyncQueue(req: Request): Promise<Response> {
           message: 'No pending items in sync queue',
           itemsProcessed: 0
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
