@@ -24,6 +24,7 @@ import {
   StartTranscriptionJobCommand,
 } from 'npm:@aws-sdk/client-transcribe@3.716.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
 
 // AWS Configuration
 const AWS_REGION = Deno.env.get('AWS_REGION') || 'eu-central-1';
@@ -37,13 +38,6 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 // AWS Transcribe Medical configuration
 const TRANSCRIBE_OUTPUT_BUCKET = Deno.env.get('TRANSCRIBE_OUTPUT_BUCKET') || 'medzen-transcripts';
 const TRANSCRIBE_ROLE_ARN = Deno.env.get('TRANSCRIBE_ROLE_ARN') || '';
-
-// CORS Headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 interface FinalizeCallRequest {
   sessionId: string;
@@ -541,9 +535,12 @@ async function finalizeSession(
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   let body: FinalizeCallRequest | null = null;
@@ -559,7 +556,7 @@ serve(async (req: Request) => {
           success: false,
           error: 'Missing required fields: sessionId, meetingId, appointmentId',
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -708,7 +705,7 @@ serve(async (req: Request) => {
           speakerSegments: speakerSegments,
         },
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     // Enhanced error logging
@@ -767,7 +764,7 @@ serve(async (req: Request) => {
         code: 'FINALIZATION_ERROR',
         timestamp: new Date().toISOString(),
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

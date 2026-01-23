@@ -13,12 +13,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { verifyFirebaseToken } from "../_shared/verify-firebase-jwt.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-firebase-token",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 
 interface SendMessageRequest {
   appointment_id: string;
@@ -31,9 +27,12 @@ interface SendMessageRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -49,7 +48,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing x-firebase-token header" }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -109,9 +108,17 @@ serve(async (req) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // Rate limiting check (HIPAA: Prevents DDoS and abuse)
+    const rateLimitConfig = getRateLimitConfig('call-send-message', userId);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${userId}`);
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     // Parse request body
@@ -132,7 +139,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing appointment_id or message_type" }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -140,7 +147,7 @@ serve(async (req) => {
     if (message_type === "text" && (!text || !text.trim())) {
       return new Response(JSON.stringify({ error: "Empty text message" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -149,7 +156,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing file_url or file_name" }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -176,7 +183,7 @@ serve(async (req) => {
       console.error("Appointment query error:", appointmentError);
       return new Response(JSON.stringify({ error: "Appointment not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -199,7 +206,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Not a participant in this appointment" }),
         {
           status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -244,7 +251,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Failed to send message", details: insertError.message }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -294,7 +301,7 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -306,7 +313,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       }
     );
   }

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 
 // Import shared utilities
 const { verifyFirebaseJWT } = await import("../_shared/verify-firebase-jwt.ts");
@@ -119,15 +121,13 @@ async function extractSoapData(
  * Called after post-call SOAP note is signed
  */
 serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // CORS pre-flight
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, x-firebase-token, Authorization, apikey",
-      },
+      headers: { ...corsHeaders, ...securityHeaders },
     });
   }
 
@@ -143,7 +143,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 401,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -159,12 +159,21 @@ serve(async (req: Request) => {
         }),
         {
           status: 401,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
     const userId = auth.userId;
+
+    // Rate limiting check (HIPAA: Prevents DDoS and abuse)
+    const rateLimitConfig = getRateLimitConfig('update-patient-medical-record', userId);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${userId}`);
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     const { soapNoteId, patientId } = await req.json();
 
     if (!soapNoteId || !patientId) {
@@ -176,7 +185,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -198,7 +207,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 404,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -216,7 +225,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -247,7 +256,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }

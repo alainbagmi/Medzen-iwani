@@ -14,12 +14,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { verifyFirebaseToken } from "../_shared/verify-firebase-jwt.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-firebase-token",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 
 interface FinalizeRequest {
   session_id: string;
@@ -172,9 +168,12 @@ function generateClinicalTemplate(
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -190,7 +189,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing x-firebase-token header" }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -241,9 +240,17 @@ serve(async (req) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
+    }
+
+    // Rate limiting check (HIPAA: Prevents DDoS and abuse)
+    const rateLimitConfig = getRateLimitConfig('finalize-call-draft', userId);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${userId}`);
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     // Parse request body
@@ -253,7 +260,7 @@ serve(async (req) => {
     if (!session_id) {
       return new Response(JSON.stringify({ error: "Missing session_id" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -270,7 +277,7 @@ serve(async (req) => {
       console.error("Session not found:", session_id);
       return new Response(JSON.stringify({ error: "Session not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -292,7 +299,7 @@ serve(async (req) => {
       console.error("Appointment not found");
       return new Response(JSON.stringify({ error: "Appointment not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -309,7 +316,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Only the provider can finalize the draft" }),
         {
           status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -441,7 +448,7 @@ serve(async (req) => {
         }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -470,7 +477,7 @@ serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -482,7 +489,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       }
     );
   }

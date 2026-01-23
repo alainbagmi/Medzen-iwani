@@ -12,23 +12,20 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { verifyFirebaseToken } from '../_shared/verify-firebase-jwt.ts';
-
-// CORS Headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts';
 
 interface FinalizeTranscriptRequest {
   sessionId: string;
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -44,7 +41,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -61,7 +58,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -80,7 +77,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -94,9 +91,17 @@ serve(async (req: Request) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Rate limiting check (HIPAA: Prevents DDoS and abuse)
+    const rateLimitConfig = getRateLimitConfig('finalize-transcript', auth.user_id);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${auth.user_id}`);
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     // Parse request body
@@ -112,7 +117,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
