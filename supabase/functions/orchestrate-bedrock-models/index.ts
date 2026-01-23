@@ -6,12 +6,7 @@ import {
   getModelsForUseCase,
   clearModelCache,
 } from "../_shared/bedrock-models.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
 
 interface OrchestrateRequest {
   action:
@@ -142,8 +137,11 @@ async function getPreviousModel(
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -157,7 +155,7 @@ serve(async (req) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -214,7 +212,7 @@ serve(async (req) => {
               action,
               error: "useCase parameter is required",
             }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -245,7 +243,7 @@ serve(async (req) => {
               action,
               error: "modelId parameter is required",
             }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -282,7 +280,7 @@ serve(async (req) => {
               action,
               error: "modelId parameter is required for manual switch",
             }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -347,7 +345,7 @@ serve(async (req) => {
               action,
               error: "useCase parameter is required for auto-switch",
             }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -441,14 +439,14 @@ serve(async (req) => {
           }),
           {
             status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
           }
         );
       }
     }
 
     return new Response(JSON.stringify(response), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Orchestration error:", error);
@@ -460,7 +458,7 @@ serve(async (req) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" },
       }
     );
   }

@@ -4,11 +4,7 @@ import {
   getAvailableBedrockModels,
   validateBedrockModel,
 } from "../_shared/bedrock-models.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
 
 interface ManageRequest {
   action: "list" | "enable" | "disable" | "set-default" | "get-default" | "validate";
@@ -17,9 +13,12 @@ interface ManageRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -28,7 +27,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -46,7 +45,7 @@ serve(async (req) => {
     if (userError || !user) {
       return new Response(
         JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -63,7 +62,7 @@ serve(async (req) => {
           success: false,
           error: "Only system admins can manage models",
         }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -74,7 +73,7 @@ serve(async (req) => {
     } catch {
       return new Response(
         JSON.stringify({ success: false, error: "Invalid JSON body" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -94,7 +93,7 @@ serve(async (req) => {
             models: Array.from(models.values()),
             count: models.size,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -103,7 +102,7 @@ serve(async (req) => {
         if (!model_id) {
           return new Response(
             JSON.stringify({ success: false, error: "model_id is required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -119,12 +118,12 @@ serve(async (req) => {
               message: `Model '${model_id}' is valid`,
               model,
             }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         } catch (error) {
           return new Response(
             JSON.stringify({ success: false, error: error.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
       }
@@ -134,7 +133,7 @@ serve(async (req) => {
         if (!model_id) {
           return new Response(
             JSON.stringify({ success: false, error: "model_id is required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -146,13 +145,13 @@ serve(async (req) => {
         if (error) {
           return new Response(
             JSON.stringify({ success: false, error: error.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
         return new Response(
           JSON.stringify({ success: true, message: `Model '${model_id}' enabled` }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -161,7 +160,7 @@ serve(async (req) => {
         if (!model_id) {
           return new Response(
             JSON.stringify({ success: false, error: "model_id is required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -177,13 +176,13 @@ serve(async (req) => {
         if (error) {
           return new Response(
             JSON.stringify({ success: false, error: error.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
         return new Response(
           JSON.stringify({ success: true, message: `Model '${model_id}' disabled` }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -192,7 +191,7 @@ serve(async (req) => {
         if (!model_id) {
           return new Response(
             JSON.stringify({ success: false, error: "model_id is required" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -215,7 +214,7 @@ serve(async (req) => {
         if (error) {
           return new Response(
             JSON.stringify({ success: false, error: error.message }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -224,7 +223,7 @@ serve(async (req) => {
             success: true,
             message: `Model '${model_id}' set as default`,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -248,7 +247,7 @@ serve(async (req) => {
             success: true,
             default_model: model,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -266,7 +265,7 @@ serve(async (req) => {
               "validate",
             ],
           }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
     }
@@ -277,7 +276,7 @@ serve(async (req) => {
         success: false,
         error: error.message || "Internal server error",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
   }
 });
