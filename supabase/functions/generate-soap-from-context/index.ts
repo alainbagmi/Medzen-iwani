@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
+import { verifyFirebaseJWT } from "../_shared/verify-firebase-jwt.ts";
 
 interface SOAPRequest {
   patientId: string;
@@ -37,9 +35,12 @@ interface SOAPResponse {
  * 5. Audit logging for all data access attempts
  */
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_dynamic = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders_dynamic, ...securityHeaders } });
   }
 
   try {
@@ -48,7 +49,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -67,7 +68,7 @@ serve(async (req) => {
         JSON.stringify({
           error: "Missing or invalid required fields: patientId, appointmentId, mode"
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -88,7 +89,7 @@ serve(async (req) => {
       console.error(`❌ SECURITY: Appointment not found - ${appointmentError?.message || "unknown error"}`);
       return new Response(
         JSON.stringify({ error: "Appointment not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -118,7 +119,7 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ error: "Unauthorized access to patient data" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 403, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -266,7 +267,7 @@ Return ONLY valid JSON, no additional text.`;
       console.error("❌ BEDROCK_LAMBDA_URL not configured");
       return new Response(
         JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -408,7 +409,7 @@ Return ONLY valid JSON, no additional text.`;
         mode: mode,
         data: soapData,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("❌ Error in SOAP generation:", (error as Error).message);

@@ -1,5 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts'
+import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts'
 
 // EHRbase configuration - these should be set as environment variables
 const EHRBASE_URL = Deno.env.get('EHRBASE_URL') || 'http://localhost:8080'
@@ -2653,7 +2656,46 @@ async function processSyncItem(
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin')
+  const corsHeaders = getCorsHeaders(origin)
+
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED', status: 405 }),
+      { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+
   try {
+    // Verify Firebase JWT
+    const token = req.headers.get('x-firebase-token')
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Firebase token', code: 'MISSING_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const auth = await verifyFirebaseJWT(token)
+    if (!auth.valid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid Firebase token', code: 'INVALID_FIREBASE_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('sync-to-ehrbase', auth.user_id || auth.sub || '')
+    const rateLimit = await checkRateLimit(rateLimitConfig)
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit)
+    }
+
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -2676,7 +2718,7 @@ serve(async (req) => {
     if (!syncItems || syncItems.length === 0) {
       return new Response(
         JSON.stringify({ message: 'No items to sync', processed: 0 }),
-        { headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -2703,8 +2745,8 @@ serve(async (req) => {
         results
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
-        status: 200
+        status: 200,
+        headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' }
       }
     )
   } catch (error) {
@@ -2712,8 +2754,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: error.message }),
       {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
+        status: 500,
+        headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
