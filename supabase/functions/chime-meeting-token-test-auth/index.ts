@@ -1,16 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { verifyFirebaseToken } from "../chime-meeting-token/verify-firebase-jwt.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-firebase-token",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -22,7 +21,7 @@ serve(async (req) => {
     if (!firebaseTokenHeader) {
       return new Response(
         JSON.stringify({ error: "Missing x-firebase-token header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -89,7 +88,7 @@ serve(async (req) => {
       console.error("Auth Error:", error);
       return new Response(
         JSON.stringify({ error: "Invalid or expired token", details: error.message }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -101,7 +100,7 @@ serve(async (req) => {
         userId: userId,
         userEmail: userEmail,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
@@ -111,7 +110,7 @@ serve(async (req) => {
         error: error.message || "Internal server error",
         details: error.stack,
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
   }
 });

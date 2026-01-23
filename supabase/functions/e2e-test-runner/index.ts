@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -14,9 +15,17 @@ interface TestResult {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
+  }
+
   try {
     if (req.method !== "POST") {
-      return new Response("Method not allowed", { status: 405 });
+      return new Response("Method not allowed", { status: 405, headers: { ...corsHeaders, ...securityHeaders } });
     }
 
     const results: TestResult[] = [];
@@ -148,7 +157,7 @@ serve(async (req) => {
         status: "error",
         error: error instanceof Error ? error.message : "Unknown error in Phase 2",
       });
-      return new Response(JSON.stringify({ results, success: false }), { status: 500 });
+      return new Response(JSON.stringify({ results, success: false }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } });
     }
 
     const testPatientId = (results[0].data as Record<string, string>).testPatientId;
@@ -286,7 +295,7 @@ serve(async (req) => {
         status: "error",
         error: error instanceof Error ? error.message : "Unknown error in Phase 3",
       });
-      return new Response(JSON.stringify({ results, success: false }), { status: 500 });
+      return new Response(JSON.stringify({ results, success: false }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } });
     }
 
     const testSoap1Id = (results[1].data as Record<string, string>).testSoap1Id;
@@ -397,7 +406,7 @@ serve(async (req) => {
         status: "error",
         error: error instanceof Error ? error.message : "Unknown error in Phase 4",
       });
-      return new Response(JSON.stringify({ results, success: false }), { status: 500 });
+      return new Response(JSON.stringify({ results, success: false }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } });
     }
 
     // ============================================================================
@@ -569,7 +578,7 @@ serve(async (req) => {
         status: "error",
         error: error instanceof Error ? error.message : "Unknown error in Phase 5",
       });
-      return new Response(JSON.stringify({ results, success: false }), { status: 500 });
+      return new Response(JSON.stringify({ results, success: false }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } });
     }
 
     const testSoap2Id = (results[3].data as Record<string, string>).testSoap2Id;
@@ -649,7 +658,7 @@ serve(async (req) => {
         status: "error",
         error: error instanceof Error ? error.message : "Unknown error in Phase 4c",
       });
-      return new Response(JSON.stringify({ results, success: false }), { status: 500 });
+      return new Response(JSON.stringify({ results, success: false }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } });
     }
 
     // ============================================================================
@@ -759,7 +768,7 @@ serve(async (req) => {
         status: "error",
         error: error instanceof Error ? error.message : "Unknown error in Phase 6",
       });
-      return new Response(JSON.stringify({ results, success: false }), { status: 500 });
+      return new Response(JSON.stringify({ results, success: false }), { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } });
     }
 
     // Return all results
@@ -775,16 +784,18 @@ serve(async (req) => {
         testSoap2Id,
         results,
       }),
-      { status: allPassed ? 200 : 500 }
+      { status: allPassed ? 200 : 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Unexpected error:", error);
+    const origin = req.headers.get("origin");
+    const corsHeaders = getCorsHeaders(origin);
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500 }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
   }
 });
