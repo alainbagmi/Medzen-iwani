@@ -1,0 +1,94 @@
+sequenceDiagram
+    participant Patient as Patient<br/>Flutter App
+    participant Provider as Provider<br/>Flutter App
+    participant Firebase as Firebase<br/>Auth
+    participant Supabase as Supabase<br/>PostgreSQL
+    participant EdgeFunc as Edge Functions<br/>CORS • Rate Limiting
+    participant Chime as AWS Chime SDK<br/>Video Call
+    participant Transcribe as AWS Transcribe<br/>Medical
+    participant Bedrock as AWS Bedrock<br/>Claude AI
+    participant EHRbase as EHRbase<br/>OpenEHR
+
+    rect rgb(200, 220, 255)
+        Note over Patient,Provider: STAGE 1: PRE-CALL (Appointment Scheduled)
+        Patient->>Firebase: Login (JWT)
+        Provider->>Firebase: Login (JWT)
+        Patient->>Supabase: Check appointment_id
+        Provider->>Supabase: Check appointment_id
+    end
+
+    rect rgb(200, 220, 255)
+        Note over Patient,Provider: STAGE 2: PRE-CALL PREPARATION (5 minutes before)
+        Patient->>EdgeFunc: Call create-context-snapshot<br/>with appointment_id
+        EdgeFunc->>Supabase: Query patient demographics<br/>appointment context<br/>previous SOAP notes
+        Supabase-->>EdgeFunc: Return 23-field context
+        EdgeFunc-->>Patient: Context snapshot + confidence
+        Patient->>Supabase: Store context snapshot<br/>in appointment_context table
+    end
+
+    rect rgb(200, 255, 220)
+        Note over Patient,Provider: STAGE 3: VIDEO CALL (Live)
+        Patient->>EdgeFunc: Request chime-meeting-token
+        EdgeFunc->>Firebase: Verify JWT (Force Refresh)
+        EdgeFunc->>Supabase: Create video_call_session<br/>Record start_time
+        Supabase-->>EdgeFunc: session_id + meeting_token
+        EdgeFunc-->>Patient: Meeting token + credentials
+
+        Patient->>Chime: Initialize SDK from CDN<br/>https://du6iimxem4mh7.cloudfront.net/
+        Chime->>Chime: Start audio/video input<br/>Request device permissions
+        Provider->>Chime: Join same meeting
+
+        Note over Patient,Provider: Real-time messaging<br/>12-second transcription buffer
+        Patient->>Chime: Send messages<br/>Enable captions
+        Chime->>Supabase: Store in chime_messages<br/>Real-time subscriptions
+        Chime->>Transcribe: Stream audio chunks<br/>12-second window
+        Transcribe->>Transcribe: Interim transcription<br/>Display captions (3-5s fade)
+
+        Note over Patient,Provider: Call Duration: 15-60 minutes
+    end
+
+    rect rgb(255, 240, 200)
+        Note over Patient,Provider: STAGE 4: POST-CALL (Call Ended)
+        Patient->>Chime: Stop video/audio<br/>Close connection
+        Provider->>Chime: Stop video/audio<br/>Close connection
+
+        Chime->>Supabase: Update video_call_session<br/>Record ended_at<br/>duration_seconds
+
+        Supabase->>EdgeFunc: Trigger post-call workflow
+        EdgeFunc->>Transcribe: Request full transcription<br/>AWS Transcribe Medical job<br/>2-10 minutes
+
+        EdgeFunc->>Supabase: Query context snapshot<br/>speaker map<br/>transcript
+        Supabase-->>EdgeFunc: Full session context
+
+        EdgeFunc->>Bedrock: Call generate-soap-draft-v2<br/>with 23-field context<br/>full transcript<br/>ai_flags
+        Bedrock->>Bedrock: Claude processes:<br/>Subjective (patient story)<br/>Objective (vitals/findings)<br/>Assessment (diagnosis)<br/>Plan (treatment)
+        Bedrock-->>EdgeFunc: SOAP draft (12 tabs)
+    end
+
+    rect rgb(255, 220, 220)
+        Note over Patient,Provider: STAGE 5: POST-CALL REVIEW & SIGN (Provider)
+        Provider->>Supabase: Fetch SOAP draft<br/>from ai_soap_drafts table
+        Provider->>Provider: Review & Edit SOAP<br/>All 12 tabs<br/>Add/remove findings
+        Provider->>Supabase: Save final SOAP<br/>to clinical_notes table<br/>Mark as signed
+
+        Supabase->>EdgeFunc: Trigger sync workflow
+        EdgeFunc->>EHRbase: Call sync-to-ehrbase<br/>Convert to OpenEHR<br/>Create composition
+        EHRbase->>EHRbase: Validate against template<br/>Store in EU-1 region
+        EHRbase-->>EdgeFunc: Composition UID + timestamp
+
+        EdgeFunc->>Supabase: Update ehrbase_sync_queue<br/>Mark as synced<br/>Record UID reference
+    end
+
+    rect rgb(220, 255, 220)
+        Note over Patient,Provider: STAGE 6: DOCUMENTATION COMPLETE
+        Supabase->>Supabase: Activity logged to activity_logs<br/>HIPAA audit trail<br/>6-year retention
+
+        Patient->>Supabase: Fetch clinical_notes<br/>View signed SOAP<br/>Download if needed
+
+        Provider->>Supabase: Check EHRbase sync status<br/>Verify composition UID<br/>Access OpenEHR record
+    end
+
+    rect rgb(240, 220, 240)
+        Note over Patient,Provider: CONTINUOUS: ENCRYPTION & SECURITY
+        Note over Patient,Provider: At-Rest: KMS AES-256 (S3)<br/>In-Transit: TLS 1.2+ (HTTPS)<br/>CORS: Origin Validation<br/>Rate Limiting: 5-100 req/min<br/>Auth: Firebase JWT RS256<br/>Audit: 6-year retention
+    end

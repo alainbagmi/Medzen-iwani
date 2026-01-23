@@ -1,0 +1,64 @@
+graph TB
+    subgraph Layer1["LAYER 1: Network Security"]
+        TLS["TLS 1.2+ Encryption<br/>All HTTPS traffic<br/>Certificate pinning"]
+        DDoS["DDoS Protection<br/>CloudFront CDN<br/>AWS Shield"]
+        WAF["Web Application Firewall<br/>Rate limiting<br/>Request validation"]
+    end
+
+    subgraph Layer2["LAYER 2: Authentication & Authorization"]
+        Firebase["Firebase JWT RS256<br/>Signature verification<br/>Token expiration"]
+        MFA["Multi-Factor Authentication<br/>Role-based grace periods<br/>Device fingerprinting"]
+        RBAC["Role-Based Access Control<br/>patient • medical_provider<br/>facility_admin • system_admin"]
+        RLS["Row-Level Security (RLS)<br/>Database policies<br/>auth.uid() validation"]
+    end
+
+    subgraph Layer3["LAYER 3: API Security"]
+        CORS["CORS Validation<br/>Origin whitelist<br/>Deny wildcard (*)"]
+        RateLimit["Rate Limiting<br/>Per-endpoint limits<br/>Per-user tracking"]
+        InputVal["Input Validation<br/>UUID format<br/>XSS prevention<br/>SQL injection"]
+        SecHeaders["Security Headers<br/>CSP • HSTS<br/>X-Frame-Options<br/>X-Content-Type-Options"]
+    end
+
+    subgraph Layer4["LAYER 4: Data Protection"]
+        Encrypt["Encryption At-Rest<br/>S3: KMS AES-256<br/>RDS: AWS encryption<br/>KMS key rotation"]
+        KeyMgmt["Key Management<br/>AWS KMS<br/>Never hardcode secrets<br/>Environment variables"]
+        Masking["Data Masking<br/>PII redaction<br/>Log sanitization"]
+    end
+
+    subgraph Layer5["LAYER 5: Monitoring & Audit"]
+        Logging["Comprehensive Logging<br/>Activity logs table<br/>6-year retention<br/>PHI access tracking"]
+        CloudTrail["CloudTrail API Logging<br/>User identity<br/>IP address<br/>Timestamp"]
+        GuardDuty["GuardDuty Threat Detection<br/>Anomaly detection<br/>Failed login tracking<br/>Suspicious activity"]
+        CloudWatch["CloudWatch Alarms<br/>Failed authentications<br/>Rate limit violations<br/>Error thresholds"]
+    end
+
+    subgraph Layer6["LAYER 6: Incident Response"]
+        Detection["P0-P3 Categories<br/>Active breach<br/>Unauthorized access<br/>Policy violation"]
+        Response["6-Phase Response<br/>Detection • Containment<br/>Investigation • Notification<br/>Remediation • Review"]
+        Notification["72-Hour GDPR<br/>60-Day HIPAA<br/>Breach notification<br/>Regulatory reporting"]
+    end
+
+    Layer1 -->|Protects| Layer2
+    Layer2 -->|Controls| Layer3
+    Layer3 -->|Secures| Layer4
+    Layer4 -->|Encrypted| Layer5
+    Layer5 -->|Triggers| Layer6
+
+    User["User Request"]
+    User -->|1. TLS Handshake| Layer1
+    Layer1 -->|2. Firebase JWT| Layer2
+    Layer2 -->|3. CORS Check| Layer3
+    Layer3 -->|4. Rate Limit| Layer3
+    Layer3 -->|5. Input Validate| Layer3
+    Layer3 -->|6. Add Security Headers| Layer3
+    Layer3 -->|7. Query Data| Layer4
+    Layer4 -->|8. KMS Decrypt| Layer4
+    Layer5 -->|9. Log Activity| Layer5
+    Layer5 -->|10. Audit Trail| CloudTrail
+
+    style Layer1 fill:#e3f2fd
+    style Layer2 fill:#f3e5f5
+    style Layer3 fill:#fff3e0
+    style Layer4 fill:#e8f5e9
+    style Layer5 fill:#fce4ec
+    style Layer6 fill:#ffebee

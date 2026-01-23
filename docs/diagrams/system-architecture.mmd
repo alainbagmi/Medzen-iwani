@@ -1,0 +1,62 @@
+graph TB
+    subgraph Client["Client Layer"]
+        Web["Flutter Web<br/>medzenhealth.app"]
+        Mobile["Flutter Mobile<br/>iOS/Android"]
+    end
+
+    subgraph Auth["Authentication Layer"]
+        Firebase["Firebase Auth<br/>JWT RS256<br/>MFA Support"]
+    end
+
+    subgraph Backend["Backend Services"]
+        Supabase["Supabase PostgreSQL<br/>260+ Tables<br/>RLS Policies"]
+        EdgeFunc["Edge Functions<br/>59 Functions<br/>CORS • Rate Limiting"]
+        FirebaseFunc["Firebase Cloud Functions<br/>Auth Events<br/>Notifications"]
+    end
+
+    subgraph AWS["AWS Services"]
+        Chime["AWS Chime SDK<br/>Video Calls<br/>Real-time"]
+        Bedrock["AWS Bedrock<br/>Claude Opus 4.5<br/>Nova Pro"]
+        Transcribe["AWS Transcribe Medical<br/>2-10 min Processing"]
+        S3["AWS S3<br/>KMS Encryption<br/>3 Buckets"]
+        ECS["AWS ECS Fargate<br/>EHRbase Deployment<br/>2-4 Tasks"]
+    end
+
+    subgraph Clinical["Clinical Systems"]
+        EHRbase["EHRbase<br/>OpenEHR Standard<br/>EU-1 Region"]
+        RDS["RDS PostgreSQL<br/>Multi-AZ<br/>Encrypted"]
+    end
+
+    subgraph Security["Security Layer"]
+        CORS["CORS Origin<br/>Validation<br/>medzenhealth.app"]
+        RateLimit["Rate Limiting<br/>Per-Endpoint<br/>Per-User"]
+        Encrypt["Encryption<br/>At-Rest: AES-256<br/>In-Transit: TLS 1.2+"]
+        Audit["Audit Logging<br/>6-Year Retention<br/>PHI Access Tracking"]
+    end
+
+    Client -->|JWT Token| Firebase
+    Firebase -->|ID Token| Supabase
+    Firebase -->|ID Token| EdgeFunc
+    Client -->|HTTP/HTTPS| EdgeFunc
+    EdgeFunc -->|SQL Queries| Supabase
+    EdgeFunc -->|Service Role| S3
+    Supabase -->|RLS Policies| RDS
+    EdgeFunc -->|AWS SDK| Chime
+    EdgeFunc -->|AWS SDK| Bedrock
+    EdgeFunc -->|AWS SDK| Transcribe
+    Bedrock -->|AI Inference| Transcribe
+    FirebaseFunc -->|Async Events| Supabase
+    ECS -->|HTTPS REST| EHRbase
+    EHRbase -->|Data Storage| RDS
+
+    Security -.->|Applied to| EdgeFunc
+    Security -.->|Applied to| Supabase
+    Security -.->|Applied to| RDS
+    Security -.->|Applied to| S3
+
+    style Client fill:#e1f5ff
+    style Auth fill:#fff3e0
+    style Backend fill:#f3e5f5
+    style AWS fill:#e8f5e9
+    style Clinical fill:#fce4ec
+    style Security fill:#ffebee

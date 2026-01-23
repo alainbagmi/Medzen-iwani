@@ -25,6 +25,8 @@ import {
 } from 'npm:@aws-sdk/client-chime-sdk-meetings@3.716.0';
 import { CloudWatchClient, PutMetricDataCommand } from 'npm:@aws-sdk/client-cloudwatch@3.716.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts';
 
 // AWS Configuration
 const AWS_REGION_DEFAULT = Deno.env.get('AWS_REGION') || 'eu-central-1';
@@ -40,14 +42,6 @@ const DEFAULT_MAX_DURATION_MINUTES = 120; // 2 hours default
 const ABSOLUTE_MAX_DURATION_MINUTES = 240; // 4 hours absolute limit
 const MIN_DURATION_MINUTES = 5; // Minimum 5 minutes
 const TRANSCRIPTION_COST_PER_MINUTE = 0.0750; // AWS Transcribe Medical pricing
-
-// CORS Headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 /**
  * Create a Chime SDK client for a specific region
@@ -834,9 +828,12 @@ function estimateCost(durationMinutes: number): number {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -856,7 +853,7 @@ serve(async (req: Request) => {
     if (!meetingId || !sessionId || !action) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: meetingId, sessionId, action' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -875,7 +872,7 @@ serve(async (req: Request) => {
       const errorMsg = sessionFetchError.message || sessionFetchError.code || JSON.stringify(sessionFetchError);
       return new Response(
         JSON.stringify({ error: 'Session not found', details: errorMsg }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -891,7 +888,7 @@ serve(async (req: Request) => {
           error: 'Cannot start transcription - video call is not active',
           details: { status: sessionData?.status }
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -923,7 +920,7 @@ serve(async (req: Request) => {
               note: 'This is an idempotent response - transcription was already running'
             }
           }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -942,7 +939,7 @@ serve(async (req: Request) => {
               budgetRemaining: 0
             }
           }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 429, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
         );
       }
       console.log(`[Medical Transcription] ✅ Budget check passed`);
@@ -1120,7 +1117,7 @@ serve(async (req: Request) => {
             budgetRemaining: budgetCheck.remaining
           },
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
 
     } else if (action === 'stop') {
@@ -1266,7 +1263,7 @@ serve(async (req: Request) => {
             hasTranscript: aggregatedTranscript.length > 0,
           }
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 

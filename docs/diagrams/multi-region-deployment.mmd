@@ -1,0 +1,76 @@
+graph TB
+    subgraph Primary["PRIMARY REGION: eu-west-1 (Ireland)"]
+        RDS1["RDS PostgreSQL<br/>Multi-AZ<br/>Primary DB<br/>Active-Active Replication"]
+        ECS1["ECS Fargate<br/>EHRbase<br/>2-4 Tasks<br/>Auto-scaling"]
+        ALB1["Application Load Balancer<br/>Health checks<br/>Traffic distribution"]
+        VPC1["VPC 10.0.0.0/16<br/>Public/Private Subnets<br/>NAT Gateway"]
+        S3Cache["S3 + CloudFront<br/>CDN<br/>Chime SDK<br/>Static assets"]
+    end
+
+    subgraph Secondary["SECONDARY REGION: eu-central-1 (Frankfurt)"]
+        RDS2["RDS Read Replica<br/>Standby<br/>Can promote to primary<br/>Async replication"]
+        Lambda2["Lambda Functions<br/>Chime SDK (Regional)<br/>Bedrock AI<br/>Transcribe Medical"]
+    end
+
+    subgraph Tertiary["TERTIARY REGION: af-south-1 (Cape Town)"]
+        Lambda3["Lambda Functions<br/>Regional Bedrock<br/>Data sovereignty<br/>Legacy Chime"]
+        S3Regional["S3 Regional Buckets<br/>Medical data<br/>Encrypted"]
+    end
+
+    subgraph Backup["BACKUP REGION: us-east-1 (N. Virginia)"]
+        RDSBackup["RDS Backup<br/>7-day retention<br/>Point-in-time recovery<br/>Disaster recovery"]
+        S3Backup["S3 Cross-Region<br/>Replication<br/>Cold storage<br/>Compliance archive"]
+    end
+
+    subgraph Clients["Client Access"]
+        EU["EU Users<br/>GDPR Compliant<br/>Route 53 geo-routing"]
+        Africa["African Users<br/>af-south-1 Route<br/>Data residency"]
+        Global["Global Users<br/>Lowest latency<br/>CloudFront CDN"]
+    end
+
+    RDS1 -->|Replicates to| RDS2
+    RDS1 -->|Backup to| RDSBackup
+    S3Cache -->|Replicates to| S3Regional
+    S3Cache -->|Archives to| S3Backup
+
+    ECS1 -->|Health monitored by| ALB1
+    ALB1 -->|Routes traffic to| Lambda2
+    RDS2 -->|Standby replica| RDS1
+
+    EU -->|HTTPS| ALB1
+    Africa -->|Route 53| Secondary
+    Global -->|CloudFront| S3Cache
+
+    subgraph Features["HA/DR Features"]
+        DNS["Route 53 Failover<br/>Automatic detection<br/>90-second RTO<br/>Primary → Secondary"]
+        Backup["Automated Backups<br/>Daily snapshots<br/>7-day retention<br/>PITR (point-in-time)"]
+        Replication["Database Replication<br/>Async multi-region<br/>Eventual consistency<br/>< 5 minute lag"]
+    end
+
+    subgraph Monitoring["Monitoring & Alerts"]
+        CloudWatch["CloudWatch Alarms<br/>RTO < 90 seconds<br/>RPO < 5 minutes<br/>Health checks"]
+        GuardDuty["GuardDuty<br/>Each region<br/>Threat detection<br/>Cross-region"]
+        SNS["SNS Notifications<br/>Failover alerts<br/>Anomalies<br/>On-call paging"]
+    end
+
+    subgraph Compliance["Compliance"]
+        GDPR["GDPR Data Residency<br/>EU data in EU regions<br/>No US transfer"]
+        HIPAA["HIPAA BAA<br/>AWS signed<br/>Encryption verified<br/>Audit logging"]
+        LocalLaws["Data Sovereignty<br/>African data<br/>af-south-1<br/>Local compliance"]
+    end
+
+    Features -.->|Ensures| Primary
+    Features -.->|Enables| Backup
+    Monitoring -.->|Watches| Primary
+    Monitoring -.->|Watches| Secondary
+    Compliance -.->|Governs| Primary
+    Compliance -.->|Governs| Tertiary
+
+    style Primary fill:#e8f5e9
+    style Secondary fill:#fff3e0
+    style Tertiary fill:#f3e5f5
+    style Backup fill:#ffebee
+    style Clients fill:#e3f2fd
+    style Features fill:#e0f2f1
+    style Monitoring fill:#fce4ec
+    style Compliance fill:#fff9c4
