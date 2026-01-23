@@ -1,11 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { verifyFirebaseToken } from "./verify-firebase-jwt.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-firebase-token",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 
 interface MeetingRequest {
   action: "create" | "join" | "end" | "batch-join" | "get-status" | "get-link";
@@ -119,9 +116,12 @@ const callChimeLambda = async (action: string, params: any) => {
 };
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -133,7 +133,7 @@ serve(async (req) => {
     if (!firebaseTokenHeader) {
       return new Response(
         JSON.stringify({ error: "Missing x-firebase-token header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -200,8 +200,16 @@ serve(async (req) => {
       console.error("Auth Error:", error);
       return new Response(
         JSON.stringify({ error: "Invalid or expired token", details: error.message }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Rate limiting check (HIPAA: Prevents DDoS and abuse)
+    const rateLimitConfig = getRateLimitConfig('chime-meeting-token', userId);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${userId}`);
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     // Get request body
@@ -226,7 +234,7 @@ serve(async (req) => {
         if (!appointmentId) {
           return new Response(
             JSON.stringify({ error: "appointmentId is required for create action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -254,7 +262,7 @@ serve(async (req) => {
           console.error("Appointment query error:", appointmentError);
           return new Response(
             JSON.stringify({ error: "Appointment not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -272,7 +280,7 @@ serve(async (req) => {
               code: "PATIENT_CANNOT_CREATE",
               isPatient: appointment.patient_id === userId,
             }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -351,7 +359,7 @@ serve(async (req) => {
                 code: "SESSION_CREATE_FAILED",
                 details: insertError.message
               }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
             );
           }
           sessionCreated = !!insertResult && insertResult.length > 0;
@@ -388,7 +396,7 @@ serve(async (req) => {
                 error: "Failed to verify video call session. Please try again.",
                 code: "SESSION_VERIFY_FAILED"
               }),
-              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
             );
           }
           sessionId = verifySession.id;
@@ -555,7 +563,7 @@ serve(async (req) => {
             recordingPipelineId: lambdaResponse.recording?.pipelineId,
             transcriptionJobName: lambdaResponse.transcription?.jobName,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -564,7 +572,7 @@ serve(async (req) => {
         if (!meetingId && !appointmentId) {
           return new Response(
             JSON.stringify({ error: "meetingId or appointmentId is required for join action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -605,7 +613,7 @@ serve(async (req) => {
             : "Meeting not found";
           return new Response(
             JSON.stringify({ error: errorMsg, code: "NO_ACTIVE_CALL" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -621,7 +629,7 @@ serve(async (req) => {
           if (session.provider_id !== userId && session.patient_id !== userId) {
             return new Response(
               JSON.stringify({ error: "Not authorized to join this meeting. You must be part of this appointment." }),
-              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
             );
           }
         } else {
@@ -632,7 +640,7 @@ serve(async (req) => {
             console.error("❌ Authorization failed - user is neither provider nor patient");
             return new Response(
               JSON.stringify({ error: "Not authorized to join this meeting. You must be part of this appointment." }),
-              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
             );
           }
         }
@@ -670,7 +678,7 @@ serve(async (req) => {
                 code: "MEETING_EXPIRED",
                 canRetry: false,
               }),
-              { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              { status: 410, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
             );
           }
           throw lambdaError; // Re-throw other errors
@@ -702,7 +710,7 @@ serve(async (req) => {
             recordingEnabled: session.recording_enabled,
             transcriptionEnabled: session.transcription_enabled,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -711,7 +719,7 @@ serve(async (req) => {
         if (!meetingId || !userIds || userIds.length === 0) {
           return new Response(
             JSON.stringify({ error: "meetingId and userIds are required for batch-join action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -729,7 +737,7 @@ serve(async (req) => {
             attendees: lambdaResponse.attendees,
             errors: lambdaResponse.errors,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -739,7 +747,7 @@ serve(async (req) => {
         if (!meetingId) {
           return new Response(
             JSON.stringify({ error: "meetingId is required for leave action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -752,7 +760,7 @@ serve(async (req) => {
             message: "Left the call successfully",
             canRejoin: true,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -760,7 +768,7 @@ serve(async (req) => {
         if (!meetingId) {
           return new Response(
             JSON.stringify({ error: "meetingId is required for end action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -774,7 +782,7 @@ serve(async (req) => {
         if (sessionError || !session) {
           return new Response(
             JSON.stringify({ error: "Meeting not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -788,7 +796,7 @@ serve(async (req) => {
               code: "PATIENT_CANNOT_END",
               canLeave: true,
             }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -813,7 +821,7 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ message: "Meeting ended successfully" }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -822,7 +830,7 @@ serve(async (req) => {
         if (!appointmentId) {
           return new Response(
             JSON.stringify({ error: "appointmentId is required for get-status action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -847,7 +855,7 @@ serve(async (req) => {
         if (appointmentError || !appointment) {
           return new Response(
             JSON.stringify({ error: "Appointment not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -859,7 +867,7 @@ serve(async (req) => {
         if (providerUserIdStatus !== userId && appointment.patient_id !== userId) {
           return new Response(
             JSON.stringify({ error: "Not authorized to view this appointment" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -884,7 +892,7 @@ serve(async (req) => {
             isPatient: appointment.patient_id === userId,
             canJoin: !!session && session.status === "active",
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -893,7 +901,7 @@ serve(async (req) => {
         if (!appointmentId) {
           return new Response(
             JSON.stringify({ error: "appointmentId is required for get-link action" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -917,7 +925,7 @@ serve(async (req) => {
         if (appointmentError || !appointment) {
           return new Response(
             JSON.stringify({ error: "Appointment not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 404, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -929,7 +937,7 @@ serve(async (req) => {
         if (providerUserIdLink !== userId) {
           return new Response(
             JSON.stringify({ error: "Only the provider can generate join links" }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 403, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -951,14 +959,14 @@ serve(async (req) => {
             scheduledStart: appointment.scheduled_start,
             message: `Join your video consultation with ${providerUserInfoLink?.full_name || "your provider"}`,
           }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
       }
 
       default:
         return new Response(
           JSON.stringify({ error: "Invalid action" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
     }
   } catch (error) {
@@ -968,7 +976,7 @@ serve(async (req) => {
         error: error.message || "Internal server error",
         details: error.stack,
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
   }
 });
