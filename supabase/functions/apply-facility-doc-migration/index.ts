@@ -1,14 +1,22 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_resp = getCorsHeaders(origin);
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: { ...corsHeaders_resp, ...securityHeaders } });
+  }
+
   // Verify authorization - only allow from localhost or valid auth
   const authHeader = req.headers.get('authorization');
 
   if (!authHeader || !authHeader.includes('Bearer')) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -20,7 +28,7 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       return new Response(
         JSON.stringify({ error: 'Missing Supabase credentials' }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -156,7 +164,7 @@ GRANT SELECT, INSERT, UPDATE ON facility_generated_documents TO service_role;
           success: true,
           message: 'Migration applied successfully',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -169,7 +177,7 @@ GRANT SELECT, INSERT, UPDATE ON facility_generated_documents TO service_role;
         instruction: 'Go to https://supabase.com/dashboard/project/noaeltglphdlkbflipit/sql/new and paste the migration SQL',
         sql: migrationSql,
       }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
+      { status: 400, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error:', error);
@@ -178,7 +186,7 @@ GRANT SELECT, INSERT, UPDATE ON facility_generated_documents TO service_role;
         error: error.message,
         hint: 'Check Supabase logs for details',
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

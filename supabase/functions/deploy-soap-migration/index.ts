@@ -1,13 +1,17 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-export default async (req: Request): Promise<Response> => {
+serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_resp = getCorsHeaders(origin);
+
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders_resp, ...securityHeaders } });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -135,39 +139,39 @@ GRANT ALL ON soap_notes TO service_role;
             fallback: 'This function requires database password for CLI deployment'
           }
         }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        {
+          status: 500,
+          headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' }
         }
       );
     }
-    
+
     console.log('[Deploy SOAP Migration] Migration completed successfully');
-    
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'SOAP notes table created successfully',
         timestamp: new Date().toISOString()
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      {
+        status: 200,
+        headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' }
       }
     );
   } catch (error) {
     console.error('[Deploy SOAP Migration] Error:', error);
-    
+
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      {
+        status: 500,
+        headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
-};
+});
