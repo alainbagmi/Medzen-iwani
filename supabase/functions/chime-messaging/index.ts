@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 
 interface MessagingRequest {
   action: "createChannel" | "sendMessage" | "listMessages" | "listChannels" | "deleteChannel";
@@ -18,8 +15,11 @@ interface MessagingRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -34,7 +34,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -44,7 +44,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -54,7 +54,7 @@ serve(async (req) => {
     if (!action) {
       return new Response(
         JSON.stringify({ error: "action is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -70,7 +70,7 @@ serve(async (req) => {
         if (!appointmentId) {
           return new Response(
             JSON.stringify({ error: "appointmentId is required for createChannel" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -104,7 +104,7 @@ serve(async (req) => {
         if (!channelId || !message) {
           return new Response(
             JSON.stringify({ error: "channelId and message are required for sendMessage" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
         lambdaPayload.channelId = channelId;
@@ -117,7 +117,7 @@ serve(async (req) => {
         if (!channelId) {
           return new Response(
             JSON.stringify({ error: "channelId is required for listMessages" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
         lambdaPayload.channelId = channelId;
@@ -134,7 +134,7 @@ serve(async (req) => {
         if (!channelId) {
           return new Response(
             JSON.stringify({ error: "channelId is required for deleteChannel" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
           );
         }
         lambdaPayload.channelId = channelId;
@@ -143,7 +143,7 @@ serve(async (req) => {
       default:
         return new Response(
           JSON.stringify({ error: `Unknown action: ${action}` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
         );
     }
 

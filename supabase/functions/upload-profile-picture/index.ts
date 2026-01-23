@@ -1,15 +1,15 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts'
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts'
 
 serve(async (req) => {
+  const origin = req.headers.get('origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } })
   }
 
   try {
@@ -38,6 +38,14 @@ serve(async (req) => {
 
     if (userError || !user) {
       throw new Error('Unauthorized')
+    }
+
+    // Rate limiting check (HIPAA: Prevents DDoS and abuse)
+    const rateLimitConfig = getRateLimitConfig('upload-profile-picture', user.id)
+    const rateLimit = await checkRateLimit(rateLimitConfig)
+    if (!rateLimit.allowed) {
+      console.warn(`🚫 Rate limit exceeded for user ${user.id}`)
+      return createRateLimitErrorResponse(rateLimit)
     }
 
     // Get user's firebase_uid from Supabase users table
@@ -159,7 +167,7 @@ serve(async (req) => {
         },
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -171,7 +179,7 @@ serve(async (req) => {
         error: error.message,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
