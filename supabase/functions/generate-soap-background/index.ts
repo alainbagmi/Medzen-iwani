@@ -17,18 +17,12 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { verifyFirebaseToken } from '../_shared/verify-firebase-jwt.ts';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts';
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
 } from 'npm:@aws-sdk/client-bedrock-runtime@3.716.0';
-
-// CORS Headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 interface GenerateSoapRequest {
   sessionId: string;
@@ -44,9 +38,12 @@ interface SoapStructure {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders_dynamic = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders_dynamic, ...securityHeaders } });
   }
 
   try {
@@ -63,9 +60,16 @@ serve(async (req: Request) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('generate-soap-background', auth.user_id || auth.sub || '');
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     // Parse request body
@@ -81,7 +85,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
@@ -135,7 +139,7 @@ serve(async (req: Request) => {
         }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' },
         }
       );
     }

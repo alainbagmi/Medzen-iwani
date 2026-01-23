@@ -11,12 +11,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { verifyFirebaseToken } from "../_shared/verify-firebase-jwt.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-firebase-token",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 
 interface TranscriptSegment {
   speaker_external_id: string;
@@ -33,9 +29,12 @@ interface IngestRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_dynamic = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders_dynamic, ...securityHeaders } });
   }
 
   try {
@@ -51,7 +50,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing x-firebase-token header" }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -92,6 +91,13 @@ serve(async (req) => {
       }
 
       userId = userData.id;
+
+      // Rate limiting check
+      const rateLimitConfig = getRateLimitConfig('ingest-call-transcript', userId);
+      const rateLimit = await checkRateLimit(rateLimitConfig);
+      if (!rateLimit.allowed) {
+        return createRateLimitErrorResponse(rateLimit);
+      }
     } catch (error) {
       console.error("Auth Error:", error);
       return new Response(
@@ -101,7 +107,7 @@ serve(async (req) => {
         }),
         {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -116,7 +122,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Missing session_id or segments" }),
         {
           status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -173,7 +179,7 @@ serve(async (req) => {
         JSON.stringify({ error: "Not authorized to ingest transcripts" }),
         {
           status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -186,7 +192,7 @@ serve(async (req) => {
         JSON.stringify({ ok: true, inserted: 0, message: "No final segments to insert" }),
         {
           status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }
@@ -240,7 +246,7 @@ serve(async (req) => {
         }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" },
         }
       );
     }

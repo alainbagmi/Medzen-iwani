@@ -21,6 +21,9 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { BedrockRuntimeClient, InvokeModelCommand } from 'npm:@aws-sdk/client-bedrock-runtime@3.716.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts';
+import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts';
 
 // AWS Configuration
 const AWS_REGION = Deno.env.get('AWS_REGION') || 'eu-central-1';
@@ -909,12 +912,39 @@ async function insertNormalizedSOAPData(
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders_dynamic = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders_dynamic, ...securityHeaders } });
   }
 
   try {
+    // Verify Firebase JWT
+    const token = req.headers.get('x-firebase-token');
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Firebase token', code: 'MISSING_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const auth = await verifyFirebaseJWT(token);
+    if (!auth.valid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid Firebase token', code: 'INVALID_FIREBASE_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('generate-soap-from-transcript', auth.user_id || auth.sub || '');
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
     const body: SOAPGenerationRequest = await req.json();
@@ -927,7 +957,7 @@ serve(async (req: Request) => {
           success: false,
           error: 'Missing required fields: sessionId, appointmentId, transcriptText',
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -1068,7 +1098,7 @@ serve(async (req: Request) => {
           soapNoteId: soapData.id,
           soapNote: soapJson,
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -1080,7 +1110,7 @@ serve(async (req: Request) => {
         soapNote: soapJson,
         normalizedSoapNote: completeSoapNote,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[SOAP Generation] Error:', error);
@@ -1115,7 +1145,7 @@ serve(async (req: Request) => {
         details: errorDetails,
         timestamp: new Date().toISOString(),
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

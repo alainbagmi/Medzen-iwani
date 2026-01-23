@@ -19,6 +19,9 @@ import {
   InvokeModelCommand,
 } from 'npm:@aws-sdk/client-bedrock-runtime@3.716.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts';
+import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts';
 
 // AWS Bedrock configuration
 const bedrockClient = new BedrockRuntimeClient({
@@ -75,14 +78,41 @@ interface ClinicalNote {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders_dynamic = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders_dynamic, ...securityHeaders } });
   }
 
   const startTime = Date.now();
 
   try {
+    // Verify Firebase JWT
+    const token = req.headers.get('x-firebase-token');
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: 'Missing Firebase token', code: 'MISSING_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const auth = await verifyFirebaseJWT(token);
+    if (!auth.valid) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid Firebase token', code: 'INVALID_FIREBASE_TOKEN', status: 401 }),
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('generate-clinical-note', auth.user_id || auth.sub || '');
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     // Initialize Supabase client with service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -103,7 +133,7 @@ serve(async (req: Request) => {
     if (!sessionId || !appointmentId || !providerId || !patientId) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: sessionId, appointmentId, providerId, patientId' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -120,7 +150,7 @@ serve(async (req: Request) => {
       console.error('Session fetch error:', sessionError);
       return new Response(
         JSON.stringify({ error: 'Session not found or transcript not available' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -128,7 +158,7 @@ serve(async (req: Request) => {
     if (!transcript) {
       return new Response(
         JSON.stringify({ error: 'No transcript available for this session' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -262,7 +292,7 @@ serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
@@ -273,7 +303,7 @@ serve(async (req: Request) => {
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders_dynamic, ...securityHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
