@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { CloudWatchClient, PutMetricDataCommand } from "npm:@aws-sdk/client-cloudwatch@3.716.0";
 import { verifyAwsSignatureV4 } from "../_shared/aws-signature-v4.ts";
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
 
 // CloudWatch client for metrics
 const cloudWatchClient = new CloudWatchClient({
@@ -92,8 +93,11 @@ async function retryWithBackoff<T>(
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_dynamic = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders_dynamic, ...securityHeaders } });
   }
 
   try {
@@ -106,7 +110,7 @@ serve(async (req) => {
       console.error('[Transcription Callback] Unauthorized webhook request - invalid AWS signature');
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -121,7 +125,7 @@ serve(async (req) => {
     if (!meetingId) {
       return new Response(
         JSON.stringify({ error: "meetingId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -136,7 +140,7 @@ serve(async (req) => {
       console.error("Session not found:", sessionError);
       return new Response(
         JSON.stringify({ error: "Session not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -204,7 +208,7 @@ serve(async (req) => {
         message: `Transcription ${status.toLowerCase()}`,
         sessionId: session.id,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error processing transcription callback:", error);
@@ -214,7 +218,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders_dynamic, ...securityHeaders, "Content-Type": "application/json" } }
     );
   }
 });
