@@ -1,6 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { verifyFirebaseToken } from '../_shared/verify-firebase-jwt.ts';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from '../_shared/rate-limiter.ts';
+import { validateUUID } from '../_shared/input-validator.ts';
 
 /**
  * Creates a comprehensive pre-call context snapshot for a video consultation.
@@ -123,25 +126,21 @@ interface ErrorResponse {
   status: number;
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 serve(async (req: Request) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED', status: 405 }),
-      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 405, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
@@ -151,7 +150,7 @@ serve(async (req: Request) => {
     if (!token) {
       return new Response(
         JSON.stringify({ error: 'Missing Firebase token', code: 'MISSING_TOKEN', status: 401 }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -183,17 +182,26 @@ serve(async (req: Request) => {
           status: 401,
           details: errorMsg
         }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const userId = auth.sub || auth.uid;
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('create-context-snapshot', userId);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
+    }
+
     const { encounter_id, appointment_id } = await req.json();
 
-    if (!encounter_id || !appointment_id) {
+    // Input validation - UUIDs must be valid format
+    if (!encounter_id || !validateUUID(encounter_id) || !appointment_id || !validateUUID(appointment_id)) {
       return new Response(
-        JSON.stringify({ error: 'Missing encounter_id or appointment_id', code: 'MISSING_PARAMS', status: 400 }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Missing or invalid encounter_id or appointment_id (must be valid UUIDs)', code: 'MISSING_PARAMS', status: 400 }),
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -233,7 +241,7 @@ serve(async (req: Request) => {
           code: 'APPOINTMENT_NOT_FOUND',
           status: 404,
         }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -256,7 +264,7 @@ serve(async (req: Request) => {
           code: 'PATIENT_NOT_FOUND',
           status: 404,
         }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -389,7 +397,7 @@ serve(async (req: Request) => {
           code: 'SNAPSHOT_CREATION_FAILED',
           status: 500,
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -411,7 +419,7 @@ serve(async (req: Request) => {
           code: 'UPDATE_FAILED',
           status: 500,
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -423,7 +431,7 @@ serve(async (req: Request) => {
         snapshot: snapshotData,
         status: 200,
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[create-context-snapshot] Unexpected error:', error);

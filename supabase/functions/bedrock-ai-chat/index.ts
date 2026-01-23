@@ -4,11 +4,9 @@ import {
   getAvailableBedrockModels,
   validateBedrockModel,
 } from "../_shared/bedrock-models.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
+import { sanitizeString } from "../_shared/input-validator.ts";
 
 interface BedrockRequest {
   message: string;
@@ -70,9 +68,12 @@ function calculateConfidence(
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -82,7 +83,7 @@ serve(async (req) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 401, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -95,7 +96,10 @@ serve(async (req) => {
 
     // Get request body
     const body: BedrockRequest = await req.json();
-    const { message, conversationId, userId, conversationHistory, preferredLanguage } = body;
+    let { message, conversationId, userId, conversationHistory, preferredLanguage } = body;
+
+    // Input sanitization (XSS prevention)
+    message = sanitizeString(message, 2000);
 
     // Validate required fields
     if (!message || !conversationId || !userId) {
@@ -104,8 +108,15 @@ serve(async (req) => {
           success: false,
           error: "Missing required fields: message, conversationId, userId"
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Rate limiting check
+    const rateLimitConfig = getRateLimitConfig('bedrock-ai-chat', userId);
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     // Verify user has access to this conversation and fetch assistant configuration
@@ -118,7 +129,7 @@ serve(async (req) => {
     if (convError || !conversation) {
       return new Response(
         JSON.stringify({ success: false, error: "Conversation not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -315,7 +326,7 @@ serve(async (req) => {
           error: error.message,
           details: "The AI model configured for your account is no longer available. Please contact support."
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -324,7 +335,7 @@ serve(async (req) => {
     if (!bedrockLambdaUrl) {
       return new Response(
         JSON.stringify({ success: false, error: "Bedrock Lambda endpoint not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -523,7 +534,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify(response),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
@@ -533,7 +544,7 @@ serve(async (req) => {
         success: false,
         error: error.message || "Internal server error"
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" } }
     );
   }
 });
