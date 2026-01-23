@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { PDFDocument, PDFPage, rgb } from 'https://esm.sh/pdfkit@0.13.0';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
 import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts';
 
 interface FacilityData {
@@ -36,9 +37,12 @@ interface PrefilledResponse {
 }
 
 serve(async (req): Promise<Response> => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200 });
+    return new Response(null, { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 200, headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -47,7 +51,7 @@ serve(async (req): Promise<Response> => {
     if (!firebaseToken) {
       return new Response(
         JSON.stringify({ error: 'Missing Firebase token', code: 'NO_AUTH_TOKEN', status: 401 }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -56,7 +60,7 @@ serve(async (req): Promise<Response> => {
     if (!auth.valid) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized', code: 'INVALID_FIREBASE_TOKEN', status: 401 }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -65,7 +69,7 @@ serve(async (req): Promise<Response> => {
     if (!facilityId || !templatePath) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters', code: 'INVALID_REQUEST', status: 400 }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -91,7 +95,7 @@ serve(async (req): Promise<Response> => {
       console.warn(`[generate-facility-document] User ${auth.uid} lacks access to facility ${facilityId}`);
       return new Response(
         JSON.stringify({ error: 'Insufficient permissions', code: 'INSUFFICIENT_PERMISSIONS', status: 403 }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -106,7 +110,7 @@ serve(async (req): Promise<Response> => {
       console.error(`[generate-facility-document] Facility not found:`, facilityError);
       return new Response(
         JSON.stringify({ error: 'Facility not found', code: 'FACILITY_NOT_FOUND', status: 404 }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -123,7 +127,7 @@ serve(async (req): Promise<Response> => {
       console.error(`[generate-facility-document] Template download error:`, downloadError);
       return new Response(
         JSON.stringify({ error: 'Template not found', code: 'TEMPLATE_NOT_FOUND', status: 404 }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 404, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -138,7 +142,7 @@ serve(async (req): Promise<Response> => {
       console.error('[generate-facility-document] BEDROCK_LAMBDA_URL not configured');
       return new Response(
         JSON.stringify({ error: 'AI service unavailable', code: 'BEDROCK_UNAVAILABLE', status: 503 }),
-        { status: 503, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 503, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -198,7 +202,7 @@ Respond ONLY with valid JSON.`;
       console.error(`[generate-facility-document] Bedrock error: ${bedrockResponse.status}`);
       return new Response(
         JSON.stringify({ error: 'AI analysis failed', code: 'AI_ANALYSIS_FAILED', status: 500 }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -250,7 +254,7 @@ Respond ONLY with valid JSON.`;
       console.error('[generate-facility-document] Database error:', dbError);
       return new Response(
         JSON.stringify({ error: 'Failed to save document record', code: 'DB_INSERT_FAILED', status: 500 }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -285,7 +289,7 @@ Respond ONLY with valid JSON.`;
         status: 500,
         details: error instanceof Error ? error.message : String(error),
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 });

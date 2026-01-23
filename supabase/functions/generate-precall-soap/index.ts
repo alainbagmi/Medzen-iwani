@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
 import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts';
 
 interface PreCallSOAPRequest {
@@ -241,14 +242,13 @@ Generate a pre-call SOAP note to help the provider prepare. Return valid JSON wi
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // CORS headers
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, x-firebase-token, apikey',
-      },
+      headers: { ...corsHeaders, ...securityHeaders },
     });
   }
 
@@ -262,7 +262,7 @@ serve(async (req) => {
           code: 'INVALID_FIREBASE_TOKEN',
           status: 401,
         }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -274,7 +274,7 @@ serve(async (req) => {
           code: 'INVALID_FIREBASE_TOKEN',
           status: 401,
         }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -290,7 +290,7 @@ serve(async (req) => {
           code: 'INVALID_REQUEST',
           status: 400,
         }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
@@ -443,7 +443,7 @@ serve(async (req) => {
         providerPreparationNotes: soapData.provider_preparation_notes || [],
         soapNote: fullNote,
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in generate-precall-soap:', error);
@@ -454,7 +454,7 @@ serve(async (req) => {
         code: 'INTERNAL_ERROR',
         status: 500,
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, ...securityHeaders, "Content-Type": "application/json" }, status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 });
