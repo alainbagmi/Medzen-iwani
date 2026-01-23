@@ -1,5 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
 import { verifyFirebaseJWT } from '../_shared/verify-firebase-jwt.ts';
 
 interface PatchOp {
@@ -28,10 +30,17 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_resp = getCorsHeaders(origin);
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: { ...corsHeaders_resp, ...securityHeaders } });
+  }
+
   if (req.method !== 'POST') {
     return new Response(
       JSON.stringify({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED', status: 405 }),
-      { status: 405, headers: { 'Content-Type': 'application/json' } }
+      { status: 405, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 
@@ -41,7 +50,7 @@ serve(async (req: Request) => {
     if (!token) {
       return new Response(
         JSON.stringify({ error: 'Missing Firebase token', code: 'MISSING_TOKEN', status: 401 }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -49,8 +58,15 @@ serve(async (req: Request) => {
     if (!auth.valid) {
       return new Response(
         JSON.stringify({ error: 'Invalid Firebase token', code: 'INVALID_FIREBASE_TOKEN', status: 401 }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Rate limiting for authenticated endpoints
+    const rateLimitConfig = getRateLimitConfig('soap-draft-patch', auth.user_id || auth.sub || '');
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     const requestBody = await req.json() as PatchRequest;
@@ -59,7 +75,7 @@ serve(async (req: Request) => {
     if (!encounter_id || ops === undefined) {
       return new Response(
         JSON.stringify({ error: 'Missing encounter_id or ops', code: 'MISSING_PARAMS', status: 400 }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -80,7 +96,7 @@ serve(async (req: Request) => {
       console.error('[soap-draft-patch] Failed to fetch session:', fetchError);
       return new Response(
         JSON.stringify({ error: 'Session not found', code: 'SESSION_NOT_FOUND', status: 404 }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { status: 404, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -98,7 +114,7 @@ serve(async (req: Request) => {
           message: 'Your version is outdated. Please reload the latest version.',
           status: 409,
         }),
-        { status: 409, headers: { 'Content-Type': 'application/json' } }
+        { status: 409, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -168,7 +184,7 @@ serve(async (req: Request) => {
           code: 'UPDATE_FAILED',
           status: 500,
         }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -183,7 +199,7 @@ serve(async (req: Request) => {
         operations_applied: operationsApplied,
         status: 200,
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[soap-draft-patch] Unexpected error:', error);
@@ -193,7 +209,7 @@ serve(async (req: Request) => {
         code: 'INTERNAL_ERROR',
         status: 500,
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

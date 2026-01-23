@@ -31,6 +31,9 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand } from 'npm:@aws-sdk/client-transcribe@3.716.0';
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from 'npm:@aws-sdk/client-s3@3.716.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
+import { verifyFirebaseJWT } from "../_shared/verify-firebase-jwt.ts";
 
 // AWS Configuration
 const AWS_REGION = Deno.env.get('AWS_REGION') || 'eu-central-1';
@@ -42,14 +45,6 @@ const AWS_S3_BUCKET = Deno.env.get('AWS_S3_BUCKET') || 'medzen-audio-uploads';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || '';
-
-// CORS Headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 // AWS Transcribe client
 const transcribeClient = new TranscribeClient({
@@ -69,34 +64,6 @@ const s3Client = new S3Client({
   },
 });
 
-/**
- * Verify Firebase JWT token
- * CRITICAL: This must match the x-firebase-token header from the request
- */
-async function verifyFirebaseToken(token: string): Promise<{ valid: boolean; userId?: string }> {
-  try {
-    if (!token) {
-      return { valid: false };
-    }
-
-    // For local testing, accept test tokens
-    if (token === 'test-token') {
-      return { valid: true, userId: 'test-user' };
-    }
-
-    // In production, verify with Firebase
-    // For now, we'll accept any token that looks like a JWT
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      return { valid: false };
-    }
-
-    return { valid: true, userId: 'authenticated-user' };
-  } catch (error) {
-    console.error('Error verifying token:', error);
-    return { valid: false };
-  }
-}
 
 /**
  * Upload audio file to S3
@@ -279,9 +246,12 @@ async function cleanupS3File(s3Uri: string): Promise<void> {
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_resp = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders_resp, ...securityHeaders } });
   }
 
   try {
@@ -296,11 +266,11 @@ serve(async (req: Request) => {
           error: 'Missing Firebase token',
           code: 'MISSING_TOKEN',
         }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const auth = await verifyFirebaseToken(firebaseToken);
+    const auth = await verifyFirebaseJWT(firebaseToken);
     if (!auth.valid) {
       console.error('[Auth] Invalid Firebase token');
       return new Response(
@@ -308,8 +278,15 @@ serve(async (req: Request) => {
           error: 'Invalid Firebase token',
           code: 'INVALID_TOKEN',
         }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 401, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Rate limiting
+    const rateLimitConfig = getRateLimitConfig('transcribe-audio-section', auth.user_id || auth.sub || '');
+    const rateLimit = await checkRateLimit(rateLimitConfig);
+    if (!rateLimit.allowed) {
+      return createRateLimitErrorResponse(rateLimit);
     }
 
     console.log('[Auth] ✅ Firebase token verified');
@@ -325,7 +302,7 @@ serve(async (req: Request) => {
           error: 'No audio file provided',
           code: 'MISSING_FILE',
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -340,7 +317,7 @@ serve(async (req: Request) => {
           error: `Invalid audio type. Allowed: ${allowedTypes.join(', ')}`,
           code: 'INVALID_FILE_TYPE',
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -353,7 +330,7 @@ serve(async (req: Request) => {
           error: 'File size exceeds 30MB limit',
           code: 'FILE_TOO_LARGE',
         }),
-        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 413, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -385,7 +362,7 @@ serve(async (req: Request) => {
         duration: audioFile.size, // Approximate
         language: 'en-US',
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('[Handler] ❌ Error:', error);
@@ -403,7 +380,7 @@ serve(async (req: Request) => {
         code: errorCode,
         timestamp: new Date().toISOString(),
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

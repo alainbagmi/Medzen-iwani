@@ -14,6 +14,9 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { BedrockRuntimeClient, InvokeModelCommand } from 'npm:@aws-sdk/client-bedrock-runtime@3.716.0';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getCorsHeaders, securityHeaders } from "../_shared/cors.ts";
+import { checkRateLimit, getRateLimitConfig, createRateLimitErrorResponse } from "../_shared/rate-limiter.ts";
+import { verifyFirebaseJWT } from "../_shared/verify-firebase-jwt.ts";
 
 // AWS Configuration
 const AWS_REGION = Deno.env.get('AWS_REGION') || 'eu-central-1';
@@ -26,12 +29,6 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
 const BEDROCK_MODEL_ID = 'eu.anthropic.claude-opus-4-5-20251101-v1:0';
 const TEMPERATURE = 0.1;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-firebase-token',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
 
 interface LiveTranscriptionRequest {
   sessionId: string;
@@ -266,16 +263,38 @@ async function updateSOAPDraft(
 }
 
 serve(async (req: Request) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders_resp = getCorsHeaders(origin);
+
   // CORS
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders_resp, ...securityHeaders } });
   }
 
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { status: 405, headers: { ...corsHeaders_resp, ...securityHeaders } });
   }
 
   try {
+    // Firebase auth
+    const token = req.headers.get("x-firebase-token");
+    if (token) {
+      const auth = await verifyFirebaseJWT(token);
+      if (!auth.valid) {
+        return new Response(
+          JSON.stringify({ error: "Invalid Firebase token", code: "INVALID_FIREBASE_TOKEN", status: 401 }),
+          { status: 401, headers: { ...corsHeaders_resp, ...securityHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Rate limiting for authenticated endpoints
+      const rateLimitConfig = getRateLimitConfig('process-live-transcription', auth.user_id || auth.sub || '');
+      const rateLimit = await checkRateLimit(rateLimitConfig);
+      if (!rateLimit.allowed) {
+        return createRateLimitErrorResponse(rateLimit);
+      }
+    }
+
     const request = (await req.json()) as LiveTranscriptionRequest;
 
     const {
@@ -294,7 +313,7 @@ serve(async (req: Request) => {
           success: false,
           error: 'appointmentId and patientId are required',
         }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -365,7 +384,7 @@ serve(async (req: Request) => {
               .length || 0,
         },
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      { status: 200, headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error in process-live-transcription:', error);
@@ -376,7 +395,7 @@ serve(async (req: Request) => {
       }),
       {
         status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        headers: { ...corsHeaders_resp, ...securityHeaders, 'Content-Type': 'application/json' },
       }
     );
   }
