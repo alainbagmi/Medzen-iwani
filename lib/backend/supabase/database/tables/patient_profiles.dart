@@ -179,4 +179,19 @@ class PatientProfilesRow extends SupabaseDataRow {
 
   String? get bloodType => getField<String>('blood_type');
   set bloodType(String? value) => setField<String>('blood_type', value);
+
+  dynamic? get cumulativeMedicalRecord =>
+      getField<dynamic>('cumulative_medical_record');
+  set cumulativeMedicalRecord(dynamic? value) =>
+      setField<dynamic>('cumulative_medical_record', value);
+
+  DateTime? get medicalRecordLastUpdatedAt =>
+      getField<DateTime>('medical_record_last_updated_at');
+  set medicalRecordLastUpdatedAt(DateTime? value) =>
+      setField<DateTime>('medical_record_last_updated_at', value);
+
+  String? get medicalRecordLastSoapNoteId =>
+      getField<String>('medical_record_last_soap_note_id');
+  set medicalRecordLastSoapNoteId(String? value) =>
+      setField<String>('medical_record_last_soap_note_id', value);
 }

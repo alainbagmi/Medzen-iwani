@@ -22,4 +22,12 @@ export 'get_nearby_facilities.dart' show getNearbyFacilities;
 export 'update_user_location.dart' show updateUserLocation;
 export 'calculate_distance_km.dart' show calculateDistanceKm;
 export 'record_and_transcribe_audio.dart' show recordAndTranscribeAudio;
+export 'generate_facility_document.dart' show generateFacilityDocument;
+export 'confirm_facility_document.dart'
+    show
+        confirmFacilityDocument,
+        saveFacilityDocumentDraft,
+        getFacilityDocument,
+        listFacilityDocuments,
+        decodeDocumentBase64;
 export '_mobile_stubs.dart' show MobileStubs;

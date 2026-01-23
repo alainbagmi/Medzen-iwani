@@ -23,13 +23,11 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import '/environment_values.dart';
 
-// Web-specific imports (conditional)
+// Web-specific imports (WASM-compatible)
 // ignore: avoid_web_libraries_in_flutter
-import 'dart:html' if (dart.library.io) 'chime_meeting_enhanced_stub.dart'
-    as html;
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:ui_web' if (dart.library.io) 'chime_meeting_enhanced_stub.dart'
-    as ui_web;
+import 'package:web/web.dart' as web;
+import 'dart:ui_web' as ui_web;
+import 'dart:js_interop';
 
 /// ✨ ENHANCED CHIME VIDEO CALL WIDGET - AWS Demo Features + Web Support
 ///
@@ -108,7 +106,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
   String? _webViewId;
   bool _webViewRegistered = false;
   Function? _webMessageHandler;
-  html.IFrameElement? _webIframe; // Store iframe reference for postMessage
+  web.HTMLIFrameElement? _webIframe; // Store iframe reference for postMessage
 
   // Enhanced state management (matching AWS demo)
   final Map<String, Map<String, dynamic>> _attendees = {};
@@ -197,7 +195,7 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
       ui_web.platformViewRegistry.registerViewFactory(
         _webViewId!,
         (int viewId) {
-          final iframe = html.IFrameElement()
+          final iframe = web.HTMLIFrameElement()
             ..id = _webViewId!
             ..style.border = 'none'
             ..style.width = '100%'
@@ -266,8 +264,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     };
 
     // ignore: undefined_prefixed_name
-    html.window
-        .addEventListener('message', _webMessageHandler as html.EventListener);
+    web.window
+        .addEventListener('message', _webMessageHandler as dynamic);
     debugPrint('✅ Web message listener set up');
   }
 
@@ -494,8 +492,8 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
     // Cleanup web message listener
     if (kIsWeb && _webMessageHandler != null) {
       // ignore: undefined_prefixed_name
-      html.window.removeEventListener(
-          'message', _webMessageHandler as html.EventListener);
+      web.window.removeEventListener(
+          'message', _webMessageHandler as dynamic);
       debugPrint('✅ Web message listener removed');
     }
 
@@ -2638,15 +2636,15 @@ class _ChimeMeetingEnhancedState extends State<ChimeMeetingEnhanced> {
         final jsonData = jsonEncode(joinData);
         if (_webIframe?.contentWindow != null) {
           // ignore: undefined_prefixed_name
-          _webIframe!.contentWindow!.postMessage(jsonData, '*');
+          _webIframe!.contentWindow!.postMessage(jsonData.toJS, '*'.toJS);
           debugPrint('✅ Join meeting data posted to iframe contentWindow');
         } else {
           // Fallback: try to find iframe by ID if reference not available
           // ignore: undefined_prefixed_name
-          final iframe = html.document.getElementById(_webViewId ?? '')
-              as html.IFrameElement?;
+          final iframe = web.document.getElementById(_webViewId ?? '')
+              as web.HTMLIFrameElement?;
           if (iframe?.contentWindow != null) {
-            iframe!.contentWindow!.postMessage(jsonData, '*');
+            iframe!.contentWindow!.postMessage(jsonData.toJS, '*'.toJS);
             debugPrint(
                 '✅ Join meeting data posted via getElementById fallback');
           } else {

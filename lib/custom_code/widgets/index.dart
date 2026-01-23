@@ -7,3 +7,4 @@ export 'chime_meeting_enhanced_stub.dart' show ChimeMeetingEnhancedStub;
 export 'pre_call_clinical_notes_dialog.dart' show PreCallClinicalNotesDialog;
 export 'soap_sections_viewer.dart' show SoapSectionsViewer;
 export 'soap_note_tabbed_view.dart' show SoapNoteTabbedView;
+export 'facility_document_preview_dialog.dart' show FacilityDocumentPreviewDialog;

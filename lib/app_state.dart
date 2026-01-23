@@ -505,6 +505,41 @@ class FFAppState extends ChangeNotifier {
   set currentSoapEncounterId(String value) {
     _currentSoapEncounterId = value;
   }
+
+  /// Twilio Account SID for SMS/calling functionality
+  String? _twilioAccountSid;
+  String? get twilioAccountSid => _twilioAccountSid;
+  set twilioAccountSid(String? value) {
+    _twilioAccountSid = value;
+  }
+
+  /// Twilio Auth Token for API authentication
+  String? _twilioAuthToken;
+  String? get twilioAuthToken => _twilioAuthToken;
+  set twilioAuthToken(String? value) {
+    _twilioAuthToken = value;
+  }
+
+  /// Amazon Chime App Instance User ARN for video calling
+  String? _chimeAppInstanceUserArn;
+  String? get chimeAppInstanceUserArn => _chimeAppInstanceUserArn;
+  set chimeAppInstanceUserArn(String? value) {
+    _chimeAppInstanceUserArn = value;
+  }
+
+  /// Amazon Chime App Instance ARN for video meeting configuration
+  String? _chimeAppInstanceArn;
+  String? get chimeAppInstanceArn => _chimeAppInstanceArn;
+  set chimeAppInstanceArn(String? value) {
+    _chimeAppInstanceArn = value;
+  }
+
+  /// Twilio Phone Number for SMS/calling operations
+  String? _twilioPhoneNumber;
+  String? get twilioPhoneNumber => _twilioPhoneNumber;
+  set twilioPhoneNumber(String? value) {
+    _twilioPhoneNumber = value;
+  }
 }
 
 void _safeInit(Function() initializeField) {

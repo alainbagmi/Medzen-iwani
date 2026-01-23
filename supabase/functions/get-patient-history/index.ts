@@ -106,7 +106,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Step 2: Get patient profile data
+    // Step 2: Get patient profile data including cumulative medical record
     const { data: patientProfile } = await supabase
       .from("patient_profiles")
       .select(
@@ -114,15 +114,12 @@ serve(async (req: Request): Promise<Response> => {
          date_of_birth,
          gender,
          blood_type,
-         allergies,
          emergency_contact,
          emergency_phone,
-         medical_conditions,
-         current_medications,
-         surgical_history,
-         family_history`
+         cumulative_medical_record,
+         medical_record_last_updated_at`
       )
-      .eq("patient_id", patientId)
+      .eq("user_id", patientId)
       .single();
 
     // Step 3: Get appointment details if appointmentId provided
@@ -187,67 +184,70 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // Parse medications (stored as JSON)
-    const medications: Array<{ name: string; dosage: string; frequency: string }> =
-      [];
-    if (patientProfile?.current_medications) {
-      try {
-        const medsData =
-          typeof patientProfile.current_medications === "string"
-            ? JSON.parse(patientProfile.current_medications)
-            : patientProfile.current_medications;
-        if (Array.isArray(medsData)) {
-          medsData.forEach((med: any) => {
-            medications.push({
-              name: med.name || med,
-              dosage: med.dosage || "",
-              frequency: med.frequency || "",
-            });
+    // Extract from cumulative medical record (JSONB)
+    const cumulativeRecord = patientProfile?.cumulative_medical_record as any || {
+      conditions: [],
+      medications: [],
+      allergies: [],
+      surgical_history: [],
+      family_history: [],
+      metadata: { total_visits: 0 }
+    };
+
+    // Parse medications from cumulative record (active only)
+    const medications: Array<{ name: string; dosage: string; frequency: string }> = [];
+    if (cumulativeRecord?.medications && Array.isArray(cumulativeRecord.medications)) {
+      cumulativeRecord.medications
+        .filter((med: any) => med.status === "active" || !med.status)
+        .forEach((med: any) => {
+          medications.push({
+            name: med.name || "",
+            dosage: med.dose || "",
+            frequency: med.frequency || "",
           });
-        }
-      } catch (e) {
-        console.error("Error parsing medications:", e);
-      }
+        });
     }
 
-    // Parse allergies (stored as array)
+    // Parse allergies from cumulative record
     const allergies: string[] = [];
-    if (patientProfile?.allergies) {
-      if (Array.isArray(patientProfile.allergies)) {
-        allergies.push(...patientProfile.allergies);
-      } else if (typeof patientProfile.allergies === "string") {
-        allergies.push(patientProfile.allergies);
-      }
+    if (cumulativeRecord?.allergies && Array.isArray(cumulativeRecord.allergies)) {
+      cumulativeRecord.allergies.forEach((allergy: any) => {
+        const allergenStr = `${allergy.allergen || "Unknown"}${
+          allergy.severity ? ` (${allergy.severity})` : ""
+        }`;
+        allergies.push(allergenStr);
+      });
     }
 
-    // Parse medical conditions
+    // Parse medical conditions from cumulative record (active only)
     const medicalConditions: string[] = [];
-    if (patientProfile?.medical_conditions) {
-      if (Array.isArray(patientProfile.medical_conditions)) {
-        medicalConditions.push(...patientProfile.medical_conditions);
-      } else if (typeof patientProfile.medical_conditions === "string") {
-        medicalConditions.push(patientProfile.medical_conditions);
-      }
+    if (cumulativeRecord?.conditions && Array.isArray(cumulativeRecord.conditions)) {
+      cumulativeRecord.conditions
+        .filter((cond: any) => cond.status === "active" || !cond.status)
+        .forEach((cond: any) => {
+          const condStr = `${cond.name || "Unknown"}${
+            cond.icd10 ? ` (${cond.icd10})` : ""
+          }`;
+          medicalConditions.push(condStr);
+        });
     }
 
-    // Parse surgical history
+    // Parse surgical history from cumulative record
     const surgicalHistory: string[] = [];
-    if (patientProfile?.surgical_history) {
-      if (Array.isArray(patientProfile.surgical_history)) {
-        surgicalHistory.push(...patientProfile.surgical_history);
-      } else if (typeof patientProfile.surgical_history === "string") {
-        surgicalHistory.push(patientProfile.surgical_history);
-      }
+    if (cumulativeRecord?.surgical_history && Array.isArray(cumulativeRecord.surgical_history)) {
+      cumulativeRecord.surgical_history.forEach((surgery: any) => {
+        const surgStr = typeof surgery === "string" ? surgery : surgery.name || surgery.description || JSON.stringify(surgery);
+        surgicalHistory.push(surgStr);
+      });
     }
 
-    // Parse family history
+    // Parse family history from cumulative record
     const familyHistory: string[] = [];
-    if (patientProfile?.family_history) {
-      if (Array.isArray(patientProfile.family_history)) {
-        familyHistory.push(...patientProfile.family_history);
-      } else if (typeof patientProfile.family_history === "string") {
-        familyHistory.push(patientProfile.family_history);
-      }
+    if (cumulativeRecord?.family_history && Array.isArray(cumulativeRecord.family_history)) {
+      cumulativeRecord.family_history.forEach((family: any) => {
+        const familyStr = typeof family === "string" ? family : family.condition || family.name || JSON.stringify(family);
+        familyHistory.push(familyStr);
+      });
     }
 
     // Build response
