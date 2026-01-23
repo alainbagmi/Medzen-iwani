@@ -3,11 +3,7 @@
 // Used for force logout and other server-initiated notifications
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { getCorsHeaders, securityHeaders } from '../_shared/cors.ts';
 
 interface PushNotificationRequest {
   fcm_token: string;
@@ -17,9 +13,12 @@ interface PushNotificationRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: { ...corsHeaders, ...securityHeaders } });
   }
 
   try {
@@ -28,7 +27,7 @@ serve(async (req) => {
     if (!fcm_token) {
       return new Response(
         JSON.stringify({ error: 'fcm_token is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -41,7 +40,7 @@ serve(async (req) => {
       console.error('Firebase credentials not configured');
       return new Response(
         JSON.stringify({ error: 'Firebase credentials not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -97,13 +96,13 @@ serve(async (req) => {
       if (errorText.includes('UNREGISTERED') || errorText.includes('INVALID_ARGUMENT')) {
         return new Response(
           JSON.stringify({ error: 'Invalid FCM token', details: errorText }),
-          { status: 410, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 410, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
       return new Response(
         JSON.stringify({ error: 'Failed to send notification', details: errorText }),
-        { status: fcmResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: fcmResponse.status, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -112,7 +111,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, messageId: result.name }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, ...securityHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error sending push notification:', error);
